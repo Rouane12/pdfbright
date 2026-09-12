@@ -1,13 +1,13 @@
 # PDFBright — Milestone 0 Foundation
 
-Status: in progress — one external gate remains
+Status: complete
 Last updated: 2026-09-12
 
 ## Locked decisions
 
 - Public brand: PDFBright
 - Core promise: Fix messy PDFs in one click.
-- Target production domain: `pdfbright.app` (selected; ownership pending purchase)
+- Production domain: `pdfbright.app`
 - Domain registrar / DNS: Cloudflare
 - Application: Next.js App Router + TypeScript + React
 - Styling: Tailwind CSS
@@ -16,6 +16,7 @@ Last updated: 2026-09-12
 - Vercel project: `pdfbright`
 - Git integration: `Rouane12/pdfbright` → Vercel
 - First Vercel deployment: READY on 2026-09-12
+- `pdfbright.app` connected to Vercel Production with valid DNS configuration on 2026-09-12
 - PDF inspection/rendering foundation: Mozilla PDF.js
 - PDF manipulation candidate: pdf-lib, subject to compatibility testing
 - OCR prototype: Tesseract.js in workers
@@ -55,9 +56,12 @@ Last updated: 2026-09-12
 - `Rouane12/pdfbright` imported into Vercel.
 - Vercel detected Next.js correctly and deployed the foundation successfully.
 - Vercel deployment state verified as `READY`.
+- `pdfbright.app` purchased through Cloudflare.
+- Cloudflare DNS configured for Vercel with proxy disabled as required.
+- Vercel reports `pdfbright.app` as `Valid Configuration` on Production.
 
-## Remaining Milestone 0 gate
+## Next milestone
 
-- Purchase and secure `pdfbright.app` in Cloudflare, then connect it to the Vercel project.
+Milestone 1 — Marketing Shell + Upload UX.
 
 Billing, authentication, and OCR architecture remain intentionally deferred implementation decisions. Their candidates are recorded now; they are finalized in the milestones where those systems are actually built or benchmarked.
