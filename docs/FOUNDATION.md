@@ -7,6 +7,8 @@ Last updated: 2026-09-12
 
 - Public brand: PDFBright
 - Core promise: Fix messy PDFs in one click.
+- Target production domain: `pdfbright.app` (selected; ownership pending purchase)
+- Domain registrar / DNS: Cloudflare
 - Application: Next.js App Router + TypeScript + React
 - Styling: Tailwind CSS
 - Runtime baseline: Node.js 24 LTS
@@ -36,10 +38,10 @@ Last updated: 2026-09-12
 - Never log filenames, extracted/OCR text, page images, or document content.
 - No V1 feature is added unless it supports Upload → Diagnose → Fix → Download, commercial viability, or privacy/security.
 
-## Still open before Milestone 0 is complete
+## Remaining Milestone 0 gates
 
-- Production domain and ownership
-- Minimal Vercel preview deployment
-- Billing provider final confirmation after account/merchant setup
-- Auth provider final confirmation when account work begins
-- OCR benchmark decision gate (local vs hybrid/server for heavy jobs)
+- Purchase and secure `pdfbright.app` in Cloudflare.
+- Import `Rouane12/pdfbright` into Vercel and obtain a minimal preview deployment.
+- Verify the preview deployment, then merge the foundation PR to `main`.
+
+Billing, authentication, and OCR architecture remain intentionally deferred implementation decisions. Their candidates are recorded now; they are finalized in the milestones where those systems are actually built or benchmarked.
