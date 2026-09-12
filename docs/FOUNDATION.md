@@ -1,6 +1,6 @@
 # PDFBright — Milestone 0 Foundation
 
-Status: in progress
+Status: in progress — one external gate remains
 Last updated: 2026-09-12
 
 ## Locked decisions
@@ -13,6 +13,9 @@ Last updated: 2026-09-12
 - Styling: Tailwind CSS
 - Runtime baseline: Node.js 24 LTS
 - Frontend hosting: Vercel
+- Vercel project: `pdfbright`
+- Git integration: `Rouane12/pdfbright` → Vercel
+- First Vercel deployment: READY on 2026-09-12
 - PDF inspection/rendering foundation: Mozilla PDF.js
 - PDF manipulation candidate: pdf-lib, subject to compatibility testing
 - OCR prototype: Tesseract.js in workers
@@ -38,10 +41,23 @@ Last updated: 2026-09-12
 - Never log filenames, extracted/OCR text, page images, or document content.
 - No V1 feature is added unless it supports Upload → Diagnose → Fix → Download, commercial viability, or privacy/security.
 
-## Remaining Milestone 0 gates
+## Completed Milestone 0 gates
 
-- Purchase and secure `pdfbright.app` in Cloudflare.
-- Import `Rouane12/pdfbright` into Vercel and obtain a minimal preview deployment.
-- Verify the preview deployment, then merge the foundation PR to `main`.
+- Public product name selected: PDFBright.
+- Naming/domain research completed sufficiently for foundation work.
+- Repository created and foundation scaffold established.
+- Next.js + TypeScript + React + Tailwind stack confirmed.
+- Node.js 24 LTS baseline established.
+- Environment/secrets conventions documented.
+- Analytics, billing, auth, PDF, and OCR candidates documented.
+- GitHub Actions quality checks passed for lint, typecheck, and production build.
+- Foundation PR merged into `main`.
+- `Rouane12/pdfbright` imported into Vercel.
+- Vercel detected Next.js correctly and deployed the foundation successfully.
+- Vercel deployment state verified as `READY`.
+
+## Remaining Milestone 0 gate
+
+- Purchase and secure `pdfbright.app` in Cloudflare, then connect it to the Vercel project.
 
 Billing, authentication, and OCR architecture remain intentionally deferred implementation decisions. Their candidates are recorded now; they are finalized in the milestones where those systems are actually built or benchmarked.
