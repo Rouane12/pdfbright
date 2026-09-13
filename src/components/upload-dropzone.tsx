@@ -2,6 +2,7 @@
 
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { AnalysisDebugPanel } from "@/components/analysis-debug-panel";
+import { DiagnosisWorkspace } from "@/components/diagnosis-workspace";
 import { analyzePdfFile } from "@/lib/pdf-analysis/analyze-pdf";
 import {
   PdfAnalysisError,
@@ -180,96 +181,110 @@ export function UploadDropzone() {
         aria-label="Choose a PDF file"
       />
 
-      <div
-        className={`upload-zone ${selectedFile ? "upload-zone--selected" : ""} ${isDragging ? "upload-zone--active" : ""}`}
-        onDragEnter={(event) => {
-          event.preventDefault();
-          setIsDragging(true);
-        }}
-        onDragOver={(event) => {
-          event.preventDefault();
-          setIsDragging(true);
-        }}
-        onDragLeave={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-            setIsDragging(false);
-          }
-        }}
-        onDrop={handleDrop}
-      >
-        {selectedFile ? (
-          <div className="selected-file-shell">
-            <div className="document-icon document-icon--ready shrink-0" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M7 3.75h6.4L18 8.35v11.9H7V3.75Z" stroke="currentColor" strokeWidth="1.6" />
-                <path d="M13 3.9v4.6h4.6" stroke="currentColor" strokeWidth="1.6" />
-                <path d="m9.6 14 1.55 1.55 3.45-3.55" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
+      {selectedFile && analysisResult ? (
+        <DiagnosisWorkspace
+          key={`${analysisResult.analyzedAt}-${selectedFile.name}`}
+          file={selectedFile}
+          result={analysisResult}
+          onReplace={() => inputRef.current?.click()}
+          onRemove={removeFile}
+        />
+      ) : (
+        <div className="mx-auto max-w-2xl">
+          <div
+            className={`upload-zone ${selectedFile ? "upload-zone--selected" : ""} ${isDragging ? "upload-zone--active" : ""}`}
+            onDragEnter={(event) => {
+              event.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                setIsDragging(false);
+              }
+            }}
+            onDrop={handleDrop}
+          >
+            {selectedFile ? (
+              <div className="selected-file-shell">
+                <div className="document-icon document-icon--ready shrink-0" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M7 3.75h6.4L18 8.35v11.9H7V3.75Z" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M13 3.9v4.6h4.6" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="m9.6 14 1.55 1.55 3.45-3.55" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
 
-            <div className="min-w-0 flex-1 text-center sm:text-left">
-              <p className="text-sm font-semibold text-slate-950">PDF selected</p>
-              <p
-                className="mt-1 max-w-full truncate text-base font-medium text-slate-800"
-                title={selectedFile.name}
-              >
-                {selectedFile.name}
-              </p>
-              <p className="mt-1 text-sm text-slate-500">{formatFileSize(selectedFile.size)}</p>
-            </div>
+                <div className="min-w-0 flex-1 text-center sm:text-left">
+                  <p className="text-sm font-semibold text-slate-950">PDF selected</p>
+                  <p
+                    className="mt-1 max-w-full truncate text-base font-medium text-slate-800"
+                    title={selectedFile.name}
+                  >
+                    {selectedFile.name}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">{formatFileSize(selectedFile.size)}</p>
+                </div>
 
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-              <button
-                type="button"
-                className="button button--primary"
-                onClick={() => inputRef.current?.click()}
-              >
-                Replace PDF
-              </button>
-              <button type="button" className="button button--secondary" onClick={removeFile}>
-                Remove
-              </button>
-            </div>
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                  <button
+                    type="button"
+                    className="button button--primary"
+                    onClick={() => inputRef.current?.click()}
+                  >
+                    Replace PDF
+                  </button>
+                  <button type="button" className="button button--secondary" onClick={removeFile}>
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center text-center">
+                <div className="document-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M7 3.75h6.4L18 8.35v11.9H7V3.75Z" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M13 3.9v4.6h4.6" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M9.6 13.2h5M9.6 16h3.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  </svg>
+                </div>
+                <p className="mt-5 text-xl font-semibold tracking-tight text-slate-950">
+                  Drop your PDF here
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-500">or choose a file from your device</p>
+                <button
+                  type="button"
+                  className="button button--primary mt-6"
+                  onClick={() => inputRef.current?.click()}
+                >
+                  Choose a PDF
+                </button>
+                <p className="mt-4 text-xs leading-5 text-slate-500">PDF only · Up to 25 MB</p>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="flex flex-col items-center text-center">
-            <div className="document-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M7 3.75h6.4L18 8.35v11.9H7V3.75Z" stroke="currentColor" strokeWidth="1.6" />
-                <path d="M13 3.9v4.6h4.6" stroke="currentColor" strokeWidth="1.6" />
-                <path d="M9.6 13.2h5M9.6 16h3.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              </svg>
-            </div>
-            <p className="mt-5 text-xl font-semibold tracking-tight text-slate-950">
-              Drop your PDF here
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-500">or choose a file from your device</p>
-            <button
-              type="button"
-              className="button button--primary mt-6"
-              onClick={() => inputRef.current?.click()}
-            >
-              Choose a PDF
-            </button>
-            <p className="mt-4 text-xs leading-5 text-slate-500">PDF only · Up to 25 MB</p>
-          </div>
-        )}
-      </div>
 
-      <div className="mt-4 min-h-6 text-center" aria-live="polite" aria-atomic="true">
-        {error ? (
-          <p className="text-sm font-medium text-rose-700">{error}</p>
-        ) : selectedFile && analysisError ? (
-          <p className="text-sm font-medium text-rose-700">{analysisError}</p>
-        ) : selectedFile && isAnalyzing ? (
-          <p className="text-sm font-medium text-slate-700">{describeProgress(analysisProgress)}</p>
-        ) : selectedFile && analysisResult ? (
-          <p className="text-sm text-slate-600">
-            Analysis complete · {analysisResult.pageCount} {analysisResult.pageCount === 1 ? "page" : "pages"} · Original file unchanged
-          </p>
-        ) : selectedFile ? (
-          <p className="sr-only">PDF selected successfully. Your original file has not been changed.</p>
-        ) : null}
+          <div className="mt-4 min-h-6 text-center" aria-live="polite" aria-atomic="true">
+            {error ? (
+              <p className="text-sm font-medium text-rose-700">{error}</p>
+            ) : selectedFile && analysisError ? (
+              <p className="text-sm font-medium text-rose-700">{analysisError}</p>
+            ) : selectedFile && isAnalyzing ? (
+              <p className="text-sm font-medium text-slate-700">{describeProgress(analysisProgress)}</p>
+            ) : selectedFile ? (
+              <p className="sr-only">PDF selected successfully. Your original file has not been changed.</p>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {selectedFile && analysisResult
+          ? `Analysis complete. ${analysisResult.pageCount} ${analysisResult.pageCount === 1 ? "page" : "pages"}. Diagnosis ready. Original file unchanged.`
+          : null}
       </div>
 
       <p className="mt-4 text-center text-[0.8rem] leading-5 text-slate-600 sm:text-sm">
