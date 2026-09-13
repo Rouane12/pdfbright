@@ -267,7 +267,9 @@ export function DiagnosisWorkspace({ file, result, onReplace, onRemove }: Diagno
                 : `${selectedCount} ${selectedCount === 1 ? "fix" : "fixes"} selected`}
             </p>
             <p id="cleanup-milestone-note" className="mt-1 text-xs leading-5 text-slate-500">
-              Diagnosis is ready. Cleanup execution is connected in the next milestone.
+              {selectedCount === 0
+                ? "Choose a cleanup option if you want to make changes."
+                : "Review your selected fixes before continuing."}
             </p>
           </div>
 
@@ -284,7 +286,7 @@ export function DiagnosisWorkspace({ file, result, onReplace, onRemove }: Diagno
 
         {actionNotice ? (
           <p className="diagnosis-milestone-notice" role="status">
-            Your fix plan is ready. PDFBright is not modifying the file yet; cleanup execution starts in Milestone 4.
+            Your selections are ready. This preview stops before making changes to your file.
           </p>
         ) : null}
       </div>
