@@ -165,10 +165,10 @@ export default function Home() {
       <section id="pricing" className="section-shell" aria-labelledby="pricing-heading">
         <div className="section-inner">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="section-kicker">Simple pricing direction</p>
-            <h2 id="pricing-heading" className="section-title">Start free. Pay only when your workflow gets heavier.</h2>
+            <p className="section-kicker">Simple pricing</p>
+            <h2 id="pricing-heading" className="section-title">Start free. Upgrade when your workflow gets heavier.</h2>
             <p className="section-copy mx-auto">
-              Core cleanup should be useful for free. Pro is planned for larger files, batch work, and heavier OCR usage.
+              Core cleanup is designed to stay useful for free. Pro will add more room for larger files, batch work, and heavier OCR usage.
             </p>
           </div>
 
@@ -179,7 +179,7 @@ export default function Home() {
               <p className="mt-3 text-sm leading-6 text-slate-600">Single-document cleanup with practical limits while we keep local processing generous.</p>
             </article>
             <article className="pricing-card">
-              <p className="text-sm font-semibold text-slate-500">Pro · planned</p>
+              <p className="text-sm font-semibold text-slate-500">Pro · coming later</p>
               <h3 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">For repeat and heavy use</h3>
               <p className="mt-3 text-sm leading-6 text-slate-600">Larger documents, batch workflows, higher OCR allowances, and faster server-assisted processing when needed.</p>
             </article>
