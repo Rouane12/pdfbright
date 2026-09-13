@@ -96,14 +96,14 @@ export default function SecurityPage() {
           <section className={sectionClass}>
             <h2 className="text-xl font-semibold tracking-tight">Claims PDFBright does not make</h2>
             <p className="mt-3 leading-7 text-slate-600">
-              PDFBright does not claim to be “military-grade,” “zero knowledge,” independently security-certified or impossible to compromise. A browser-local architecture reduces some document-handling risk, but browser engines, PDF parsers, dependencies and the user's own device still have security boundaries and failure modes.
+              PDFBright does not claim to be “military-grade,” “zero knowledge,” independently security-certified or impossible to compromise. A browser-local architecture reduces some document-handling risk, but browser engines, PDF parsers, dependencies and the user&apos;s own device still have security boundaries and failure modes.
             </p>
           </section>
 
           <section className={sectionClass}>
             <h2 className="text-xl font-semibold tracking-tight">Future server processing</h2>
             <p className="mt-3 leading-7 text-slate-600">
-              If heavy OCR later moves to a server worker, PDFBright's architecture requires isolated processing, strict CPU/RAM/time limits, private temporary storage, short-lived signed access, automatic deletion, retryable deletion jobs, document-content-free logs and explicit disclosure before the document is sent.
+              If heavy OCR later moves to a server worker, PDFBright&apos;s architecture requires isolated processing, strict CPU/RAM/time limits, private temporary storage, short-lived signed access, automatic deletion, retryable deletion jobs, document-content-free logs and explicit disclosure before the document is sent.
             </p>
           </section>
         </div>
