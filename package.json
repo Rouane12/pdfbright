@@ -12,6 +12,7 @@
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
     "check": "npm run lint && npm run typecheck && npm run build"
   },
   "dependencies": {

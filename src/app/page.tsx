@@ -153,12 +153,19 @@ export default function Home() {
           </div>
           <div className="trust-card">
             <p className="text-base leading-7 text-slate-700">
-              PDFBright is being built local-first. When an operation can run safely in your browser, that is the preferred path. If a future heavy operation needs server processing, we will say so clearly and apply a published deletion policy.
+              In the current version, supported analysis, cleanup, OCR and file optimization run in your browser. PDFBright does not intentionally upload the selected PDF to a document-processing server. Your browser may still make ordinary requests for app and OCR runtime assets.
+            </p>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              If a future heavy operation needs server processing, PDFBright will disclose that before the document is sent and publish the actual retention and deletion behavior.
             </p>
             <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
-              <span className="trust-pill">No signup before value</span>
-              <span className="trust-pill">Local processing where possible</span>
+              <span className="trust-pill">Current processing: local</span>
+              <span className="trust-pill">No signup required</span>
               <span className="trust-pill">No document-content analytics</span>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-4 text-sm font-semibold">
+              <a className="text-indigo-700 hover:underline" href="/privacy">Privacy details</a>
+              <a className="text-indigo-700 hover:underline" href="/security">Security overview</a>
             </div>
           </div>
         </div>
@@ -202,7 +209,7 @@ export default function Home() {
             </details>
             <details className="faq-item">
               <summary>Does PDFBright upload every file?</summary>
-              <p>No. The architecture is local-first. Some heavier operations may later use server processing when quality or performance requires it, and those cases will be disclosed clearly.</p>
+              <p>No. In the current version, supported document processing runs in your browser. If a future server-assisted operation is introduced, PDFBright will disclose it before the document is sent.</p>
             </details>
             <details className="faq-item">
               <summary>Can I use password-protected PDFs?</summary>
@@ -225,6 +232,10 @@ export default function Home() {
       <footer className="border-t border-slate-200/80 bg-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-7 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <p>© 2026 PDFBright</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 font-medium">
+            <a className="hover:text-slate-900" href="/privacy">Privacy</a>
+            <a className="hover:text-slate-900" href="/security">Security</a>
+          </div>
           <p>Fix messy PDFs in one click.</p>
         </div>
       </footer>
