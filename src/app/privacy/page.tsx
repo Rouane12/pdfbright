@@ -28,9 +28,9 @@ export default function PrivacyPage() {
 
       <div className="mx-auto max-w-4xl px-5 py-12 sm:px-6 sm:py-16">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">Privacy</p>
-        <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] sm:text-5xl">Privacy should match the architecture.</h1>
+        <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] sm:text-5xl">How PDFBright handles your documents.</h1>
         <p className="mt-5 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg">
-          PDFBright handles documents that may contain sensitive information, so this page describes what the current product actually does rather than making broad privacy claims.
+          PDFBright handles documents that may contain sensitive information, so this page explains what the current product actually does rather than making broad privacy claims.
         </p>
         <p className="mt-3 text-sm text-slate-500">Last updated: {PROCESSING_POLICY_LAST_UPDATED}</p>
 
@@ -66,7 +66,7 @@ export default function PrivacyPage() {
           <section className={sectionClass}>
             <h2 className="text-xl font-semibold tracking-tight">What PDFBright currently collects</h2>
             <p className="mt-3 leading-7 text-slate-600">
-              The current anonymous cleanup flow does not require an account. PDFBright application code does not intentionally send document contents or filenames to an analytics service, and there is no payment flow in this milestone.
+              The current anonymous cleanup flow does not require an account. PDFBright application code does not intentionally send document contents or filenames to an analytics service, and payment processing is not currently enabled.
             </p>
             <p className="mt-3 leading-7 text-slate-600">
               The site is hosted on infrastructure that may process ordinary web-request metadata needed to deliver the site, such as IP address, browser/user-agent information, requested URLs and timing/security logs. That is different from document processing.
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
           <section className={sectionClass}>
             <h2 className="text-xl font-semibold tracking-tight">Cookies and tracking</h2>
             <p className="mt-3 leading-7 text-slate-600">
-              PDFBright application code does not currently use advertising or product-analytics cookies. Analytics, authentication and billing are later milestones. This policy must be updated before those systems are enabled if they introduce new data collection, cookies or third-party processing.
+              PDFBright application code does not currently use advertising or product-analytics cookies. Analytics, authentication and billing are not currently enabled. This policy must be updated before those systems are enabled if they introduce new data collection, cookies or third-party processing.
             </p>
           </section>
 
@@ -100,7 +100,7 @@ export default function PrivacyPage() {
           <section className={sectionClass}>
             <h2 className="text-xl font-semibold tracking-tight">Policy changes</h2>
             <p className="mt-3 leading-7 text-slate-600">
-              This page describes the current implementation and will change as accounts, analytics, payments or server-assisted processing are introduced. Material changes should be reflected here before the corresponding feature is treated as launch-ready.
+              This page describes the current implementation and will change as accounts, analytics, payments or server-assisted processing are introduced. Material changes should be reflected here before the corresponding feature is made available.
             </p>
           </section>
         </div>
