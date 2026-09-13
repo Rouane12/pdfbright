@@ -85,7 +85,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="mx-auto mt-10 max-w-2xl sm:mt-12">
+          <div className="mx-auto mt-10 max-w-4xl sm:mt-12">
             <UploadDropzone />
           </div>
 
