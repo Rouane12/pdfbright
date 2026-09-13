@@ -72,41 +72,61 @@ function collectLayout(blocks: OcrBlockLike[] | null | undefined): {
 } {
   if (!blocks) return { words: [], lines: [] };
 
-  const words: PdfOcrWord[] = [];
-  const lines: PdfOcrLine[] = [];
+  const entries: Array<{ line: PdfOcrLine; words: PdfOcrWord[] }> = [];
 
   for (const block of blocks) {
     for (const paragraph of block.paragraphs ?? []) {
-      for (const line of paragraph.lines ?? []) {
-        const lineWords = (line.words ?? [])
+      for (const sourceLine of paragraph.lines ?? []) {
+        const rawWords = (sourceLine.words ?? [])
           .map(normalizeWord)
           .filter((word): word is PdfOcrWord => word !== null)
           .sort((a, b) => a.bbox.x0 - b.bbox.x0);
 
-        if (lineWords.length === 0) continue;
-        words.push(...lineWords);
+        if (rawWords.length === 0) continue;
 
-        lines.push({
-          text: lineWords.map((word) => word.text).join(" "),
+        const lineBox = {
+          x0: Math.min(...rawWords.map((word) => word.bbox.x0)),
+          y0: Math.min(...rawWords.map((word) => word.bbox.y0)),
+          x1: Math.max(...rawWords.map((word) => word.bbox.x1)),
+          y1: Math.max(...rawWords.map((word) => word.bbox.y1)),
+        };
+
+        // Give every word in a line the same vertical bounds. The PDF overlay
+        // then uses one consistent baseline/font size for that line, which
+        // prevents viewers from interleaving words from adjacent lines when
+        // users select or copy the invisible OCR text layer.
+        const alignedWords = rawWords.map((word) => ({
+          ...word,
           bbox: {
-            x0: Math.min(...lineWords.map((word) => word.bbox.x0)),
-            y0: Math.min(...lineWords.map((word) => word.bbox.y0)),
-            x1: Math.max(...lineWords.map((word) => word.bbox.x1)),
-            y1: Math.max(...lineWords.map((word) => word.bbox.y1)),
+            x0: word.bbox.x0,
+            y0: lineBox.y0,
+            x1: word.bbox.x1,
+            y1: lineBox.y1,
           },
-          wordCount: lineWords.length,
+        }));
+
+        entries.push({
+          line: {
+            text: alignedWords.map((word) => word.text).join(" "),
+            bbox: lineBox,
+            wordCount: alignedWords.length,
+          },
+          words: alignedWords,
         });
       }
     }
   }
 
-  lines.sort((a, b) => {
-    const verticalDelta = a.bbox.y0 - b.bbox.y0;
+  entries.sort((a, b) => {
+    const verticalDelta = a.line.bbox.y0 - b.line.bbox.y0;
     if (Math.abs(verticalDelta) > 4) return verticalDelta;
-    return a.bbox.x0 - b.bbox.x0;
+    return a.line.bbox.x0 - b.line.bbox.x0;
   });
 
-  return { words, lines };
+  return {
+    lines: entries.map((entry) => entry.line),
+    words: entries.flatMap((entry) => entry.words),
+  };
 }
 
 export async function recognizePdfPages(
