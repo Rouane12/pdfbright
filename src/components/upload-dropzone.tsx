@@ -9,8 +9,11 @@ import {
   type PdfAnalysisProgress,
   type PdfAnalysisResult,
 } from "@/lib/pdf-analysis/types";
-
-const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
+import { PdfPreflightError, preflightPdfFile } from "@/lib/security/pdf-preflight";
+import {
+  MAX_FILE_SIZE_MB,
+  MAX_PAGE_COUNT,
+} from "@/lib/security/processing-policy";
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024 * 1024) {
@@ -20,27 +23,8 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function validateFile(file: File) {
-  const looksLikePdf =
-    file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-
-  if (!looksLikePdf) {
-    return "Please choose a PDF file.";
-  }
-
-  if (file.size === 0) {
-    return "This PDF appears to be empty. Please choose another file.";
-  }
-
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    return "This PDF is larger than the current 25 MB preview limit.";
-  }
-
-  return null;
-}
-
 function describeProgress(progress: PdfAnalysisProgress | null) {
-  if (!progress) return "Preparing local analysis…";
+  if (!progress) return "Validating PDF locally…";
 
   switch (progress.phase) {
     case "loading":
@@ -84,21 +68,6 @@ export function UploadDropzone() {
   async function handleFile(file: File | undefined) {
     if (!file) return;
 
-    const validationError = validateFile(file);
-
-    if (validationError) {
-      analysisRunRef.current += 1;
-      abortRef.current?.abort();
-      abortRef.current = null;
-      setSelectedFile(null);
-      setAnalysisResult(null);
-      setAnalysisProgress(null);
-      setAnalysisError(null);
-      setIsAnalyzing(false);
-      setError(validationError);
-      return;
-    }
-
     const runId = analysisRunRef.current + 1;
     analysisRunRef.current = runId;
     abortRef.current?.abort();
@@ -110,10 +79,14 @@ export function UploadDropzone() {
     setError(null);
     setAnalysisResult(null);
     setAnalysisError(null);
-    setAnalysisProgress({ phase: "loading" });
+    setAnalysisProgress(null);
     setIsAnalyzing(true);
 
     try {
+      await preflightPdfFile(file, controller.signal);
+      if (analysisRunRef.current !== runId) return;
+
+      setAnalysisProgress({ phase: "loading" });
       const result = await analyzePdfFile(file, {
         signal: controller.signal,
         onProgress: (progress) => {
@@ -130,18 +103,25 @@ export function UploadDropzone() {
       if (analysisRunRef.current !== runId) return;
 
       if (
-        analysisFailure instanceof PdfAnalysisError &&
-        analysisFailure.code === "analysis-cancelled"
+        (analysisFailure instanceof PdfPreflightError && analysisFailure.code === "cancelled") ||
+        (analysisFailure instanceof PdfAnalysisError && analysisFailure.code === "analysis-cancelled")
       ) {
         return;
       }
 
       setAnalysisResult(null);
-      setAnalysisError(
-        analysisFailure instanceof PdfAnalysisError
-          ? analysisFailure.message
-          : "PDFBright could not analyze this PDF. Please try another file.",
-      );
+
+      if (analysisFailure instanceof PdfPreflightError) {
+        setSelectedFile(null);
+        setError(analysisFailure.message);
+        setAnalysisError(null);
+      } else {
+        setAnalysisError(
+          analysisFailure instanceof PdfAnalysisError
+            ? analysisFailure.message
+            : "PDFBright could not analyze this PDF. Please try another file.",
+        );
+      }
     } finally {
       if (analysisRunRef.current === runId) {
         setIsAnalyzing(false);
@@ -266,7 +246,9 @@ export function UploadDropzone() {
                 >
                   Choose a PDF
                 </button>
-                <p className="mt-4 text-xs leading-5 text-slate-500">PDF only · Up to 25 MB</p>
+                <p className="mt-4 text-xs leading-5 text-slate-500">
+                  PDF only · Up to {MAX_FILE_SIZE_MB} MB · Up to {MAX_PAGE_COUNT} pages
+                </p>
               </div>
             )}
           </div>
@@ -277,7 +259,9 @@ export function UploadDropzone() {
             ) : selectedFile && analysisError ? (
               <p className="text-sm font-medium text-rose-700">{analysisError}</p>
             ) : selectedFile && isAnalyzing ? (
-              <p className="text-sm font-medium text-slate-700">{describeProgress(analysisProgress)}</p>
+              <p className="text-sm font-medium text-slate-700">
+                {analysisProgress ? describeProgress(analysisProgress) : "Validating PDF locally…"}
+              </p>
             ) : selectedFile ? (
               <p className="sr-only">PDF selected successfully. Your original file has not been changed.</p>
             ) : null}
@@ -292,7 +276,10 @@ export function UploadDropzone() {
       </div>
 
       <p className="mt-4 text-center text-[0.8rem] leading-5 text-slate-600 sm:text-sm">
-        No signup required · Analysis and supported cleanup run locally in your browser
+        Current processing runs locally in your browser · No signup required ·{" "}
+        <a className="font-semibold text-indigo-700 underline-offset-4 hover:underline" href="/privacy">
+          Privacy details
+        </a>
       </p>
 
       {analysisDebugEnabled && analysisResult ? <AnalysisDebugPanel result={analysisResult} /> : null}
