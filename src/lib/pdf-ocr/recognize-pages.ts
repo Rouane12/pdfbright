@@ -1,0 +1,212 @@
+import type {
+  PdfOcrLanguage,
+  PdfOcrPageResult,
+  PdfOcrProgress,
+  PdfOcrRunResult,
+  PdfOcrTarget,
+  PdfOcrWord,
+} from "./types";
+
+const PDF_WORKER_URL = "/vendor/pdf.worker.min.mjs";
+const OCR_RENDER_MAX_DIMENSION = 2400;
+const OCR_RENDER_MAX_SCALE = 3;
+const MIN_WORD_CONFIDENCE = 25;
+
+type OcrBlockLike = {
+  paragraphs?: Array<{
+    lines?: Array<{
+      words?: Array<{
+        text?: string;
+        confidence?: number;
+        bbox?: { x0: number; y0: number; x1: number; y1: number };
+      }>;
+    }>;
+  }>;
+};
+
+export interface RecognizePdfPagesOptions {
+  signal?: AbortSignal;
+  onProgress?: (progress: PdfOcrProgress) => void;
+}
+
+function abortIfNeeded(signal?: AbortSignal) {
+  if (signal?.aborted) {
+    throw new DOMException("OCR cancelled", "AbortError");
+  }
+}
+
+function collectWords(blocks: OcrBlockLike[] | null | undefined): PdfOcrWord[] {
+  if (!blocks) return [];
+
+  const words: PdfOcrWord[] = [];
+  for (const block of blocks) {
+    for (const paragraph of block.paragraphs ?? []) {
+      for (const line of paragraph.lines ?? []) {
+        for (const word of line.words ?? []) {
+          const text = word.text?.trim() ?? "";
+          const confidence = Number.isFinite(word.confidence) ? Number(word.confidence) : 0;
+          const bbox = word.bbox;
+          if (!text || confidence < MIN_WORD_CONFIDENCE || !bbox) continue;
+          if (
+            !Number.isFinite(bbox.x0) ||
+            !Number.isFinite(bbox.y0) ||
+            !Number.isFinite(bbox.x1) ||
+            !Number.isFinite(bbox.y1) ||
+            bbox.x1 <= bbox.x0 ||
+            bbox.y1 <= bbox.y0
+          ) {
+            continue;
+          }
+
+          words.push({
+            text,
+            confidence,
+            bbox: {
+              x0: bbox.x0,
+              y0: bbox.y0,
+              x1: bbox.x1,
+              y1: bbox.y1,
+            },
+          });
+        }
+      }
+    }
+  }
+
+  return words;
+}
+
+export async function recognizePdfPages(
+  pdfBytes: Uint8Array,
+  targets: PdfOcrTarget[],
+  language: PdfOcrLanguage,
+  options: RecognizePdfPagesOptions = {},
+): Promise<PdfOcrRunResult> {
+  const startedAt = performance.now();
+  const { signal, onProgress } = options;
+
+  if (targets.length === 0) {
+    return { pages: [], durationMs: 0 };
+  }
+
+  abortIfNeeded(signal);
+  onProgress?.({ phase: "loading", pageCount: targets.length });
+
+  const pdfjs = await import("pdfjs-dist");
+  pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL;
+  const loadingTask = pdfjs.getDocument({ data: pdfBytes.slice() });
+  const tesseract = await import("tesseract.js");
+
+  let currentPageIndex = 0;
+  let workerTerminated = false;
+  const worker = await tesseract.createWorker(language, tesseract.OEM.LSTM_ONLY, {
+    logger: (message: { status?: string; progress?: number }) => {
+      if (message.status !== "recognizing text") return;
+      onProgress?.({
+        phase: "recognizing",
+        pageNumber: currentPageIndex + 1,
+        pageCount: targets.length,
+        pageProgress: Number.isFinite(message.progress) ? message.progress : undefined,
+      });
+    },
+  });
+
+  const terminateWorker = async () => {
+    if (workerTerminated) return;
+    workerTerminated = true;
+    await worker.terminate();
+  };
+
+  const abortHandler = () => {
+    void terminateWorker();
+  };
+  signal?.addEventListener("abort", abortHandler, { once: true });
+
+  try {
+    const documentProxy = await loadingTask.promise;
+    const pages: PdfOcrPageResult[] = [];
+
+    for (let index = 0; index < targets.length; index += 1) {
+      currentPageIndex = index;
+      abortIfNeeded(signal);
+      const pageStartedAt = performance.now();
+      const target = targets[index];
+      const pdfPage = await documentProxy.getPage(target.outputPageNumber);
+      let canvas: HTMLCanvasElement | null = null;
+
+      try {
+        const baseViewport = pdfPage.getViewport({ scale: 1 });
+        const maxDimension = Math.max(baseViewport.width, baseViewport.height);
+        const scale = Math.max(
+          1,
+          Math.min(OCR_RENDER_MAX_SCALE, OCR_RENDER_MAX_DIMENSION / maxDimension),
+        );
+        const viewport = pdfPage.getViewport({ scale });
+
+        canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(viewport.width));
+        canvas.height = Math.max(1, Math.round(viewport.height));
+        const context = canvas.getContext("2d", { alpha: false });
+        if (!context) {
+          throw new Error("Canvas context unavailable while preparing OCR.");
+        }
+
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        await pdfPage.render({
+          canvas,
+          canvasContext: context,
+          viewport,
+          background: "#ffffff",
+        }).promise;
+
+        abortIfNeeded(signal);
+        onProgress?.({
+          phase: "recognizing",
+          pageNumber: index + 1,
+          pageCount: targets.length,
+          pageProgress: 0,
+        });
+
+        const recognition = await worker.recognize(canvas, {}, { text: true, blocks: true });
+        abortIfNeeded(signal);
+
+        const words = collectWords(recognition.data.blocks as OcrBlockLike[] | null | undefined);
+        const recognizedCharacters = words.reduce(
+          (total, word) => total + word.text.replace(/\s+/g, "").length,
+          0,
+        );
+        const meanConfidence =
+          words.length > 0
+            ? words.reduce((total, word) => total + word.confidence, 0) / words.length
+            : 0;
+
+        pages.push({
+          originalPageNumber: target.originalPageNumber,
+          outputPageNumber: target.outputPageNumber,
+          language,
+          words,
+          recognizedCharacters,
+          meanConfidence,
+          renderWidthPixels: canvas.width,
+          renderHeightPixels: canvas.height,
+          durationMs: Math.round(performance.now() - pageStartedAt),
+        });
+      } finally {
+        if (canvas) {
+          canvas.width = 1;
+          canvas.height = 1;
+        }
+        pdfPage.cleanup();
+      }
+    }
+
+    return {
+      pages,
+      durationMs: Math.round(performance.now() - startedAt),
+    };
+  } finally {
+    signal?.removeEventListener("abort", abortHandler);
+    await Promise.allSettled([terminateWorker(), loadingTask.destroy()]);
+  }
+}
