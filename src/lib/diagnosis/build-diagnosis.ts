@@ -5,6 +5,7 @@ export type DiagnosisFixId =
   | "rotate"
   | "searchable-text"
   | "remove-blank-pages"
+  | "improve-readability"
   | "normalize-pages"
   | "compress";
 
@@ -197,13 +198,18 @@ export const ADVANCED_FIX_OPTIONS: Array<{
     description: "Only after reviewing pages that merely appear blank.",
   },
   {
-    id: "normalize-pages",
-    label: "Make page sizes consistent",
-    description: "Normalize awkward page dimensions where appropriate.",
+    id: "improve-readability",
+    label: "Improve readability",
+    description: "Apply conservative scan cleanup without erasing faint content.",
   },
   {
     id: "compress",
     label: "Make file smaller",
     description: "Optimize image-heavy PDFs while protecting readability.",
+  },
+  {
+    id: "normalize-pages",
+    label: "Make page sizes consistent",
+    description: "Normalize awkward page dimensions where appropriate.",
   },
 ];
