@@ -1,3 +1,4 @@
+import "./diagnosis.css";
 import { UploadDropzone } from "@/components/upload-dropzone";
 
 const fixes = [
