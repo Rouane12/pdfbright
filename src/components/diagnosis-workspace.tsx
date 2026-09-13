@@ -1,12 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CleanupDebugPanel } from "@/components/cleanup-debug-panel";
 import {
   ADVANCED_FIX_OPTIONS,
   buildDiagnosisPlan,
   type DiagnosisFixId,
   type DiagnosisRecommendation,
 } from "@/lib/diagnosis/build-diagnosis";
+import { cleanupPdfFile } from "@/lib/pdf-cleanup/cleanup-pdf";
+import {
+  PdfCleanupError,
+  type PdfCleanupProgress,
+  type PdfCleanupResult,
+  type PdfCleanupSelection,
+} from "@/lib/pdf-cleanup/types";
 import type { PdfAnalysisResult } from "@/lib/pdf-analysis/types";
 
 interface DiagnosisWorkspaceProps {
@@ -14,6 +22,19 @@ interface DiagnosisWorkspaceProps {
   result: PdfAnalysisResult;
   onReplace: () => void;
   onRemove: () => void;
+  debugCleanup?: boolean;
+}
+
+const M4_SUPPORTED_FIXES = new Set<DiagnosisFixId>([
+  "straighten",
+  "rotate",
+  "remove-blank-pages",
+  "improve-readability",
+  "normalize-pages",
+]);
+
+function isCleanupAvailable(id: DiagnosisFixId) {
+  return M4_SUPPORTED_FIXES.has(id);
 }
 
 function formatFileSize(bytes: number) {
@@ -24,8 +45,8 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function initialSelection(plan: ReturnType<typeof buildDiagnosisPlan>) {
-  const selected: Record<DiagnosisFixId, boolean> = {
+function initialSelection(plan: ReturnType<typeof buildDiagnosisPlan>): PdfCleanupSelection {
+  const selected: PdfCleanupSelection = {
     straighten: false,
     rotate: false,
     "searchable-text": false,
@@ -36,13 +57,18 @@ function initialSelection(plan: ReturnType<typeof buildDiagnosisPlan>) {
   };
 
   for (const recommendation of plan.recommendations) {
-    selected[recommendation.id] = recommendation.defaultSelected;
+    if (isCleanupAvailable(recommendation.id)) {
+      selected[recommendation.id] = recommendation.defaultSelected;
+    }
   }
 
   return selected;
 }
 
 function evidenceLabel(item: DiagnosisRecommendation) {
+  if (!isCleanupAvailable(item.id)) {
+    return item.id === "searchable-text" ? "OCR later" : "Compression later";
+  }
   if (item.destructive) return "Review first";
   if (item.evidence === "fact") return "Detected";
   if ((item.confidence ?? 0) >= 0.55) return "Likely";
@@ -53,6 +79,26 @@ function pageListLabel(pageNumbers: number[]) {
   if (pageNumbers.length === 0) return "No specific pages";
   if (pageNumbers.length <= 8) return `Pages ${pageNumbers.join(", ")}`;
   return `Pages ${pageNumbers.slice(0, 8).join(", ")} + ${pageNumbers.length - 8} more`;
+}
+
+function describeCleanupProgress(progress: PdfCleanupProgress | null) {
+  if (!progress) return "Preparing cleanup…";
+
+  switch (progress.phase) {
+    case "preparing":
+      return "Preparing your selected fixes…";
+    case "rendering-visual-fixes":
+      if (progress.pageNumber && progress.pageCount) {
+        return `Cleaning scan ${progress.pageNumber} of ${progress.pageCount}…`;
+      }
+      return "Cleaning scanned pages…";
+    case "applying-page-fixes":
+      return "Applying safe page fixes…";
+    case "saving":
+      return "Building the cleaned PDF…";
+    case "validating":
+      return "Checking the finished PDF…";
+  }
 }
 
 function FindingIcon({ id }: { id: DiagnosisFixId }) {
@@ -108,19 +154,94 @@ function FindingIcon({ id }: { id: DiagnosisFixId }) {
   );
 }
 
-export function DiagnosisWorkspace({ file, result, onReplace, onRemove }: DiagnosisWorkspaceProps) {
+export function DiagnosisWorkspace({
+  file,
+  result,
+  onReplace,
+  onRemove,
+  debugCleanup = false,
+}: DiagnosisWorkspaceProps) {
   const plan = useMemo(() => buildDiagnosisPlan(result), [result]);
-  const [selected, setSelected] = useState<Record<DiagnosisFixId, boolean>>(() =>
-    initialSelection(plan),
-  );
+  const cleanupAbortRef = useRef<AbortController | null>(null);
+  const downloadUrlRef = useRef<string | null>(null);
+  const [selected, setSelected] = useState<PdfCleanupSelection>(() => initialSelection(plan));
   const [reviewing, setReviewing] = useState<DiagnosisFixId | null>(null);
-  const [actionNotice, setActionNotice] = useState(false);
+  const [isCleaning, setIsCleaning] = useState(false);
+  const [cleanupProgress, setCleanupProgress] = useState<PdfCleanupProgress | null>(null);
+  const [cleanupResult, setCleanupResult] = useState<PdfCleanupResult | null>(null);
+  const [cleanupError, setCleanupError] = useState<string | null>(null);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
-  const selectedCount = Object.values(selected).filter(Boolean).length;
+  const selectedCount = Object.entries(selected).filter(
+    ([id, enabled]) => enabled && isCleanupAvailable(id as DiagnosisFixId),
+  ).length;
+
+  useEffect(() => {
+    return () => {
+      cleanupAbortRef.current?.abort();
+      if (downloadUrlRef.current) {
+        URL.revokeObjectURL(downloadUrlRef.current);
+      }
+    };
+  }, []);
+
+  function clearCleanupOutput() {
+    cleanupAbortRef.current?.abort();
+    cleanupAbortRef.current = null;
+    if (downloadUrlRef.current) {
+      URL.revokeObjectURL(downloadUrlRef.current);
+      downloadUrlRef.current = null;
+    }
+    setDownloadUrl(null);
+    setCleanupResult(null);
+    setCleanupError(null);
+    setCleanupProgress(null);
+    setIsCleaning(false);
+  }
 
   function setFix(id: DiagnosisFixId, value: boolean) {
+    if (!isCleanupAvailable(id)) return;
+    clearCleanupOutput();
     setSelected((current) => ({ ...current, [id]: value }));
-    setActionNotice(false);
+  }
+
+  async function runCleanup() {
+    if (selectedCount === 0 || isCleaning) return;
+
+    clearCleanupOutput();
+    const controller = new AbortController();
+    cleanupAbortRef.current = controller;
+    setIsCleaning(true);
+    setCleanupProgress({ phase: "preparing" });
+
+    try {
+      const output = await cleanupPdfFile(file, result, selected, {
+        signal: controller.signal,
+        onProgress: setCleanupProgress,
+      });
+
+      const blobBytes = Uint8Array.from(output.bytes);
+      const url = URL.createObjectURL(
+        new Blob([blobBytes.buffer], { type: "application/pdf" }),
+      );
+      downloadUrlRef.current = url;
+      setDownloadUrl(url);
+      setCleanupResult(output);
+      setCleanupError(null);
+    } catch (error) {
+      if (error instanceof PdfCleanupError && error.code === "cleanup-cancelled") return;
+      setCleanupResult(null);
+      setCleanupError(
+        error instanceof PdfCleanupError
+          ? error.message
+          : "PDFBright could not safely finish this cleanup. Your original file is unchanged.",
+      );
+    } finally {
+      if (cleanupAbortRef.current === controller) {
+        cleanupAbortRef.current = null;
+        setIsCleaning(false);
+      }
+    }
   }
 
   return (
@@ -144,10 +265,15 @@ export function DiagnosisWorkspace({ file, result, onReplace, onRemove }: Diagno
         </div>
 
         <div className="flex shrink-0 gap-2">
-          <button type="button" className="workspace-link" onClick={onReplace}>
+          <button type="button" className="workspace-link" onClick={onReplace} disabled={isCleaning}>
             Replace
           </button>
-          <button type="button" className="workspace-link workspace-link--danger" onClick={onRemove}>
+          <button
+            type="button"
+            className="workspace-link workspace-link--danger"
+            onClick={onRemove}
+            disabled={isCleaning}
+          >
             Remove
           </button>
         </div>
@@ -162,20 +288,21 @@ export function DiagnosisWorkspace({ file, result, onReplace, onRemove }: Diagno
           <p className="diagnosis-intro">
             {plan.isClean
               ? "We did not find any obvious cleanup problems in the checks PDFBright can run today. You can still customize a cleanup plan below."
-              : `${plan.findingCount} ${plan.findingCount === 1 ? "recommendation is" : "recommendations are"} ready. Safe, high-confidence fixes are selected for you; uncertain or destructive changes stay off until you review them.`}
+              : `${plan.findingCount} ${plan.findingCount === 1 ? "recommendation is" : "recommendations are"} ready. Safe fixes that PDFBright can perform now are selected for you; uncertain or destructive changes stay off until you review them.`}
           </p>
         </div>
 
         {plan.recommendations.length > 0 ? (
           <div className="mt-7 space-y-3" role="list" aria-label="Recommended PDF fixes">
             {plan.recommendations.map((item) => {
+              const available = isCleanupAvailable(item.id);
               const isReviewing = reviewing === item.id;
               const controlId = `diagnosis-${item.id}`;
 
               return (
                 <article
                   key={item.id}
-                  className={`diagnosis-finding ${selected[item.id] ? "diagnosis-finding--selected" : ""}`}
+                  className={`diagnosis-finding ${selected[item.id] ? "diagnosis-finding--selected" : ""} ${!available ? "diagnosis-finding--future" : ""}`}
                   role="listitem"
                 >
                   <div className="finding-icon" aria-hidden="true">
@@ -187,13 +314,15 @@ export function DiagnosisWorkspace({ file, result, onReplace, onRemove }: Diagno
                       <h3 className="text-base font-semibold tracking-tight text-slate-950">
                         {item.title}
                       </h3>
-                      <span className={`finding-badge ${item.destructive ? "finding-badge--review" : ""}`}>
+                      <span
+                        className={`finding-badge ${item.destructive ? "finding-badge--review" : ""} ${!available ? "finding-badge--future" : ""}`}
+                      >
                         {evidenceLabel(item)}
                       </span>
                     </div>
                     <p className="mt-1.5 text-sm leading-6 text-slate-600">{item.description}</p>
 
-                    {item.reviewRequired ? (
+                    {item.reviewRequired && available ? (
                       <div className="mt-3">
                         <button
                           type="button"
@@ -220,14 +349,20 @@ export function DiagnosisWorkspace({ file, result, onReplace, onRemove }: Diagno
                     ) : null}
                   </div>
 
-                  <label className="finding-toggle" htmlFor={controlId}>
+                  <label
+                    className={`finding-toggle ${!available ? "finding-toggle--disabled" : ""}`}
+                    htmlFor={controlId}
+                  >
                     <span className="sr-only">
-                      {selected[item.id] ? "Disable" : "Enable"} {item.title}
+                      {available
+                        ? `${selected[item.id] ? "Disable" : "Enable"} ${item.title}`
+                        : `${item.title} is not available in the current cleanup core`}
                     </span>
                     <input
                       id={controlId}
                       type="checkbox"
                       checked={selected[item.id]}
+                      disabled={!available || isCleaning}
                       onChange={(event) => setFix(item.id, event.target.checked)}
                     />
                     <span className="toggle-track" aria-hidden="true">
@@ -243,19 +378,29 @@ export function DiagnosisWorkspace({ file, result, onReplace, onRemove }: Diagno
         <details className="diagnosis-customize mt-6">
           <summary>Customize fixes</summary>
           <div className="advanced-fix-grid">
-            {ADVANCED_FIX_OPTIONS.map((option) => (
-              <label key={option.id} className="advanced-fix-option">
-                <input
-                  type="checkbox"
-                  checked={selected[option.id]}
-                  onChange={(event) => setFix(option.id, event.target.checked)}
-                />
-                <span>
-                  <span className="block text-sm font-semibold text-slate-900">{option.label}</span>
-                  <span className="mt-1 block text-xs leading-5 text-slate-500">{option.description}</span>
-                </span>
-              </label>
-            ))}
+            {ADVANCED_FIX_OPTIONS.map((option) => {
+              const available = isCleanupAvailable(option.id);
+              return (
+                <label
+                  key={option.id}
+                  className={`advanced-fix-option ${!available ? "advanced-fix-option--disabled" : ""}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected[option.id]}
+                    disabled={!available || isCleaning}
+                    onChange={(event) => setFix(option.id, event.target.checked)}
+                  />
+                  <span>
+                    <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
+                      {option.label}
+                      {!available ? <span className="advanced-fix-future">Coming later</span> : null}
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-slate-500">{option.description}</span>
+                  </span>
+                </label>
+              );
+            })}
           </div>
         </details>
 
@@ -263,31 +408,45 @@ export function DiagnosisWorkspace({ file, result, onReplace, onRemove }: Diagno
           <div>
             <p className="text-sm font-semibold text-slate-900">
               {selectedCount === 0
-                ? "No fixes selected"
+                ? "No available fixes selected"
                 : `${selectedCount} ${selectedCount === 1 ? "fix" : "fixes"} selected`}
             </p>
-            <p id="cleanup-milestone-note" className="mt-1 text-xs leading-5 text-slate-500">
-              {selectedCount === 0
-                ? "Choose a cleanup option if you want to make changes."
-                : "Review your selected fixes before continuing."}
+            <p id="cleanup-status-note" className="mt-1 text-xs leading-5 text-slate-500">
+              {isCleaning
+                ? describeCleanupProgress(cleanupProgress)
+                : cleanupResult
+                  ? "Cleanup finished and passed PDFBright's output checks."
+                  : selectedCount === 0
+                    ? "Choose an available cleanup option if you want to make changes."
+                    : "Review your selected fixes before continuing."}
             </p>
           </div>
 
           <button
             type="button"
             className="button button--primary diagnosis-primary-action"
-            disabled={selectedCount === 0}
-            aria-describedby="cleanup-milestone-note"
-            onClick={() => setActionNotice(true)}
+            disabled={selectedCount === 0 || isCleaning}
+            aria-describedby="cleanup-status-note"
+            onClick={() => void runCleanup()}
           >
-            Fix My PDF
+            {isCleaning ? "Fixing PDF…" : "Fix My PDF"}
           </button>
         </div>
 
-        {actionNotice ? (
-          <p className="diagnosis-milestone-notice" role="status">
-            Your selections are ready. This preview stops before making changes to your file.
-          </p>
+        <div aria-live="polite" aria-atomic="true">
+          {cleanupError ? (
+            <p className="diagnosis-cleanup-error" role="alert">
+              {cleanupError} Your original file is unchanged.
+            </p>
+          ) : cleanupResult ? (
+            <p className="diagnosis-cleanup-success" role="status">
+              Cleaned output validated successfully. Your original file was not changed.
+            </p>
+          ) : null}
+        </div>
+
+        {debugCleanup && cleanupResult && downloadUrl ? (
+          <CleanupDebugPanel fileName={file.name} result={cleanupResult} downloadUrl={downloadUrl} />
         ) : null}
       </div>
     </section>
