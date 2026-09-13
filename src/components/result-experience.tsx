@@ -171,6 +171,14 @@ export function ResultExperience({
 
   const report = result.report;
   const gotLarger = report.bytesSaved < 0;
+  const hasVisiblePageChange =
+    report.straightenedPages.length > 0 ||
+    report.rotatedPages.length > 0 ||
+    report.readabilityEnhancedPages.length > 0 ||
+    report.normalizedPages.length > 0;
+  const mainlyInvisibleChanges =
+    !hasVisiblePageChange &&
+    (report.searchableTextPages.length > 0 || report.optimizedPages.length > 0);
 
   return (
     <div className="result-card" aria-labelledby="result-heading">
@@ -187,7 +195,7 @@ export function ResultExperience({
       </p>
 
       <div className="result-size-card">
-        <span>Final file</span>
+        <span>File size</span>
         <strong>{sizeSummary(report)}</strong>
         {gotLarger && report.searchableTextPages.length > 0 ? (
           <p>Searchable text was added, so the cleaned file is a little larger than the original.</p>
@@ -230,6 +238,12 @@ export function ResultExperience({
           </div>
           <span>Original page {pages.originalPage}</span>
         </div>
+
+        {mainlyInvisibleChanges ? (
+          <p className="result-preview-note">
+            Visual appearance is intentionally preserved here; the main changes are searchability and file size.
+          </p>
+        ) : null}
 
         {previewStatus === "loading" ? (
           <div className="result-preview-loading" role="status">Preparing the page comparison…</div>
