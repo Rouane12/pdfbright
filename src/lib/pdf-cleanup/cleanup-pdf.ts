@@ -2,6 +2,10 @@ import type { PdfAnalysisResult, PdfPageAnalysis } from "@/lib/pdf-analysis/type
 import { recognizePdfPages } from "@/lib/pdf-ocr/recognize-pages";
 import type { PdfOcrLanguage, PdfOcrPageResult } from "@/lib/pdf-ocr/types";
 import {
+  PDF_COMPRESSION_PROFILES,
+  type PdfCompressionMode,
+} from "@/lib/pdf-optimization/profiles";
+import {
   PdfCleanupError,
   type PdfCleanupProgress,
   type PdfCleanupResult,
@@ -14,6 +18,8 @@ const VISUAL_RENDER_MAX_DIMENSION = 2200;
 const VISUAL_RENDER_MAX_SCALE = 2.25;
 const MIN_STRAIGHTEN_CONFIDENCE = 0.4;
 const MIN_OCR_CHARACTERS = 3;
+const MIN_MEANINGFUL_COMPRESSION_RATIO = 0.02;
+const MIN_MEANINGFUL_COMPRESSION_BYTES = 1024;
 
 type PdfJsLoadingTask = ReturnType<(typeof import("pdfjs-dist"))["getDocument"]>;
 type PdfJsDocumentProxy = Awaited<PdfJsLoadingTask["promise"]>;
@@ -22,6 +28,7 @@ export interface CleanupPdfOptions {
   signal?: AbortSignal;
   onProgress?: (progress: PdfCleanupProgress) => void;
   ocrLanguage?: PdfOcrLanguage;
+  compressionMode?: PdfCompressionMode;
 }
 
 interface VisualReplacement {
@@ -29,6 +36,7 @@ interface VisualReplacement {
   jpegBytes: Uint8Array;
   straightened: boolean;
   readabilityEnhanced: boolean;
+  optimized: boolean;
 }
 
 function abortIfNeeded(signal?: AbortSignal) {
@@ -78,7 +86,7 @@ function rotateCanvasPreservingBounds(source: HTMLCanvasElement, degreesToRotate
   return output;
 }
 
-function canvasToJpegBytes(canvas: HTMLCanvasElement) {
+function canvasToJpegBytes(canvas: HTMLCanvasElement, quality = 0.96) {
   return new Promise<Uint8Array>((resolve, reject) => {
     canvas.toBlob(
       async (blob) => {
@@ -90,7 +98,7 @@ function canvasToJpegBytes(canvas: HTMLCanvasElement) {
         resolve(new Uint8Array(await blob.arrayBuffer()));
       },
       "image/jpeg",
-      0.96,
+      quality,
     );
   });
 }
@@ -103,6 +111,10 @@ function isVisualCleanupEligible(page: PdfPageAnalysis) {
   );
 }
 
+function isCompressionEligible(page: PdfPageAnalysis) {
+  return isVisualCleanupEligible(page);
+}
+
 function isOcrEligible(page: PdfPageAnalysis) {
   return (
     !page.hasExtractableText &&
@@ -111,10 +123,22 @@ function isOcrEligible(page: PdfPageAnalysis) {
   );
 }
 
+function hasNonCompressionFix(selection: PdfCleanupSelection) {
+  return (
+    selection.rotate ||
+    selection.straighten ||
+    selection["searchable-text"] ||
+    selection["remove-blank-pages"] ||
+    selection["improve-readability"] ||
+    selection["normalize-pages"]
+  );
+}
+
 async function buildVisualReplacement(
   documentProxy: PdfJsDocumentProxy,
   page: PdfPageAnalysis,
   selection: PdfCleanupSelection,
+  compressionMode: PdfCompressionMode,
   signal?: AbortSignal,
 ): Promise<VisualReplacement | null> {
   const wantsStraightening =
@@ -123,8 +147,12 @@ async function buildVisualReplacement(
     page.skew.estimatedDegrees !== null &&
     page.skew.confidence >= MIN_STRAIGHTEN_CONFIDENCE;
   const wantsReadability = selection["improve-readability"];
+  const wantsCompression = selection.compress && isCompressionEligible(page);
 
-  if ((!wantsStraightening && !wantsReadability) || !isVisualCleanupEligible(page)) {
+  if (
+    (!wantsStraightening && !wantsReadability && !wantsCompression) ||
+    !isVisualCleanupEligible(page)
+  ) {
     return null;
   }
 
@@ -137,11 +165,18 @@ async function buildVisualReplacement(
     const annotations = await pdfPage.getAnnotations({ intent: "display" });
     if (annotations.length > 0) return null;
 
+    const compressionProfile = PDF_COMPRESSION_PROFILES[compressionMode];
+    const maxRenderDimension = wantsCompression
+      ? compressionProfile.maxRenderDimension
+      : VISUAL_RENDER_MAX_DIMENSION;
+    const maxRenderScale = wantsCompression
+      ? compressionProfile.maxRenderScale
+      : VISUAL_RENDER_MAX_SCALE;
     const baseViewport = pdfPage.getViewport({ scale: 1, rotation: 0 });
     const maxDimension = Math.max(baseViewport.width, baseViewport.height);
     const scale = Math.max(
       1,
-      Math.min(VISUAL_RENDER_MAX_SCALE, VISUAL_RENDER_MAX_DIMENSION / maxDimension),
+      Math.min(maxRenderScale, maxRenderDimension / maxDimension),
     );
     const viewport = pdfPage.getViewport({ scale, rotation: 0 });
     canvas = document.createElement("canvas");
@@ -175,13 +210,17 @@ async function buildVisualReplacement(
 
     const correction = wantsStraightening ? -(page.skew.estimatedDegrees ?? 0) : 0;
     outputCanvas = rotateCanvasPreservingBounds(canvas, correction);
-    const jpegBytes = await canvasToJpegBytes(outputCanvas);
+    const jpegBytes = await canvasToJpegBytes(
+      outputCanvas,
+      wantsCompression ? compressionProfile.jpegQuality : 0.96,
+    );
 
     return {
       pageNumber: page.pageNumber,
       jpegBytes,
       straightened: wantsStraightening,
       readabilityEnhanced: wantsReadability,
+      optimized: wantsCompression,
     };
   } finally {
     if (canvas) {
@@ -407,15 +446,17 @@ export async function cleanupPdfFile(
   options: CleanupPdfOptions = {},
 ): Promise<PdfCleanupResult> {
   const startedAt = performance.now();
-  const { signal, onProgress, ocrLanguage = "eng" } = options;
+  const {
+    signal,
+    onProgress,
+    ocrLanguage = "eng",
+    compressionMode = "balanced",
+  } = options;
   let analysisLoadingTask: { destroy: () => Promise<void> } | null = null;
 
   try {
     abortIfNeeded(signal);
     onProgress?.({ phase: "preparing" });
-
-    const unsupportedSelectedFixes: Array<"compress"> = [];
-    if (selection.compress) unsupportedSelectedFixes.push("compress");
 
     const supportsAnySelectedFix =
       selection.rotate ||
@@ -423,7 +464,8 @@ export async function cleanupPdfFile(
       selection["searchable-text"] ||
       selection["remove-blank-pages"] ||
       selection["improve-readability"] ||
-      selection["normalize-pages"];
+      selection["normalize-pages"] ||
+      selection.compress;
 
     if (!supportsAnySelectedFix) {
       throw new PdfCleanupError(
@@ -447,6 +489,22 @@ export async function cleanupPdfFile(
     const warnings: string[] = [];
     const visualReplacements = new Map<number, VisualReplacement>();
     const skippedVisualPages: number[] = [];
+    const compressionCandidates = analysis.pages.filter(
+      (page) => !removedPages.has(page.pageNumber) && isCompressionEligible(page),
+    );
+
+    if (selection.compress && compressionCandidates.length === 0) {
+      if (!hasNonCompressionFix(selection)) {
+        throw new PdfCleanupError(
+          "compression-not-applicable",
+          "PDFBright did not find image-only scan pages it can safely recompress without flattening native text or vector content.",
+        );
+      }
+      warnings.push(
+        "File optimization was skipped because no image-only scan pages were safe to recompress.",
+      );
+    }
+
     const visualCandidates = analysis.pages.filter((page) => {
       const straighteningCandidate =
         selection.straighten &&
@@ -455,7 +513,8 @@ export async function cleanupPdfFile(
       const readabilityCandidate =
         selection["improve-readability"] &&
         (page.contentKind === "probable-scan" || page.contentKind === "image-only");
-      return straighteningCandidate || readabilityCandidate;
+      const compressionCandidate = selection.compress && isCompressionEligible(page);
+      return straighteningCandidate || readabilityCandidate || compressionCandidate;
     });
 
     if (visualCandidates.length > 0) {
@@ -469,7 +528,7 @@ export async function cleanupPdfFile(
         abortIfNeeded(signal);
         const page = visualCandidates[index];
         onProgress?.({
-          phase: "rendering-visual-fixes",
+          phase: selection.compress ? "optimizing-file-size" : "rendering-visual-fixes",
           pageNumber: index + 1,
           pageCount: visualCandidates.length,
         });
@@ -478,6 +537,7 @@ export async function cleanupPdfFile(
           documentProxy,
           page,
           selection,
+          compressionMode,
           signal,
         );
 
@@ -486,13 +546,25 @@ export async function cleanupPdfFile(
         } else {
           skippedVisualPages.push(page.pageNumber);
           warnings.push(
-            `Page ${page.pageNumber}: visual cleanup was skipped to preserve content or annotations safely.`,
+            `Page ${page.pageNumber}: visual cleanup or optimization was skipped to preserve content or annotations safely.`,
           );
         }
       }
 
       await task.destroy();
       analysisLoadingTask = null;
+    }
+
+    const optimizedPages = [...visualReplacements.values()]
+      .filter((replacement) => replacement.optimized)
+      .map((replacement) => replacement.pageNumber)
+      .sort((a, b) => a - b);
+
+    if (selection.compress && optimizedPages.length === 0 && !hasNonCompressionFix(selection)) {
+      throw new PdfCleanupError(
+        "compression-not-applicable",
+        "PDFBright could not safely recompress the image-heavy pages in this document. The original file is unchanged.",
+      );
     }
 
     abortIfNeeded(signal);
@@ -612,6 +684,26 @@ export async function cleanupPdfFile(
     abortIfNeeded(signal);
     onProgress?.({ phase: "saving" });
     const outputBytes = await pdfDocument.save();
+    const bytesSaved = sourceBytes.length - outputBytes.length;
+    const sizeReductionPercent =
+      sourceBytes.length > 0 ? (bytesSaved / sourceBytes.length) * 100 : 0;
+
+    if (selection.compress && !hasNonCompressionFix(selection)) {
+      const minimumSavings = Math.max(
+        MIN_MEANINGFUL_COMPRESSION_BYTES,
+        sourceBytes.length * MIN_MEANINGFUL_COMPRESSION_RATIO,
+      );
+      if (bytesSaved < minimumSavings) {
+        throw new PdfCleanupError(
+          "compression-not-effective",
+          "PDFBright could not make this file meaningfully smaller with the selected quality mode without risking readability. Try a stronger mode or keep the original.",
+        );
+      }
+    } else if (selection.compress && bytesSaved <= 0) {
+      warnings.push(
+        "The final file is not smaller overall after the other selected fixes, although eligible scan pages were optimized.",
+      );
+    }
 
     abortIfNeeded(signal);
     onProgress?.({ phase: "validating" });
@@ -648,6 +740,12 @@ export async function cleanupPdfFile(
       report: {
         originalPageCount: analysis.pageCount,
         outputPageCount: validation.outputPageCount,
+        originalFileSizeBytes: sourceBytes.length,
+        outputFileSizeBytes: outputBytes.length,
+        bytesSaved,
+        sizeReductionPercent,
+        compressionMode: selection.compress && optimizedPages.length > 0 ? compressionMode : null,
+        optimizedPages,
         rotatedPages,
         straightenedPages,
         readabilityEnhancedPages,
@@ -659,7 +757,6 @@ export async function cleanupPdfFile(
         ocrWordCount,
         ocrCharacterCount,
         ocrDurationMs,
-        unsupportedSelectedFixes,
         warnings,
         durationMs: Math.round(performance.now() - startedAt),
       },
