@@ -48,12 +48,32 @@ function averageSkewConfidence(result: PdfAnalysisResult) {
   );
 }
 
+function compressionCandidatePages(result: PdfAnalysisResult) {
+  return result.pages
+    .filter(
+      (page) =>
+        !page.blankness.likelyBlank &&
+        (page.contentKind === "probable-scan" || page.contentKind === "image-only"),
+    )
+    .map((page) => page.pageNumber);
+}
+
+function likelyCompressionOpportunity(result: PdfAnalysisResult, pageNumbers: number[]) {
+  if (result.summary.likelyCompressionOpportunity) return true;
+  const bytesPerPage = result.fileSizeBytes / Math.max(result.pageCount, 1);
+  return (
+    pageNumbers.length >= Math.max(1, Math.ceil(result.pageCount * 0.35)) &&
+    bytesPerPage >= 250_000
+  );
+}
+
 export function buildDiagnosisPlan(result: PdfAnalysisResult): DiagnosisPlan {
   const recommendations: DiagnosisRecommendation[] = [];
   const rotatedPages = result.summary.pagesWithRotationMetadata;
   const skewedPages = result.summary.likelySkewedPages;
   const textlessNonblankPages = withoutBlankCandidates(result);
   const blankPages = result.summary.blankPageCandidates;
+  const compressiblePages = compressionCandidatePages(result);
   const skewConfidence = averageSkewConfidence(result);
 
   if (skewedPages.length > 0) {
@@ -102,7 +122,7 @@ export function buildDiagnosisPlan(result: PdfAnalysisResult): DiagnosisPlan {
           ? "Text isn't searchable on 1 page"
           : `Text isn't searchable on ${textlessNonblankPages.length} pages`,
       description:
-        "These pages do not contain extractable text. Searchable text can be added with OCR when that cleanup step is available.",
+        "These pages do not contain extractable text. PDFBright can add a searchable text layer with OCR.",
       pageNumbers: textlessNonblankPages,
       count: textlessNonblankPages.length,
       evidence: "fact",
@@ -148,14 +168,14 @@ export function buildDiagnosisPlan(result: PdfAnalysisResult): DiagnosisPlan {
     });
   }
 
-  if (result.summary.likelyCompressionOpportunity) {
+  if (likelyCompressionOpportunity(result, compressiblePages)) {
     recommendations.push({
       id: "compress",
       title: "This PDF can likely be made smaller",
       description:
-        "The document appears to contain image-heavy pages that may compress well without hurting normal readability.",
-      pageNumbers: result.summary.probableScanPages,
-      count: result.summary.probableScanPages.length,
+        "The document appears to contain image-heavy scan pages that can be optimized while protecting normal readability.",
+      pageNumbers: compressiblePages,
+      count: compressiblePages.length,
       evidence: "heuristic",
       confidence: 0.65,
       defaultSelected: true,
