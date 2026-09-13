@@ -12,6 +12,7 @@ const PDF_WORKER_URL = "/vendor/pdf.worker.min.mjs";
 const OCR_RENDER_MAX_DIMENSION = 2400;
 const OCR_RENDER_MAX_SCALE = 3;
 const MIN_WORD_CONFIDENCE = 25;
+export const LOCAL_OCR_PAGE_LIMIT = 10;
 
 type OcrWordLike = {
   text?: string;
@@ -141,6 +142,12 @@ export async function recognizePdfPages(
 
   if (targets.length === 0) {
     return { pages: [], durationMs: 0 };
+  }
+
+  if (targets.length > LOCAL_OCR_PAGE_LIMIT) {
+    throw new Error(
+      `This PDF has ${targets.length} scanned pages that need OCR. Local OCR is currently limited to ${LOCAL_OCR_PAGE_LIMIT} pages because larger jobs can take several minutes in the browser. Heavy OCR will use server-assisted processing in a future update.`,
+    );
   }
 
   abortIfNeeded(signal);
