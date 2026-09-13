@@ -1,4 +1,6 @@
 import type { PdfAnalysisResult, PdfPageAnalysis } from "@/lib/pdf-analysis/types";
+import { recognizePdfPages } from "@/lib/pdf-ocr/recognize-pages";
+import type { PdfOcrLanguage, PdfOcrPageResult } from "@/lib/pdf-ocr/types";
 import {
   PdfCleanupError,
   type PdfCleanupProgress,
@@ -11,6 +13,7 @@ const PDF_WORKER_URL = "/vendor/pdf.worker.min.mjs";
 const VISUAL_RENDER_MAX_DIMENSION = 2200;
 const VISUAL_RENDER_MAX_SCALE = 2.25;
 const MIN_STRAIGHTEN_CONFIDENCE = 0.4;
+const MIN_OCR_CHARACTERS = 3;
 
 type PdfJsLoadingTask = ReturnType<(typeof import("pdfjs-dist"))["getDocument"]>;
 type PdfJsDocumentProxy = Awaited<PdfJsLoadingTask["promise"]>;
@@ -18,6 +21,7 @@ type PdfJsDocumentProxy = Awaited<PdfJsLoadingTask["promise"]>;
 export interface CleanupPdfOptions {
   signal?: AbortSignal;
   onProgress?: (progress: PdfCleanupProgress) => void;
+  ocrLanguage?: PdfOcrLanguage;
 }
 
 interface VisualReplacement {
@@ -94,6 +98,14 @@ function canvasToJpegBytes(canvas: HTMLCanvasElement) {
 function isVisualCleanupEligible(page: PdfPageAnalysis) {
   return (
     page.rotationDegrees === 0 &&
+    !page.blankness.likelyBlank &&
+    (page.contentKind === "probable-scan" || page.contentKind === "image-only")
+  );
+}
+
+function isOcrEligible(page: PdfPageAnalysis) {
+  return (
+    !page.hasExtractableText &&
     !page.blankness.likelyBlank &&
     (page.contentKind === "probable-scan" || page.contentKind === "image-only")
   );
@@ -184,11 +196,75 @@ async function buildVisualReplacement(
   }
 }
 
+function sanitizeOcrText(text: string) {
+  return text
+    .normalize("NFKC")
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, "-")
+    .replace(/[^\u0020-\u007E\u00A0-\u00FF]/g, "")
+    .trim();
+}
+
+async function applySearchableTextLayer(
+  pdfDocument: import("pdf-lib").PDFDocument,
+  ocrPages: PdfOcrPageResult[],
+) {
+  const { StandardFonts } = await import("pdf-lib");
+  const font = await pdfDocument.embedFont(StandardFonts.Helvetica);
+
+  for (const result of ocrPages) {
+    const page = pdfDocument.getPage(result.outputPageNumber - 1);
+    const pageWidth = page.getWidth();
+    const pageHeight = page.getHeight();
+    const scaleX = pageWidth / result.renderWidthPixels;
+    const scaleY = pageHeight / result.renderHeightPixels;
+
+    for (const word of result.words) {
+      let text = sanitizeOcrText(word.text);
+      if (!text) continue;
+
+      const boxWidth = Math.max(1, (word.bbox.x1 - word.bbox.x0) * scaleX);
+      const boxHeight = Math.max(1, (word.bbox.y1 - word.bbox.y0) * scaleY);
+      let fontSize = Math.max(2.5, boxHeight * 0.84);
+
+      try {
+        const measuredWidth = font.widthOfTextAtSize(text, fontSize);
+        if (measuredWidth > boxWidth * 1.15 && measuredWidth > 0) {
+          fontSize = Math.max(2.5, fontSize * ((boxWidth * 1.08) / measuredWidth));
+        }
+      } catch {
+        text = text.replace(/[^\u0020-\u007E]/g, "").trim();
+        if (!text) continue;
+        const measuredWidth = font.widthOfTextAtSize(text, fontSize);
+        if (measuredWidth > boxWidth * 1.15 && measuredWidth > 0) {
+          fontSize = Math.max(2.5, fontSize * ((boxWidth * 1.08) / measuredWidth));
+        }
+      }
+
+      const x = Math.max(0, word.bbox.x0 * scaleX);
+      const y = Math.max(
+        0,
+        pageHeight - word.bbox.y1 * scaleY + Math.max(0, (boxHeight - fontSize) * 0.2),
+      );
+
+      page.drawText(text, {
+        x,
+        y,
+        size: fontSize,
+        font,
+        opacity: 0,
+      });
+    }
+  }
+}
+
 async function validateOutput(
   outputBytes: Uint8Array,
   analysis: PdfAnalysisResult,
   removedPages: Set<number>,
   visuallyReplacedPages: Set<number>,
+  ocrPages: Map<number, PdfOcrPageResult>,
   signal?: AbortSignal,
 ): Promise<PdfCleanupValidation> {
   abortIfNeeded(signal);
@@ -219,6 +295,7 @@ async function validateOutput(
     }
 
     let checkedTextPages = 0;
+    let checkedOcrPages = 0;
     let checkedVisualPages = 0;
 
     for (let outputIndex = 0; outputIndex < retainedPages.length; outputIndex += 1) {
@@ -240,7 +317,28 @@ async function validateOutput(
           );
         }
 
-        if (original.hasExtractableText && !visuallyReplacedPages.has(original.pageNumber)) {
+        const ocr = ocrPages.get(original.pageNumber);
+        if (ocr) {
+          const textContent = await outputPage.getTextContent();
+          let characters = 0;
+          for (const item of textContent.items) {
+            if ("str" in item && typeof item.str === "string") {
+              characters += item.str.replace(/\s+/g, "").length;
+            }
+          }
+
+          const minimumExpected = Math.max(
+            MIN_OCR_CHARACTERS,
+            Math.floor(ocr.recognizedCharacters * 0.45),
+          );
+          if (characters < minimumExpected) {
+            throw new PdfCleanupError(
+              "output-invalid",
+              `Output page ${outputIndex + 1} did not retain enough searchable OCR text.`,
+            );
+          }
+          checkedOcrPages += 1;
+        } else if (original.hasExtractableText && !visuallyReplacedPages.has(original.pageNumber)) {
           const textContent = await outputPage.getTextContent();
           let characters = 0;
           for (const item of textContent.items) {
@@ -280,6 +378,7 @@ async function validateOutput(
       expectedPageCount,
       outputPageCount: documentProxy.numPages,
       checkedTextPages,
+      checkedOcrPages,
       checkedVisualPages,
     };
   } finally {
@@ -308,20 +407,20 @@ export async function cleanupPdfFile(
   options: CleanupPdfOptions = {},
 ): Promise<PdfCleanupResult> {
   const startedAt = performance.now();
-  const { signal, onProgress } = options;
+  const { signal, onProgress, ocrLanguage = "eng" } = options;
   let analysisLoadingTask: { destroy: () => Promise<void> } | null = null;
 
   try {
     abortIfNeeded(signal);
     onProgress?.({ phase: "preparing" });
 
-    const unsupportedSelectedFixes: Array<"searchable-text" | "compress"> = [];
-    if (selection["searchable-text"]) unsupportedSelectedFixes.push("searchable-text");
+    const unsupportedSelectedFixes: Array<"compress"> = [];
     if (selection.compress) unsupportedSelectedFixes.push("compress");
 
     const supportsAnySelectedFix =
       selection.rotate ||
       selection.straighten ||
+      selection["searchable-text"] ||
       selection["remove-blank-pages"] ||
       selection["improve-readability"] ||
       selection["normalize-pages"];
@@ -399,7 +498,7 @@ export async function cleanupPdfFile(
     abortIfNeeded(signal);
     onProgress?.({ phase: "applying-page-fixes" });
     const { PDFDocument, degrees } = await import("pdf-lib");
-    const pdfDocument = await PDFDocument.load(sourceBytes, { updateMetadata: false });
+    let pdfDocument = await PDFDocument.load(sourceBytes, { updateMetadata: false });
 
     for (const replacement of visualReplacements.values()) {
       const pageIndex = replacement.pageNumber - 1;
@@ -456,17 +555,73 @@ export async function cleanupPdfFile(
       }
     }
 
+    let ocrPages: PdfOcrPageResult[] = [];
+    let ocrDurationMs = 0;
+    if (selection["searchable-text"]) {
+      const targets = analysis.pages
+        .filter((page) => !removedPages.has(page.pageNumber) && isOcrEligible(page))
+        .map((page) => ({
+          originalPageNumber: page.pageNumber,
+          outputPageNumber: retainedOriginalPageNumbers.indexOf(page.pageNumber) + 1,
+        }))
+        .filter((target) => target.outputPageNumber > 0);
+
+      if (targets.length > 0) {
+        abortIfNeeded(signal);
+        onProgress?.({ phase: "ocr-loading", pageCount: targets.length });
+        const intermediateBytes = await pdfDocument.save();
+        const ocr = await recognizePdfPages(
+          intermediateBytes,
+          targets,
+          ocrLanguage,
+          {
+            signal,
+            onProgress: (progress) => {
+              if (progress.phase === "loading") {
+                onProgress?.({ phase: "ocr-loading", pageCount: progress.pageCount });
+              } else {
+                onProgress?.({
+                  phase: "ocr-recognizing",
+                  pageNumber: progress.pageNumber,
+                  pageCount: progress.pageCount,
+                  pageProgress: progress.pageProgress,
+                });
+              }
+            },
+          },
+        );
+
+        for (const page of ocr.pages) {
+          if (page.words.length === 0 || page.recognizedCharacters < MIN_OCR_CHARACTERS) {
+            throw new PdfCleanupError(
+              "ocr-failed",
+              `PDFBright could not recognize enough text on page ${page.originalPageNumber} to add a reliable searchable layer.`,
+            );
+          }
+        }
+
+        ocrPages = ocr.pages;
+        ocrDurationMs = ocr.durationMs;
+        abortIfNeeded(signal);
+        onProgress?.({ phase: "ocr-overlaying", pageCount: ocrPages.length });
+        pdfDocument = await PDFDocument.load(intermediateBytes, { updateMetadata: false });
+        await applySearchableTextLayer(pdfDocument, ocrPages);
+      }
+    }
+
     abortIfNeeded(signal);
     onProgress?.({ phase: "saving" });
     const outputBytes = await pdfDocument.save();
 
     abortIfNeeded(signal);
     onProgress?.({ phase: "validating" });
+    const ocrPageMap = new Map(ocrPages.map((page) => [page.originalPageNumber, page]));
     const validation = await validateOutput(
       outputBytes,
       analysis,
       removedPages,
       new Set(visualReplacements.keys()),
+      ocrPageMap,
       signal,
     );
 
@@ -478,6 +633,14 @@ export async function cleanupPdfFile(
       .filter((replacement) => replacement.readabilityEnhanced)
       .map((replacement) => replacement.pageNumber)
       .sort((a, b) => a - b);
+    const searchableTextPages = ocrPages
+      .map((page) => page.originalPageNumber)
+      .sort((a, b) => a - b);
+    const ocrWordCount = ocrPages.reduce((total, page) => total + page.words.length, 0);
+    const ocrCharacterCount = ocrPages.reduce(
+      (total, page) => total + page.recognizedCharacters,
+      0,
+    );
 
     return {
       bytes: outputBytes,
@@ -488,15 +651,23 @@ export async function cleanupPdfFile(
         rotatedPages,
         straightenedPages,
         readabilityEnhancedPages,
+        searchableTextPages,
         removedBlankPages,
         normalizedPages,
         skippedVisualPages,
+        ocrLanguage: ocrPages.length > 0 ? ocrLanguage : null,
+        ocrWordCount,
+        ocrCharacterCount,
+        ocrDurationMs,
         unsupportedSelectedFixes,
         warnings,
         durationMs: Math.round(performance.now() - startedAt),
       },
     };
   } catch (error) {
+    if (signal?.aborted) {
+      throw new PdfCleanupError("cleanup-cancelled", "PDF cleanup was cancelled.");
+    }
     throw mapCleanupError(error);
   } finally {
     if (analysisLoadingTask) {
