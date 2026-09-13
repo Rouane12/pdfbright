@@ -48,7 +48,7 @@ export function CleanupDebugPanel({ fileName, result, downloadUrl }: CleanupDebu
       <dl className="cleanup-debug-details">
         <div><dt>Searchable text added</dt><dd>{pageList(report.searchableTextPages)}</dd></div>
         <div><dt>OCR language</dt><dd>{report.ocrLanguage ?? "None"}</dd></div>
-        <div><dt>OCR words / characters</dt><dd>{report.ocrWordCount} / {report.ocrCharacterCount}</dd></div>
+        <div><dt>OCR text runs / characters</dt><dd>{report.ocrWordCount} / {report.ocrCharacterCount}</dd></div>
         <div><dt>OCR time</dt><dd>{report.ocrDurationMs} ms</dd></div>
         <div><dt>Rotated</dt><dd>{pageList(report.rotatedPages)}</dd></div>
         <div><dt>Straightened</dt><dd>{pageList(report.straightenedPages)}</dd></div>
