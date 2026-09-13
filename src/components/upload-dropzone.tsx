@@ -68,9 +68,12 @@ export function UploadDropzone() {
   const [analysisProgress, setAnalysisProgress] = useState<PdfAnalysisProgress | null>(null);
   const [analysisResult, setAnalysisResult] = useState<PdfAnalysisResult | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const debugEnabled =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("debug") === "analysis";
+  const debugMode =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("debug")
+      : null;
+  const analysisDebugEnabled = debugMode === "analysis";
+  const cleanupDebugEnabled = debugMode === "cleanup";
 
   useEffect(() => {
     return () => {
@@ -188,6 +191,7 @@ export function UploadDropzone() {
           result={analysisResult}
           onReplace={() => inputRef.current?.click()}
           onRemove={removeFile}
+          debugCleanup={cleanupDebugEnabled}
         />
       ) : (
         <div className="mx-auto max-w-2xl">
@@ -288,10 +292,10 @@ export function UploadDropzone() {
       </div>
 
       <p className="mt-4 text-center text-[0.8rem] leading-5 text-slate-600 sm:text-sm">
-        No signup required · Analysis runs locally in your browser
+        No signup required · Analysis and supported cleanup run locally in your browser
       </p>
 
-      {debugEnabled && analysisResult ? <AnalysisDebugPanel result={analysisResult} /> : null}
+      {analysisDebugEnabled && analysisResult ? <AnalysisDebugPanel result={analysisResult} /> : null}
     </div>
   );
 }
