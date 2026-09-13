@@ -1,5 +1,6 @@
 import type {
   PdfOcrLanguage,
+  PdfOcrLine,
   PdfOcrPageResult,
   PdfOcrProgress,
   PdfOcrRunResult,
@@ -12,14 +13,16 @@ const OCR_RENDER_MAX_DIMENSION = 2400;
 const OCR_RENDER_MAX_SCALE = 3;
 const MIN_WORD_CONFIDENCE = 25;
 
+type OcrWordLike = {
+  text?: string;
+  confidence?: number;
+  bbox?: { x0: number; y0: number; x1: number; y1: number };
+};
+
 type OcrBlockLike = {
   paragraphs?: Array<{
     lines?: Array<{
-      words?: Array<{
-        text?: string;
-        confidence?: number;
-        bbox?: { x0: number; y0: number; x1: number; y1: number };
-      }>;
+      words?: OcrWordLike[];
     }>;
   }>;
 };
@@ -35,45 +38,75 @@ function abortIfNeeded(signal?: AbortSignal) {
   }
 }
 
-function collectWords(blocks: OcrBlockLike[] | null | undefined): PdfOcrWord[] {
-  if (!blocks) return [];
+function normalizeWord(word: OcrWordLike): PdfOcrWord | null {
+  const text = word.text?.trim() ?? "";
+  const confidence = Number.isFinite(word.confidence) ? Number(word.confidence) : 0;
+  const bbox = word.bbox;
+  if (!text || confidence < MIN_WORD_CONFIDENCE || !bbox) return null;
+  if (
+    !Number.isFinite(bbox.x0) ||
+    !Number.isFinite(bbox.y0) ||
+    !Number.isFinite(bbox.x1) ||
+    !Number.isFinite(bbox.y1) ||
+    bbox.x1 <= bbox.x0 ||
+    bbox.y1 <= bbox.y0
+  ) {
+    return null;
+  }
+
+  return {
+    text,
+    confidence,
+    bbox: {
+      x0: bbox.x0,
+      y0: bbox.y0,
+      x1: bbox.x1,
+      y1: bbox.y1,
+    },
+  };
+}
+
+function collectLayout(blocks: OcrBlockLike[] | null | undefined): {
+  words: PdfOcrWord[];
+  lines: PdfOcrLine[];
+} {
+  if (!blocks) return { words: [], lines: [] };
 
   const words: PdfOcrWord[] = [];
+  const lines: PdfOcrLine[] = [];
+
   for (const block of blocks) {
     for (const paragraph of block.paragraphs ?? []) {
       for (const line of paragraph.lines ?? []) {
-        for (const word of line.words ?? []) {
-          const text = word.text?.trim() ?? "";
-          const confidence = Number.isFinite(word.confidence) ? Number(word.confidence) : 0;
-          const bbox = word.bbox;
-          if (!text || confidence < MIN_WORD_CONFIDENCE || !bbox) continue;
-          if (
-            !Number.isFinite(bbox.x0) ||
-            !Number.isFinite(bbox.y0) ||
-            !Number.isFinite(bbox.x1) ||
-            !Number.isFinite(bbox.y1) ||
-            bbox.x1 <= bbox.x0 ||
-            bbox.y1 <= bbox.y0
-          ) {
-            continue;
-          }
+        const lineWords = (line.words ?? [])
+          .map(normalizeWord)
+          .filter((word): word is PdfOcrWord => word !== null)
+          .sort((a, b) => a.bbox.x0 - b.bbox.x0);
 
-          words.push({
-            text,
-            confidence,
-            bbox: {
-              x0: bbox.x0,
-              y0: bbox.y0,
-              x1: bbox.x1,
-              y1: bbox.y1,
-            },
-          });
-        }
+        if (lineWords.length === 0) continue;
+        words.push(...lineWords);
+
+        lines.push({
+          text: lineWords.map((word) => word.text).join(" "),
+          bbox: {
+            x0: Math.min(...lineWords.map((word) => word.bbox.x0)),
+            y0: Math.min(...lineWords.map((word) => word.bbox.y0)),
+            x1: Math.max(...lineWords.map((word) => word.bbox.x1)),
+            y1: Math.max(...lineWords.map((word) => word.bbox.y1)),
+          },
+          wordCount: lineWords.length,
+        });
       }
     }
   }
 
-  return words;
+  lines.sort((a, b) => {
+    const verticalDelta = a.bbox.y0 - b.bbox.y0;
+    if (Math.abs(verticalDelta) > 4) return verticalDelta;
+    return a.bbox.x0 - b.bbox.x0;
+  });
+
+  return { words, lines };
 }
 
 export async function recognizePdfPages(
@@ -171,7 +204,9 @@ export async function recognizePdfPages(
         const recognition = await worker.recognize(canvas, {}, { text: true, blocks: true });
         abortIfNeeded(signal);
 
-        const words = collectWords(recognition.data.blocks as OcrBlockLike[] | null | undefined);
+        const { words, lines } = collectLayout(
+          recognition.data.blocks as OcrBlockLike[] | null | undefined,
+        );
         const recognizedCharacters = words.reduce(
           (total, word) => total + word.text.replace(/\s+/g, "").length,
           0,
@@ -186,6 +221,7 @@ export async function recognizePdfPages(
           outputPageNumber: target.outputPageNumber,
           language,
           words,
+          lines,
           recognizedCharacters,
           meanConfidence,
           renderWidthPixels: canvas.width,
