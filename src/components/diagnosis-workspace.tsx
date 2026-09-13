@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CleanupDebugPanel } from "@/components/cleanup-debug-panel";
+import { ProcessingExperience } from "@/components/processing-experience";
+import { ResultExperience } from "@/components/result-experience";
 import {
   ADVANCED_FIX_OPTIONS,
   buildDiagnosisPlan,
@@ -30,7 +31,7 @@ interface DiagnosisWorkspaceProps {
   debugCleanup?: boolean;
 }
 
-const M6_SUPPORTED_FIXES = new Set<DiagnosisFixId>([
+const M7_SUPPORTED_FIXES = new Set<DiagnosisFixId>([
   "straighten",
   "rotate",
   "searchable-text",
@@ -41,7 +42,7 @@ const M6_SUPPORTED_FIXES = new Set<DiagnosisFixId>([
 ]);
 
 function isCleanupAvailable(id: DiagnosisFixId) {
-  return M6_SUPPORTED_FIXES.has(id);
+  return M7_SUPPORTED_FIXES.has(id);
 }
 
 function formatFileSize(bytes: number) {
@@ -83,44 +84,6 @@ function pageListLabel(pageNumbers: number[]) {
   if (pageNumbers.length === 0) return "No specific pages";
   if (pageNumbers.length <= 8) return `Pages ${pageNumbers.join(", ")}`;
   return `Pages ${pageNumbers.slice(0, 8).join(", ")} + ${pageNumbers.length - 8} more`;
-}
-
-function describeCleanupProgress(progress: PdfCleanupProgress | null) {
-  if (!progress) return "Preparing cleanup…";
-
-  switch (progress.phase) {
-    case "preparing":
-      return "Preparing your selected fixes…";
-    case "rendering-visual-fixes":
-      if (progress.pageNumber && progress.pageCount) {
-        return `Cleaning scan ${progress.pageNumber} of ${progress.pageCount}…`;
-      }
-      return "Cleaning scanned pages…";
-    case "optimizing-file-size":
-      if (progress.pageNumber && progress.pageCount) {
-        return `Optimizing scan ${progress.pageNumber} of ${progress.pageCount}…`;
-      }
-      return "Optimizing file size…";
-    case "applying-page-fixes":
-      return "Applying safe page fixes…";
-    case "ocr-loading":
-      return "Loading local text recognition…";
-    case "ocr-recognizing": {
-      const page = progress.pageNumber && progress.pageCount
-        ? ` page ${progress.pageNumber} of ${progress.pageCount}`
-        : " scanned pages";
-      const percent = typeof progress.pageProgress === "number"
-        ? ` · ${Math.round(progress.pageProgress * 100)}%`
-        : "";
-      return `Making${page} searchable…${percent}`;
-    }
-    case "ocr-overlaying":
-      return "Adding the searchable text layer…";
-    case "saving":
-      return "Building the cleaned PDF…";
-    case "validating":
-      return "Checking the finished PDF…";
-  }
 }
 
 function FindingIcon({ id }: { id: DiagnosisFixId }) {
@@ -237,6 +200,10 @@ export function DiagnosisWorkspace({
     setCompressionMode(value);
   }
 
+  function cancelCleanup() {
+    cleanupAbortRef.current?.abort();
+  }
+
   async function runCleanup() {
     if (selectedCount === 0 || isCleaning) return;
 
@@ -261,12 +228,15 @@ export function DiagnosisWorkspace({
       setCleanupResult(output);
       setCleanupError(null);
     } catch (error) {
-      if (error instanceof PdfCleanupError && error.code === "cleanup-cancelled") return;
+      if (error instanceof PdfCleanupError && error.code === "cleanup-cancelled") {
+        setCleanupProgress(null);
+        return;
+      }
       setCleanupResult(null);
       setCleanupError(
         error instanceof PdfCleanupError
           ? error.message
-          : "PDFBright could not safely finish this cleanup. Your original file is unchanged.",
+          : "PDFBright could not safely finish this cleanup.",
       );
     } finally {
       if (cleanupAbortRef.current === controller) {
@@ -277,7 +247,7 @@ export function DiagnosisWorkspace({
   }
 
   return (
-    <section className="diagnosis-workspace" aria-labelledby="diagnosis-heading">
+    <section className="diagnosis-workspace">
       <div className="diagnosis-file-summary">
         <div className="document-icon document-icon--ready shrink-0" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none">
@@ -294,202 +264,208 @@ export function DiagnosisWorkspace({
           </p>
         </div>
 
-        <div className="flex shrink-0 gap-2">
-          <button type="button" className="workspace-link" onClick={onReplace} disabled={isCleaning}>Replace</button>
-          <button type="button" className="workspace-link workspace-link--danger" onClick={onRemove} disabled={isCleaning}>Remove</button>
-        </div>
+        {cleanupResult ? (
+          <span className="result-file-ready">Ready</span>
+        ) : (
+          <div className="flex shrink-0 gap-2">
+            <button type="button" className="workspace-link" onClick={onReplace} disabled={isCleaning}>Replace</button>
+            <button type="button" className="workspace-link workspace-link--danger" onClick={onRemove} disabled={isCleaning}>Remove</button>
+          </div>
+        )}
       </div>
 
-      <div className="diagnosis-main-card">
-        <div className="max-w-2xl">
-          <p className="section-kicker">Your diagnosis</p>
-          <h2 id="diagnosis-heading" className="diagnosis-title">
-            {plan.isClean ? "This PDF already looks tidy" : "We found a few things we can improve"}
-          </h2>
-          <p className="diagnosis-intro">
-            {plan.isClean
-              ? "We did not find any obvious cleanup problems in the checks PDFBright can run today. You can still customize a cleanup plan below."
-              : `${plan.findingCount} ${plan.findingCount === 1 ? "recommendation is" : "recommendations are"} ready. Safe fixes that PDFBright can perform now are selected for you; uncertain or destructive changes stay off until you review them.`}
-          </p>
-        </div>
-
-        {plan.recommendations.length > 0 ? (
-          <div className="mt-7 space-y-3" role="list" aria-label="Recommended PDF fixes">
-            {plan.recommendations.map((item) => {
-              const available = isCleanupAvailable(item.id);
-              const isReviewing = reviewing === item.id;
-              const controlId = `diagnosis-${item.id}`;
-
-              return (
-                <article
-                  key={item.id}
-                  className={`diagnosis-finding ${selected[item.id] ? "diagnosis-finding--selected" : ""} ${!available ? "diagnosis-finding--future" : ""}`}
-                  role="listitem"
-                >
-                  <div className="finding-icon" aria-hidden="true"><FindingIcon id={item.id} /></div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-base font-semibold tracking-tight text-slate-950">{item.title}</h3>
-                      <span className={`finding-badge ${item.destructive ? "finding-badge--review" : ""} ${!available ? "finding-badge--future" : ""}`}>
-                        {evidenceLabel(item)}
-                      </span>
-                    </div>
-                    <p className="mt-1.5 text-sm leading-6 text-slate-600">{item.description}</p>
-
-                    {item.reviewRequired && available ? (
-                      <div className="mt-3">
-                        <button
-                          type="button"
-                          className="review-button"
-                          aria-expanded={isReviewing}
-                          aria-controls={`${controlId}-review`}
-                          onClick={() => setReviewing(isReviewing ? null : item.id)}
-                        >
-                          {isReviewing ? "Hide review" : "Review pages"}
-                        </button>
-                        {isReviewing ? (
-                          <div id={`${controlId}-review`} className="review-panel">
-                            <p className="font-semibold text-slate-800">{pageListLabel(item.pageNumbers)}</p>
-                            <p className="mt-1 text-slate-600">This is a heuristic finding. Keep removal disabled unless these pages are safe to delete.</p>
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : item.pageNumbers.length > 0 && item.pageNumbers.length <= 5 ? (
-                      <p className="mt-2 text-xs font-medium text-slate-500">{pageListLabel(item.pageNumbers)}</p>
-                    ) : null}
-                  </div>
-
-                  <label className={`finding-toggle ${!available ? "finding-toggle--disabled" : ""}`} htmlFor={controlId}>
-                    <span className="sr-only">
-                      {available ? `${selected[item.id] ? "Disable" : "Enable"} ${item.title}` : `${item.title} is not available yet`}
-                    </span>
-                    <input
-                      id={controlId}
-                      type="checkbox"
-                      checked={selected[item.id]}
-                      disabled={!available || isCleaning}
-                      onChange={(event) => setFix(item.id, event.target.checked)}
-                    />
-                    <span className="toggle-track" aria-hidden="true"><span className="toggle-thumb" /></span>
-                  </label>
-                </article>
-              );
-            })}
+      {isCleaning ? (
+        <ProcessingExperience fileName={file.name} progress={cleanupProgress} onCancel={cancelCleanup} />
+      ) : cleanupResult && downloadUrl ? (
+        <ResultExperience
+          file={file}
+          result={cleanupResult}
+          downloadUrl={downloadUrl}
+          onCleanAnother={onRemove}
+          debugCleanup={debugCleanup}
+        />
+      ) : (
+        <div className="diagnosis-main-card">
+          <div className="max-w-2xl">
+            <p className="section-kicker">Your diagnosis</p>
+            <h2 id="diagnosis-heading" className="diagnosis-title">
+              {plan.isClean ? "This PDF already looks tidy" : "We found a few things we can improve"}
+            </h2>
+            <p className="diagnosis-intro">
+              {plan.isClean
+                ? "We did not find any obvious cleanup problems in the checks PDFBright can run today. You can still customize a cleanup plan below."
+                : `${plan.findingCount} ${plan.findingCount === 1 ? "recommendation is" : "recommendations are"} ready. Safe fixes that PDFBright can perform now are selected for you; uncertain or destructive changes stay off until you review them.`}
+            </p>
           </div>
-        ) : null}
 
-        <details className="diagnosis-customize mt-6">
-          <summary>Customize fixes</summary>
-          <div className="advanced-fix-grid">
-            {ADVANCED_FIX_OPTIONS.map((option) => {
-              const available = isCleanupAvailable(option.id);
-              return (
-                <label key={option.id} className={`advanced-fix-option ${!available ? "advanced-fix-option--disabled" : ""}`}>
-                  <input
-                    type="checkbox"
-                    checked={selected[option.id]}
-                    disabled={!available || isCleaning}
-                    onChange={(event) => setFix(option.id, event.target.checked)}
-                  />
-                  <span>
-                    <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
-                      {option.label}
-                      {!available ? <span className="advanced-fix-future">Coming later</span> : null}
+          {plan.recommendations.length > 0 ? (
+            <div className="mt-7 space-y-3" role="list" aria-label="Recommended PDF fixes">
+              {plan.recommendations.map((item) => {
+                const available = isCleanupAvailable(item.id);
+                const isReviewing = reviewing === item.id;
+                const controlId = `diagnosis-${item.id}`;
+
+                return (
+                  <article
+                    key={item.id}
+                    className={`diagnosis-finding ${selected[item.id] ? "diagnosis-finding--selected" : ""} ${!available ? "diagnosis-finding--future" : ""}`}
+                    role="listitem"
+                  >
+                    <div className="finding-icon" aria-hidden="true"><FindingIcon id={item.id} /></div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-base font-semibold tracking-tight text-slate-950">{item.title}</h3>
+                        <span className={`finding-badge ${item.destructive ? "finding-badge--review" : ""} ${!available ? "finding-badge--future" : ""}`}>
+                          {evidenceLabel(item)}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 text-sm leading-6 text-slate-600">{item.description}</p>
+
+                      {item.reviewRequired && available ? (
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            className="review-button"
+                            aria-expanded={isReviewing}
+                            aria-controls={`${controlId}-review`}
+                            onClick={() => setReviewing(isReviewing ? null : item.id)}
+                          >
+                            {isReviewing ? "Hide review" : "Review pages"}
+                          </button>
+                          {isReviewing ? (
+                            <div id={`${controlId}-review`} className="review-panel">
+                              <p className="font-semibold text-slate-800">{pageListLabel(item.pageNumbers)}</p>
+                              <p className="mt-1 text-slate-600">This is a heuristic finding. Keep removal disabled unless these pages are safe to delete.</p>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : item.pageNumbers.length > 0 && item.pageNumbers.length <= 5 ? (
+                        <p className="mt-2 text-xs font-medium text-slate-500">{pageListLabel(item.pageNumbers)}</p>
+                      ) : null}
+                    </div>
+
+                    <label className={`finding-toggle ${!available ? "finding-toggle--disabled" : ""}`} htmlFor={controlId}>
+                      <span className="sr-only">
+                        {available ? `${selected[item.id] ? "Disable" : "Enable"} ${item.title}` : `${item.title} is not available yet`}
+                      </span>
+                      <input
+                        id={controlId}
+                        type="checkbox"
+                        checked={selected[item.id]}
+                        disabled={!available || isCleaning}
+                        onChange={(event) => setFix(item.id, event.target.checked)}
+                      />
+                      <span className="toggle-track" aria-hidden="true"><span className="toggle-thumb" /></span>
+                    </label>
+                  </article>
+                );
+              })}
+            </div>
+          ) : null}
+
+          <details className="diagnosis-customize mt-6">
+            <summary>Customize fixes</summary>
+            <div className="advanced-fix-grid">
+              {ADVANCED_FIX_OPTIONS.map((option) => {
+                const available = isCleanupAvailable(option.id);
+                return (
+                  <label key={option.id} className={`advanced-fix-option ${!available ? "advanced-fix-option--disabled" : ""}`}>
+                    <input
+                      type="checkbox"
+                      checked={selected[option.id]}
+                      disabled={!available || isCleaning}
+                      onChange={(event) => setFix(option.id, event.target.checked)}
+                    />
+                    <span>
+                      <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
+                        {option.label}
+                        {!available ? <span className="advanced-fix-future">Coming later</span> : null}
+                      </span>
+                      <span className="mt-1 block text-xs leading-5 text-slate-500">{option.description}</span>
                     </span>
-                    <span className="mt-1 block text-xs leading-5 text-slate-500">{option.description}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            {selected["searchable-text"] ? (
+              <div className="border-t border-slate-200 px-4 py-4">
+                <label className="block max-w-sm" htmlFor="ocr-language">
+                  <span className="block text-sm font-semibold text-slate-900">OCR language</span>
+                  <span className="mt-1 block text-xs leading-5 text-slate-500">
+                    Choose the main language printed on the scanned pages. Recognition runs locally in your browser; the language model may be downloaded and cached.
+                  </span>
+                  <select
+                    id="ocr-language"
+                    value={ocrLanguage}
+                    disabled={isCleaning}
+                    onChange={(event) => changeOcrLanguage(event.target.value as PdfOcrLanguage)}
+                    className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                  >
+                    {OCR_LANGUAGE_OPTIONS.map((language) => (
+                      <option key={language.code} value={language.code}>{language.label}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            ) : null}
+
+            {selected.compress ? (
+              <div className="border-t border-slate-200 px-4 py-4">
+                <label className="block max-w-sm" htmlFor="compression-mode">
+                  <span className="block text-sm font-semibold text-slate-900">File optimization</span>
+                  <span className="mt-1 block text-xs leading-5 text-slate-500">
+                    PDFBright only recompresses safe image-heavy scan pages. Native text and vector pages stay native.
+                  </span>
+                  <select
+                    id="compression-mode"
+                    value={compressionMode}
+                    disabled={isCleaning}
+                    onChange={(event) => changeCompressionMode(event.target.value as PdfCompressionMode)}
+                    className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                  >
+                    {PDF_COMPRESSION_OPTIONS.map((mode) => (
+                      <option key={mode.id} value={mode.id}>{mode.label}</option>
+                    ))}
+                  </select>
+                  <span className="mt-2 block text-xs leading-5 text-slate-500">
+                    {PDF_COMPRESSION_OPTIONS.find((mode) => mode.id === compressionMode)?.description}
                   </span>
                 </label>
-              );
-            })}
+              </div>
+            ) : null}
+          </details>
+
+          <div className="diagnosis-actions">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">
+                {selectedCount === 0 ? "No available fixes selected" : `${selectedCount} ${selectedCount === 1 ? "fix" : "fixes"} selected`}
+              </p>
+              <p id="cleanup-status-note" className="mt-1 text-xs leading-5 text-slate-500">
+                {selectedCount === 0
+                  ? "Choose an available cleanup option if you want to make changes."
+                  : "Review your selected fixes before continuing."}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="button button--primary diagnosis-primary-action"
+              disabled={selectedCount === 0}
+              aria-describedby="cleanup-status-note"
+              onClick={() => void runCleanup()}
+            >
+              Fix My PDF
+            </button>
           </div>
 
-          {selected["searchable-text"] ? (
-            <div className="border-t border-slate-200 px-4 py-4">
-              <label className="block max-w-sm" htmlFor="ocr-language">
-                <span className="block text-sm font-semibold text-slate-900">OCR language</span>
-                <span className="mt-1 block text-xs leading-5 text-slate-500">
-                  Choose the main language printed on the scanned pages. Recognition runs locally in your browser; the language model may be downloaded and cached.
-                </span>
-                <select
-                  id="ocr-language"
-                  value={ocrLanguage}
-                  disabled={isCleaning}
-                  onChange={(event) => changeOcrLanguage(event.target.value as PdfOcrLanguage)}
-                  className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                >
-                  {OCR_LANGUAGE_OPTIONS.map((language) => (
-                    <option key={language.code} value={language.code}>{language.label}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          ) : null}
-
-          {selected.compress ? (
-            <div className="border-t border-slate-200 px-4 py-4">
-              <label className="block max-w-sm" htmlFor="compression-mode">
-                <span className="block text-sm font-semibold text-slate-900">File optimization</span>
-                <span className="mt-1 block text-xs leading-5 text-slate-500">
-                  PDFBright only recompresses safe image-heavy scan pages. Native text and vector pages stay native.
-                </span>
-                <select
-                  id="compression-mode"
-                  value={compressionMode}
-                  disabled={isCleaning}
-                  onChange={(event) => changeCompressionMode(event.target.value as PdfCompressionMode)}
-                  className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                >
-                  {PDF_COMPRESSION_OPTIONS.map((mode) => (
-                    <option key={mode.id} value={mode.id}>{mode.label}</option>
-                  ))}
-                </select>
-                <span className="mt-2 block text-xs leading-5 text-slate-500">
-                  {PDF_COMPRESSION_OPTIONS.find((mode) => mode.id === compressionMode)?.description}
-                </span>
-              </label>
-            </div>
-          ) : null}
-        </details>
-
-        <div className="diagnosis-actions">
-          <div>
-            <p className="text-sm font-semibold text-slate-900">
-              {selectedCount === 0 ? "No available fixes selected" : `${selectedCount} ${selectedCount === 1 ? "fix" : "fixes"} selected`}
-            </p>
-            <p id="cleanup-status-note" className="mt-1 text-xs leading-5 text-slate-500">
-              {isCleaning
-                ? describeCleanupProgress(cleanupProgress)
-                : cleanupResult
-                  ? "Cleanup finished and passed PDFBright's output checks."
-                  : selectedCount === 0
-                    ? "Choose an available cleanup option if you want to make changes."
-                    : "Review your selected fixes before continuing."}
-            </p>
+          <div aria-live="polite" aria-atomic="true">
+            {cleanupError ? (
+              <p className="diagnosis-cleanup-error" role="alert">{cleanupError} Your original file is unchanged.</p>
+            ) : null}
           </div>
-
-          <button
-            type="button"
-            className="button button--primary diagnosis-primary-action"
-            disabled={selectedCount === 0 || isCleaning}
-            aria-describedby="cleanup-status-note"
-            onClick={() => void runCleanup()}
-          >
-            {isCleaning ? "Fixing PDF…" : "Fix My PDF"}
-          </button>
         </div>
-
-        <div aria-live="polite" aria-atomic="true">
-          {cleanupError ? (
-            <p className="diagnosis-cleanup-error" role="alert">{cleanupError} Your original file is unchanged.</p>
-          ) : cleanupResult ? (
-            <p className="diagnosis-cleanup-success" role="status">Cleaned output validated successfully. Your original file was not changed.</p>
-          ) : null}
-        </div>
-
-        {debugCleanup && cleanupResult && downloadUrl ? (
-          <CleanupDebugPanel fileName={file.name} result={cleanupResult} downloadUrl={downloadUrl} />
-        ) : null}
-      </div>
+      )}
     </section>
   );
 }
