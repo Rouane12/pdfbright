@@ -72,7 +72,10 @@ function collectLayout(blocks: OcrBlockLike[] | null | undefined): {
 } {
   if (!blocks) return { words: [], lines: [] };
 
-  const entries: Array<{ line: PdfOcrLine; words: PdfOcrWord[] }> = [];
+  const entries: Array<{
+    line: PdfOcrLine;
+    overlay: PdfOcrWord;
+  }> = [];
 
   for (const block of blocks) {
     for (const paragraph of block.paragraphs ?? []) {
@@ -90,28 +93,26 @@ function collectLayout(blocks: OcrBlockLike[] | null | undefined): {
           x1: Math.max(...rawWords.map((word) => word.bbox.x1)),
           y1: Math.max(...rawWords.map((word) => word.bbox.y1)),
         };
-
-        // Give every word in a line the same vertical bounds. The PDF overlay
-        // then uses one consistent baseline/font size for that line, which
-        // prevents viewers from interleaving words from adjacent lines when
-        // users select or copy the invisible OCR text layer.
-        const alignedWords = rawWords.map((word) => ({
-          ...word,
-          bbox: {
-            x0: word.bbox.x0,
-            y0: lineBox.y0,
-            x1: word.bbox.x1,
-            y1: lineBox.y1,
-          },
-        }));
+        const lineText = rawWords.map((word) => word.text).join(" ");
+        const lineConfidence =
+          rawWords.reduce((total, word) => total + word.confidence, 0) / rawWords.length;
 
         entries.push({
           line: {
-            text: alignedWords.map((word) => word.text).join(" "),
+            text: lineText,
             bbox: lineBox,
-            wordCount: alignedWords.length,
+            wordCount: rawWords.length,
           },
-          words: alignedWords,
+          // The searchable PDF layer intentionally gets one text object per
+          // OCR line. Emitting every word separately makes PDF viewers infer
+          // reading order from tiny positional differences, which can scramble
+          // copied text even when the words are visually aligned. A single
+          // line run preserves deterministic top-to-bottom, left-to-right order.
+          overlay: {
+            text: lineText,
+            confidence: lineConfidence,
+            bbox: lineBox,
+          },
         });
       }
     }
@@ -125,7 +126,7 @@ function collectLayout(blocks: OcrBlockLike[] | null | undefined): {
 
   return {
     lines: entries.map((entry) => entry.line),
-    words: entries.flatMap((entry) => entry.words),
+    words: entries.map((entry) => entry.overlay),
   };
 }
 
