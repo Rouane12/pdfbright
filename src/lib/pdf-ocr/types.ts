@@ -19,6 +19,17 @@ export interface PdfOcrWord {
   };
 }
 
+export interface PdfOcrLine {
+  text: string;
+  bbox: {
+    x0: number;
+    y0: number;
+    x1: number;
+    y1: number;
+  };
+  wordCount: number;
+}
+
 export interface PdfOcrTarget {
   originalPageNumber: number;
   outputPageNumber: number;
@@ -29,6 +40,7 @@ export interface PdfOcrPageResult {
   outputPageNumber: number;
   language: PdfOcrLanguage;
   words: PdfOcrWord[];
+  lines: PdfOcrLine[];
   recognizedCharacters: number;
   meanConfidence: number;
   renderWidthPixels: number;
