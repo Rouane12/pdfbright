@@ -1,6 +1,13 @@
 "use client";
 
-import { ChangeEvent, DragEvent, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
+import { AnalysisDebugPanel } from "@/components/analysis-debug-panel";
+import { analyzePdfFile } from "@/lib/pdf-analysis/analyze-pdf";
+import {
+  PdfAnalysisError,
+  type PdfAnalysisProgress,
+  type PdfAnalysisResult,
+} from "@/lib/pdf-analysis/types";
 
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 
@@ -31,41 +38,135 @@ function validateFile(file: File) {
   return null;
 }
 
+function describeProgress(progress: PdfAnalysisProgress | null) {
+  if (!progress) return "Preparing local analysis…";
+
+  switch (progress.phase) {
+    case "loading":
+      return "Loading PDF locally…";
+    case "parsing":
+      return "Reading document structure…";
+    case "analyzing-pages":
+      if (progress.pageNumber && progress.pageCount) {
+        return `Analyzing page ${progress.pageNumber} of ${progress.pageCount}…`;
+      }
+      return "Analyzing pages…";
+    case "finalizing":
+      return "Preparing analysis summary…";
+  }
+}
+
 export function UploadDropzone() {
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const analysisRunRef = useRef(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState<PdfAnalysisProgress | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<PdfAnalysisResult | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [debugEnabled, setDebugEnabled] = useState(false);
 
-  function handleFile(file: File | undefined) {
+  useEffect(() => {
+    setDebugEnabled(new URLSearchParams(window.location.search).get("debug") === "analysis");
+
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
+  async function handleFile(file: File | undefined) {
     if (!file) return;
 
     const validationError = validateFile(file);
 
     if (validationError) {
+      analysisRunRef.current += 1;
+      abortRef.current?.abort();
+      abortRef.current = null;
       setSelectedFile(null);
+      setAnalysisResult(null);
+      setAnalysisProgress(null);
+      setAnalysisError(null);
+      setIsAnalyzing(false);
       setError(validationError);
       return;
     }
 
+    const runId = analysisRunRef.current + 1;
+    analysisRunRef.current = runId;
+    abortRef.current?.abort();
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setSelectedFile(file);
     setError(null);
+    setAnalysisResult(null);
+    setAnalysisError(null);
+    setAnalysisProgress({ phase: "loading" });
+    setIsAnalyzing(true);
+
+    try {
+      const result = await analyzePdfFile(file, {
+        signal: controller.signal,
+        onProgress: (progress) => {
+          if (analysisRunRef.current === runId) {
+            setAnalysisProgress(progress);
+          }
+        },
+      });
+
+      if (analysisRunRef.current !== runId) return;
+      setAnalysisResult(result);
+      setAnalysisError(null);
+    } catch (analysisFailure) {
+      if (analysisRunRef.current !== runId) return;
+
+      if (
+        analysisFailure instanceof PdfAnalysisError &&
+        analysisFailure.code === "analysis-cancelled"
+      ) {
+        return;
+      }
+
+      setAnalysisResult(null);
+      setAnalysisError(
+        analysisFailure instanceof PdfAnalysisError
+          ? analysisFailure.message
+          : "PDFBright could not analyze this PDF. Please try another file.",
+      );
+    } finally {
+      if (analysisRunRef.current === runId) {
+        setIsAnalyzing(false);
+        abortRef.current = null;
+      }
+    }
   }
 
   function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
-    handleFile(event.target.files?.[0]);
+    void handleFile(event.target.files?.[0]);
     event.target.value = "";
   }
 
   function handleDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     setIsDragging(false);
-    handleFile(event.dataTransfer.files?.[0]);
+    void handleFile(event.dataTransfer.files?.[0]);
   }
 
   function removeFile() {
+    analysisRunRef.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = null;
     setSelectedFile(null);
     setError(null);
+    setAnalysisResult(null);
+    setAnalysisProgress(null);
+    setAnalysisError(null);
+    setIsAnalyzing(false);
   }
 
   return (
@@ -155,17 +256,27 @@ export function UploadDropzone() {
         )}
       </div>
 
-      <div className={error ? "mt-4 min-h-6 text-center" : "sr-only"} aria-live="polite" aria-atomic="true">
+      <div className="mt-4 min-h-6 text-center" aria-live="polite" aria-atomic="true">
         {error ? (
           <p className="text-sm font-medium text-rose-700">{error}</p>
+        ) : selectedFile && analysisError ? (
+          <p className="text-sm font-medium text-rose-700">{analysisError}</p>
+        ) : selectedFile && isAnalyzing ? (
+          <p className="text-sm font-medium text-slate-700">{describeProgress(analysisProgress)}</p>
+        ) : selectedFile && analysisResult ? (
+          <p className="text-sm text-slate-600">
+            Analysis complete · {analysisResult.pageCount} {analysisResult.pageCount === 1 ? "page" : "pages"} · Original file unchanged
+          </p>
         ) : selectedFile ? (
-          <p>PDF selected successfully. Your original file has not been changed.</p>
+          <p className="sr-only">PDF selected successfully. Your original file has not been changed.</p>
         ) : null}
       </div>
 
       <p className="mt-4 text-center text-[0.8rem] leading-5 text-slate-600 sm:text-sm">
-        No signup required · Local processing where possible
+        No signup required · Analysis runs locally in your browser
       </p>
+
+      {debugEnabled && analysisResult ? <AnalysisDebugPanel result={analysisResult} /> : null}
     </div>
   );
 }
