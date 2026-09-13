@@ -42,8 +42,8 @@ export function CleanupDebugPanel({ fileName, result, downloadUrl }: CleanupDebu
     <section className="cleanup-debug-panel" aria-labelledby="cleanup-debug-heading">
       <div className="cleanup-debug-header">
         <div>
-          <p className="section-kicker">Milestone 6 validation</p>
-          <h3 id="cleanup-debug-heading">Validated optimized cleanup output</h3>
+          <p className="section-kicker">Engineering validation</p>
+          <h3 id="cleanup-debug-heading">Validated cleanup output</h3>
         </div>
         <span className="cleanup-debug-time">{report.durationMs} ms</span>
       </div>
@@ -97,7 +97,7 @@ export function CleanupDebugPanel({ fileName, result, downloadUrl }: CleanupDebu
       </a>
 
       <p className="cleanup-debug-footnote">
-        This validation/download surface is gated behind <code>?debug=cleanup</code>. The polished result experience belongs to Milestone 7.
+        This engineering-only validation surface is gated behind <code>?debug=cleanup</code> and is not shown to normal visitors.
       </p>
     </section>
   );
