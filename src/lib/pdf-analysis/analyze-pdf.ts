@@ -51,7 +51,6 @@ function classifyContent(
   pixels: PixelHeuristicResult | null,
 ) {
   const hasExtractableText = textCharacters >= 3;
-  const renderedContentRatio = pixels ? 1 - pixels.nearWhiteRatio : 0;
   const blankCandidate = Boolean(pixels?.likelyBlank && textCharacters < 4);
 
   if (blankCandidate) {
@@ -67,15 +66,29 @@ function classifyContent(
   }
 
   if (imagePaintOperations > 0) {
+    if (!pixels) {
+      return {
+        kind: "image-only" as PageContentKind,
+        probableScanConfidence: 0.45,
+      };
+    }
+
+    // Scanned documents are often mostly white paper with relatively sparse
+    // dark strokes and strong local edges. A photo-only PDF should generally
+    // remain `image-only` rather than being promoted to `probable-scan`.
+    const whitePageScore = clamp((pixels.nearWhiteRatio - 0.78) / 0.18);
+    const edgeScore = clamp(pixels.edgeDensity / 0.02);
+    const inkScore = clamp(pixels.darkPixelRatio / 0.01);
+    const documentLikeScore =
+      whitePageScore * 0.55 + edgeScore * 0.25 + inkScore * 0.2;
+    const imageEvidence = Math.min(imagePaintOperations, 2) * 0.05;
     const probableScanConfidence = clamp(
-      0.5 +
-        Math.min(imagePaintOperations, 3) * 0.05 +
-        clamp(renderedContentRatio / 0.18) * 0.3,
+      0.35 + imageEvidence + documentLikeScore * 0.5,
     );
 
     return {
       kind:
-        probableScanConfidence >= 0.65
+        probableScanConfidence >= 0.68
           ? ("probable-scan" as PageContentKind)
           : ("image-only" as PageContentKind),
       probableScanConfidence,
