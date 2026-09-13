@@ -67,11 +67,11 @@ export function UploadDropzone() {
   const [analysisProgress, setAnalysisProgress] = useState<PdfAnalysisProgress | null>(null);
   const [analysisResult, setAnalysisResult] = useState<PdfAnalysisResult | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const [debugEnabled, setDebugEnabled] = useState(false);
+  const debugEnabled =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("debug") === "analysis";
 
   useEffect(() => {
-    setDebugEnabled(new URLSearchParams(window.location.search).get("debug") === "analysis");
-
     return () => {
       abortRef.current?.abort();
     };
