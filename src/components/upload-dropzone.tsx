@@ -80,7 +80,7 @@ export function UploadDropzone() {
       />
 
       <div
-        className={`upload-zone ${isDragging ? "upload-zone--active" : ""}`}
+        className={`upload-zone ${selectedFile ? "upload-zone--selected" : ""} ${isDragging ? "upload-zone--active" : ""}`}
         onDragEnter={(event) => {
           event.preventDefault();
           setIsDragging(true);
@@ -97,29 +97,33 @@ export function UploadDropzone() {
         onDrop={handleDrop}
       >
         {selectedFile ? (
-          <div className="flex w-full flex-col items-center text-center">
-            <div className="document-icon document-icon--ready" aria-hidden="true">
+          <div className="selected-file-shell">
+            <div className="document-icon document-icon--ready shrink-0" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none">
                 <path d="M7 3.75h6.4L18 8.35v11.9H7V3.75Z" stroke="currentColor" strokeWidth="1.6" />
                 <path d="M13 3.9v4.6h4.6" stroke="currentColor" strokeWidth="1.6" />
                 <path d="m9.6 14 1.55 1.55 3.45-3.55" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <p className="mt-5 text-sm font-semibold text-slate-950">PDF selected</p>
-            <p
-              className="mt-2 max-w-full truncate text-base font-medium text-slate-800"
-              title={selectedFile.name}
-            >
-              {selectedFile.name}
-            </p>
-            <p className="mt-1 text-sm text-slate-500">{formatFileSize(selectedFile.size)}</p>
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
+
+            <div className="min-w-0 flex-1 text-center sm:text-left">
+              <p className="text-sm font-semibold text-slate-950">PDF selected</p>
+              <p
+                className="mt-1 max-w-full truncate text-base font-medium text-slate-800"
+                title={selectedFile.name}
+              >
+                {selectedFile.name}
+              </p>
+              <p className="mt-1 text-sm text-slate-500">{formatFileSize(selectedFile.size)}</p>
+            </div>
+
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <button
                 type="button"
                 className="button button--primary"
                 onClick={() => inputRef.current?.click()}
               >
-                Choose another
+                Replace PDF
               </button>
               <button type="button" className="button button--secondary" onClick={removeFile}>
                 Remove
@@ -151,15 +155,15 @@ export function UploadDropzone() {
         )}
       </div>
 
-      <div className="mt-4 min-h-6 text-center" aria-live="polite" aria-atomic="true">
+      <div className={error ? "mt-4 min-h-6 text-center" : "sr-only"} aria-live="polite" aria-atomic="true">
         {error ? (
           <p className="text-sm font-medium text-rose-700">{error}</p>
         ) : selectedFile ? (
-          <p className="text-sm text-slate-600">Selected successfully. Your original file has not been changed.</p>
+          <p>PDF selected successfully. Your original file has not been changed.</p>
         ) : null}
       </div>
 
-      <p className="mt-2 text-center text-xs leading-5 text-slate-500">
+      <p className="mt-4 text-center text-xs leading-5 text-slate-500">
         No signup required · Local processing where possible
       </p>
     </div>
