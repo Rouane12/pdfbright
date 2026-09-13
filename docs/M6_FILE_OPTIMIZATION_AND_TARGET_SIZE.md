@@ -116,7 +116,7 @@ Before merge, test at minimum:
 
 4. **OCR + compression**
    - optimized scans remain searchable after OCR
-   - copied text still follows the M5 reading-order behavior
+   - copied/searchable text still follows the M5 reading-order behavior
    - final validation checks OCR text
 
 5. **Annotated scan page**
@@ -126,6 +126,70 @@ Before merge, test at minimum:
    - record original/output bytes and percent reduction
    - visually inspect representative text and graphics at normal zoom and zoomed view
 
+## Controlled acceptance results — 2026-09-13
+
+### Image-heavy six-page scan
+
+Controlled source: `pdfbright-m6-image-heavy-scan.pdf` (~10.2 MB).
+
+| Mode | Output | Reduction | Validation | Visual check |
+| --- | ---: | ---: | --- | --- |
+| Best Quality | ~5.25 MB | 48.3% smaller | Passed | Passed |
+| Balanced | ~2.03 MB | 80.0% smaller | Passed | Passed |
+| Smaller File | ~955 KB | 90.8% smaller | Passed | Passed |
+
+All six pages were optimized in each run. The modes produced the intended ordering: Best Quality retained the most data, Balanced provided the default compromise, and Smaller File produced the strongest reduction.
+
+The first Balanced attempt exposed an implementation bug: the visible pages were replaced with smaller JPEGs, but the original heavy scan-image objects remained in the saved PDF. The compression path was fixed to rebuild optimized outputs into a fresh PDF so obsolete scan assets are not retained. The same controlled fixture then passed at ~2.0 MB.
+
+### Native text/vector control
+
+`pdfbright-m6-native-text-vector.pdf` correctly refused compression-only processing rather than rasterizing native PDF text/vector content. Original remained unchanged.
+
+### Mixed-content control
+
+`pdfbright-m6-mixed-content.pdf`:
+
+- 4 pages remained 4 pages
+- only scan pages 2 and 4 were optimized
+- native pages 1 and 3 stayed native and were validated
+- output: 3.4 MB → 697 KB
+- reduction: 79.9%
+- validation: Passed
+
+### Annotated scan control
+
+A corrected image-only fixture with zero extractable text and one real link annotation was used. PDFBright reached the scan-optimization path, detected the annotation, skipped unsafe visual replacement, and failed closed with the original unchanged.
+
+### OCR + compression interoperability
+
+On the same six-page image-heavy scan with English OCR + Balanced optimization:
+
+- pages: 6 → 6
+- output: 10.2 MB → 2.0 MB
+- reduction: 79.9%
+- optimized scan pages: 1–6
+- searchable text added: 1–6
+- OCR text runs / characters: 85 / 3784
+- OCR pages validated: 6
+- OCR time: 10,232 ms
+- total: 11,188 ms
+- final validation: Passed
+- manual browser search for `PDFBright`: Passed
+
+This proves the searchable text layer survives the optimized PDF rebuild and remains discoverable in a normal PDF viewer.
+
+### Final quality gate
+
+Final M6 hardening head before merge passed:
+
+- lint
+- TypeScript typecheck
+- production build
+- Vercel preview deployment
+
 ## Merge rule
 
 Milestone 6 is complete only when controlled acceptance proves meaningful file-size reduction without visibly destroying normal documents, CI/build is green, and the output integrity checks continue to pass.
+
+**Status: acceptance satisfied.**
