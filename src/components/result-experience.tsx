@@ -148,7 +148,6 @@ export function ResultExperience({
               background: "#ffffff",
             }).promise;
           } finally {
-            await documentProxy.destroy();
             await task.destroy();
           }
         }
