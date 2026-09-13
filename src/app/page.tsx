@@ -66,9 +66,7 @@ export default function Home() {
           <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 sm:flex" aria-label="Primary navigation">
             <a className="nav-link" href="#how-it-works">How it works</a>
             <a className="nav-link" href="#pricing">Pricing</a>
-            <span className="text-slate-400" aria-disabled="true" title="Accounts will be added later">
-              Sign in
-            </span>
+            <a className="nav-link" href="/login">Sign in</a>
           </nav>
         </div>
       </header>
