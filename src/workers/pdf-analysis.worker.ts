@@ -50,9 +50,11 @@ function estimateSkew(
     return { estimatedSkewDegrees: null, skewConfidence: 0 };
   }
 
-  const sampleStep = width * height > 90_000 ? 3 : 2;
+  // Deskew needs denser sampling than blankness detection. Sparse sampling can
+  // entirely miss thin text strokes on the low-resolution analysis render.
+  const sampleStep = width * height > 140_000 ? 2 : 1;
   const points: Array<[number, number]> = [];
-  const maxPoints = 45_000;
+  const maxPoints = 20_000;
 
   for (let y = 0; y < height && points.length < maxPoints; y += sampleStep) {
     for (let x = 0; x < width && points.length < maxPoints; x += sampleStep) {
@@ -61,19 +63,19 @@ function estimateSkew(
       if (alpha < 32) continue;
 
       const lum = luminance(rgba[offset], rgba[offset + 1], rgba[offset + 2]);
-      if (lum < 170) {
+      if (lum < 200) {
         points.push([x, y]);
       }
     }
   }
 
-  if (points.length < 120) {
+  if (points.length < 80) {
     return { estimatedSkewDegrees: null, skewConfidence: 0 };
   }
 
-  const candidates = [-3, -2.5, -2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3];
-  const margin = Math.ceil(width * Math.tan((3 * Math.PI) / 180)) + 3;
-  const binCount = height + margin * 2 + 6;
+  const candidates = Array.from({ length: 33 }, (_, index) => -4 + index * 0.25);
+  const margin = Math.ceil(width * Math.tan((4 * Math.PI) / 180)) + 4;
+  const binCount = height + margin * 2 + 8;
 
   function scoreCandidate(angleDegrees: number) {
     const bins = new Uint32Array(binCount);
@@ -103,12 +105,12 @@ function estimateSkew(
     if (candidate.score > best.score) best = candidate;
   }
 
-  if (best.angle === 0 || zeroScore <= 0) {
+  if (zeroScore <= 0 || Math.abs(best.angle) < 0.5) {
     return { estimatedSkewDegrees: null, skewConfidence: 0 };
   }
 
-  const improvement = (best.score - zeroScore) / zeroScore;
-  const skewConfidence = clamp((improvement - 0.025) / 0.2);
+  const improvement = Math.max(0, (best.score - zeroScore) / zeroScore);
+  const skewConfidence = clamp((improvement - 0.01) / 0.34);
 
   if (Math.abs(best.angle) < 0.75 || skewConfidence < 0.2) {
     return { estimatedSkewDegrees: null, skewConfidence };
