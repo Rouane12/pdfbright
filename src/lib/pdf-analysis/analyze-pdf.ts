@@ -245,7 +245,6 @@ export async function analyzePdfFile(
 ): Promise<PdfAnalysisResult> {
   const startedAt = performance.now();
   const { signal, onProgress } = options;
-  let pdfDocument: { destroy: () => Promise<void> } | null = null;
   let loadingTask: { destroy: () => Promise<void> } | null = null;
   let pixelWorker: PixelAnalysisWorkerClient | null = null;
 
@@ -263,7 +262,6 @@ export async function analyzePdfFile(
     const task = pdfjs.getDocument({ data: bytes });
     loadingTask = task;
     const documentProxy = await task.promise;
-    pdfDocument = documentProxy;
 
     const pageCount = documentProxy.numPages;
     const pages: PdfPageAnalysis[] = [];
@@ -343,6 +341,7 @@ export async function analyzePdfFile(
         context.fillRect(0, 0, canvas.width, canvas.height);
 
         await page.render({
+          canvas,
           canvasContext: context,
           viewport: renderViewport,
           background: "#ffffff",
@@ -486,17 +485,9 @@ export async function analyzePdfFile(
     pixelWorker?.destroy();
 
     try {
-      await pdfDocument?.destroy();
+      await loadingTask?.destroy();
     } catch {
       // Cleanup failures must not replace the actual analysis result/error.
-    }
-
-    if (!pdfDocument) {
-      try {
-        await loadingTask?.destroy();
-      } catch {
-        // Same cleanup rule as above.
-      }
     }
   }
 }
