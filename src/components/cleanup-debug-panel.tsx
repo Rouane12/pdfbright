@@ -20,8 +20,8 @@ export function CleanupDebugPanel({ fileName, result, downloadUrl }: CleanupDebu
     <section className="cleanup-debug-panel" aria-labelledby="cleanup-debug-heading">
       <div className="cleanup-debug-header">
         <div>
-          <p className="section-kicker">Milestone 4 validation</p>
-          <h3 id="cleanup-debug-heading">Validated cleanup output</h3>
+          <p className="section-kicker">Milestone 5 validation</p>
+          <h3 id="cleanup-debug-heading">Validated searchable cleanup output</h3>
         </div>
         <span className="cleanup-debug-time">{report.durationMs} ms</span>
       </div>
@@ -32,12 +32,12 @@ export function CleanupDebugPanel({ fileName, result, downloadUrl }: CleanupDebu
           <strong>{report.originalPageCount} → {report.outputPageCount}</strong>
         </div>
         <div>
-          <span>Text pages checked</span>
+          <span>Native text pages checked</span>
           <strong>{validation.checkedTextPages}</strong>
         </div>
         <div>
-          <span>Visual pages checked</span>
-          <strong>{validation.checkedVisualPages}</strong>
+          <span>OCR pages checked</span>
+          <strong>{validation.checkedOcrPages}</strong>
         </div>
         <div>
           <span>Validation</span>
@@ -46,6 +46,10 @@ export function CleanupDebugPanel({ fileName, result, downloadUrl }: CleanupDebu
       </div>
 
       <dl className="cleanup-debug-details">
+        <div><dt>Searchable text added</dt><dd>{pageList(report.searchableTextPages)}</dd></div>
+        <div><dt>OCR language</dt><dd>{report.ocrLanguage ?? "None"}</dd></div>
+        <div><dt>OCR text runs / characters</dt><dd>{report.ocrWordCount} / {report.ocrCharacterCount}</dd></div>
+        <div><dt>OCR time</dt><dd>{report.ocrDurationMs} ms</dd></div>
         <div><dt>Rotated</dt><dd>{pageList(report.rotatedPages)}</dd></div>
         <div><dt>Straightened</dt><dd>{pageList(report.straightenedPages)}</dd></div>
         <div><dt>Readability enhanced</dt><dd>{pageList(report.readabilityEnhancedPages)}</dd></div>

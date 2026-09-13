@@ -1,4 +1,5 @@
 import type { DiagnosisFixId } from "@/lib/diagnosis/build-diagnosis";
+import type { PdfOcrLanguage } from "@/lib/pdf-ocr/types";
 
 export type PdfCleanupSelection = Record<DiagnosisFixId, boolean>;
 
@@ -6,6 +7,9 @@ export type PdfCleanupProgressPhase =
   | "preparing"
   | "rendering-visual-fixes"
   | "applying-page-fixes"
+  | "ocr-loading"
+  | "ocr-recognizing"
+  | "ocr-overlaying"
   | "saving"
   | "validating";
 
@@ -13,6 +17,7 @@ export interface PdfCleanupProgress {
   phase: PdfCleanupProgressPhase;
   pageNumber?: number;
   pageCount?: number;
+  pageProgress?: number;
 }
 
 export interface PdfCleanupValidation {
@@ -20,6 +25,7 @@ export interface PdfCleanupValidation {
   expectedPageCount: number;
   outputPageCount: number;
   checkedTextPages: number;
+  checkedOcrPages: number;
   checkedVisualPages: number;
 }
 
@@ -29,10 +35,15 @@ export interface PdfCleanupReport {
   rotatedPages: number[];
   straightenedPages: number[];
   readabilityEnhancedPages: number[];
+  searchableTextPages: number[];
   removedBlankPages: number[];
   normalizedPages: number[];
   skippedVisualPages: number[];
-  unsupportedSelectedFixes: Array<"searchable-text" | "compress">;
+  ocrLanguage: PdfOcrLanguage | null;
+  ocrWordCount: number;
+  ocrCharacterCount: number;
+  ocrDurationMs: number;
+  unsupportedSelectedFixes: Array<"compress">;
   warnings: string[];
   durationMs: number;
 }
@@ -47,6 +58,7 @@ export type PdfCleanupErrorCode =
   | "cleanup-cancelled"
   | "no-supported-fixes"
   | "unsafe-blank-removal"
+  | "ocr-failed"
   | "output-invalid"
   | "cleanup-failed";
 
