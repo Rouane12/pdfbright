@@ -30,6 +30,7 @@ function initialSelection(plan: ReturnType<typeof buildDiagnosisPlan>) {
     rotate: false,
     "searchable-text": false,
     "remove-blank-pages": false,
+    "improve-readability": false,
     "normalize-pages": false,
     compress: false,
   };
