@@ -71,11 +71,18 @@ export type PdfCleanupErrorCode =
   | "output-invalid"
   | "cleanup-failed";
 
+function stripOriginalFileStatus(message: string) {
+  const cleaned = message
+    .replace(/\s+(?:Your|The) original file (?:is unchanged|was not changed)\.?$/i, "")
+    .trim();
+  return cleaned || message;
+}
+
 export class PdfCleanupError extends Error {
   readonly code: PdfCleanupErrorCode;
 
   constructor(code: PdfCleanupErrorCode, message: string) {
-    super(message);
+    super(stripOriginalFileStatus(message));
     this.name = "PdfCleanupError";
     this.code = code;
   }
