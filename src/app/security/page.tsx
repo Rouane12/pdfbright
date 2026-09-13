@@ -30,7 +30,7 @@ export default function SecurityPage() {
 
       <div className="mx-auto max-w-4xl px-5 py-12 sm:px-6 sm:py-16">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">Security overview</p>
-        <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] sm:text-5xl">Protect the document before chasing features.</h1>
+        <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] sm:text-5xl">Security designed around untrusted PDFs.</h1>
         <p className="mt-5 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg">
           PDF files are untrusted input. PDFBright is designed to fail closed when it cannot safely understand, transform or validate a document.
         </p>
@@ -40,11 +40,11 @@ export default function SecurityPage() {
           <section className={sectionClass}>
             <h2 className="text-xl font-semibold tracking-tight">Processing architecture</h2>
             <p className="mt-3 leading-7 text-slate-600">
-              The current processing class is <strong>{CURRENT_PROCESSING_CLASS}</strong>. Supported analysis, cleanup, OCR and optimization run in the browser; there is no active document-processing API or server worker receiving uploaded PDFs in this milestone.
+              The current processing class is <strong>{CURRENT_PROCESSING_CLASS}</strong>. Supported analysis, cleanup, OCR and optimization run in the browser; there is no active document-processing API or server worker receiving uploaded PDFs in the current product.
             </p>
             {!SERVER_ASSISTED_PROCESSING_ENABLED ? (
               <p className="mt-3 leading-7 text-slate-600">
-                Because server-assisted document processing is not enabled, server file isolation, temporary object storage, deletion jobs and processing-rate limits are not active paths yet. They become required before any future server-processing feature is enabled.
+                Because server-assisted document processing is not enabled, server file isolation, temporary object storage, deletion jobs and processing-rate limits are not active paths today. They become required before any future server-processing feature is enabled.
               </p>
             ) : null}
           </section>
@@ -66,7 +66,7 @@ export default function SecurityPage() {
             <ul className="mt-4 space-y-3 text-slate-600">
               <li>• Low-resolution analysis is separated from heavier visual cleanup work.</li>
               <li>• Rendering and compression paths use bounded render dimensions instead of blindly rasterizing at arbitrary page size.</li>
-              <li>• Local OCR is capped at 10 scanned target pages based on the measured browser-performance cliff from the M5 benchmark.</li>
+              <li>• Local OCR is capped at 10 scanned target pages based on measured browser-performance testing.</li>
               <li>• Pages with annotations are skipped by destructive visual replacement instead of silently flattening interactive content.</li>
               <li>• Canvases and PDF worker/task resources are released when work completes or is cancelled where supported.</li>
             </ul>
