@@ -16,6 +16,10 @@ import {
   type PdfCleanupSelection,
 } from "@/lib/pdf-cleanup/types";
 import { OCR_LANGUAGE_OPTIONS, type PdfOcrLanguage } from "@/lib/pdf-ocr/types";
+import {
+  PDF_COMPRESSION_OPTIONS,
+  type PdfCompressionMode,
+} from "@/lib/pdf-optimization/profiles";
 import type { PdfAnalysisResult } from "@/lib/pdf-analysis/types";
 
 interface DiagnosisWorkspaceProps {
@@ -26,17 +30,18 @@ interface DiagnosisWorkspaceProps {
   debugCleanup?: boolean;
 }
 
-const M5_SUPPORTED_FIXES = new Set<DiagnosisFixId>([
+const M6_SUPPORTED_FIXES = new Set<DiagnosisFixId>([
   "straighten",
   "rotate",
   "searchable-text",
   "remove-blank-pages",
   "improve-readability",
   "normalize-pages",
+  "compress",
 ]);
 
 function isCleanupAvailable(id: DiagnosisFixId) {
-  return M5_SUPPORTED_FIXES.has(id);
+  return M6_SUPPORTED_FIXES.has(id);
 }
 
 function formatFileSize(bytes: number) {
@@ -67,7 +72,7 @@ function initialSelection(plan: ReturnType<typeof buildDiagnosisPlan>): PdfClean
 }
 
 function evidenceLabel(item: DiagnosisRecommendation) {
-  if (!isCleanupAvailable(item.id)) return "Compression later";
+  if (!isCleanupAvailable(item.id)) return "Coming later";
   if (item.destructive) return "Review first";
   if (item.evidence === "fact") return "Detected";
   if ((item.confidence ?? 0) >= 0.55) return "Likely";
@@ -91,6 +96,11 @@ function describeCleanupProgress(progress: PdfCleanupProgress | null) {
         return `Cleaning scan ${progress.pageNumber} of ${progress.pageCount}…`;
       }
       return "Cleaning scanned pages…";
+    case "optimizing-file-size":
+      if (progress.pageNumber && progress.pageCount) {
+        return `Optimizing scan ${progress.pageNumber} of ${progress.pageCount}…`;
+      }
+      return "Optimizing file size…";
     case "applying-page-fixes":
       return "Applying safe page fixes…";
     case "ocr-loading":
@@ -178,6 +188,7 @@ export function DiagnosisWorkspace({
   const downloadUrlRef = useRef<string | null>(null);
   const [selected, setSelected] = useState<PdfCleanupSelection>(() => initialSelection(plan));
   const [ocrLanguage, setOcrLanguage] = useState<PdfOcrLanguage>("eng");
+  const [compressionMode, setCompressionMode] = useState<PdfCompressionMode>("balanced");
   const [reviewing, setReviewing] = useState<DiagnosisFixId | null>(null);
   const [isCleaning, setIsCleaning] = useState(false);
   const [cleanupProgress, setCleanupProgress] = useState<PdfCleanupProgress | null>(null);
@@ -221,6 +232,11 @@ export function DiagnosisWorkspace({
     setOcrLanguage(value);
   }
 
+  function changeCompressionMode(value: PdfCompressionMode) {
+    clearCleanupOutput();
+    setCompressionMode(value);
+  }
+
   async function runCleanup() {
     if (selectedCount === 0 || isCleaning) return;
 
@@ -235,6 +251,7 @@ export function DiagnosisWorkspace({
         signal: controller.signal,
         onProgress: setCleanupProgress,
         ocrLanguage,
+        compressionMode,
       });
 
       const blobBytes = Uint8Array.from(output.bytes);
@@ -404,6 +421,31 @@ export function DiagnosisWorkspace({
                     <option key={language.code} value={language.code}>{language.label}</option>
                   ))}
                 </select>
+              </label>
+            </div>
+          ) : null}
+
+          {selected.compress ? (
+            <div className="border-t border-slate-200 px-4 py-4">
+              <label className="block max-w-sm" htmlFor="compression-mode">
+                <span className="block text-sm font-semibold text-slate-900">File optimization</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">
+                  PDFBright only recompresses safe image-heavy scan pages. Native text and vector pages stay native.
+                </span>
+                <select
+                  id="compression-mode"
+                  value={compressionMode}
+                  disabled={isCleaning}
+                  onChange={(event) => changeCompressionMode(event.target.value as PdfCompressionMode)}
+                  className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                >
+                  {PDF_COMPRESSION_OPTIONS.map((mode) => (
+                    <option key={mode.id} value={mode.id}>{mode.label}</option>
+                  ))}
+                </select>
+                <span className="mt-2 block text-xs leading-5 text-slate-500">
+                  {PDF_COMPRESSION_OPTIONS.find((mode) => mode.id === compressionMode)?.description}
+                </span>
               </label>
             </div>
           ) : null}
