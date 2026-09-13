@@ -572,22 +572,79 @@ export async function cleanupPdfFile(
     const { PDFDocument, degrees } = await import("pdf-lib");
     let pdfDocument = await PDFDocument.load(sourceBytes, { updateMetadata: false });
 
-    for (const replacement of visualReplacements.values()) {
-      const pageIndex = replacement.pageNumber - 1;
-      const originalPage = pdfDocument.getPage(pageIndex);
-      const width = originalPage.getWidth();
-      const height = originalPage.getHeight();
-      const image = await pdfDocument.embedJpg(replacement.jpegBytes);
-      const fitted = image.scaleToFit(width, height);
+    if (selection.compress && visualReplacements.size > 0) {
+      // Removing/replacing pages inside the loaded source document leaves the old
+      // image streams in pdf-lib's object context. Saving that document can keep
+      // those now-orphaned scan assets, defeating compression. Rebuild compression
+      // outputs in a fresh PDF so only untouched page resources and the new JPEGs
+      // are serialized.
+      const sourceDocument = pdfDocument;
+      const rebuiltDocument = await PDFDocument.create();
+      const untouchedPageIndices: number[] = [];
 
-      pdfDocument.removePage(pageIndex);
-      const newPage = pdfDocument.insertPage(pageIndex, [width, height]);
-      newPage.drawImage(image, {
-        x: (width - fitted.width) / 2,
-        y: (height - fitted.height) / 2,
-        width: fitted.width,
-        height: fitted.height,
-      });
+      for (let pageIndex = 0; pageIndex < sourceDocument.getPageCount(); pageIndex += 1) {
+        if (!visualReplacements.has(pageIndex + 1)) {
+          untouchedPageIndices.push(pageIndex);
+        }
+      }
+
+      const copiedPages = await rebuiltDocument.copyPages(
+        sourceDocument,
+        untouchedPageIndices,
+      );
+      const copiedPageBySourceIndex = new Map(
+        untouchedPageIndices.map((sourceIndex, index) => [sourceIndex, copiedPages[index]]),
+      );
+
+      for (let pageIndex = 0; pageIndex < sourceDocument.getPageCount(); pageIndex += 1) {
+        const pageNumber = pageIndex + 1;
+        const replacement = visualReplacements.get(pageNumber);
+
+        if (replacement) {
+          const sourcePage = sourceDocument.getPage(pageIndex);
+          const width = sourcePage.getWidth();
+          const height = sourcePage.getHeight();
+          const image = await rebuiltDocument.embedJpg(replacement.jpegBytes);
+          const fitted = image.scaleToFit(width, height);
+          const newPage = rebuiltDocument.addPage([width, height]);
+          newPage.drawImage(image, {
+            x: (width - fitted.width) / 2,
+            y: (height - fitted.height) / 2,
+            width: fitted.width,
+            height: fitted.height,
+          });
+          continue;
+        }
+
+        const copiedPage = copiedPageBySourceIndex.get(pageIndex);
+        if (!copiedPage) {
+          throw new PdfCleanupError(
+            "output-invalid",
+            `PDFBright could not safely preserve page ${pageNumber} while rebuilding the optimized PDF.`,
+          );
+        }
+        rebuiltDocument.addPage(copiedPage);
+      }
+
+      pdfDocument = rebuiltDocument;
+    } else {
+      for (const replacement of visualReplacements.values()) {
+        const pageIndex = replacement.pageNumber - 1;
+        const originalPage = pdfDocument.getPage(pageIndex);
+        const width = originalPage.getWidth();
+        const height = originalPage.getHeight();
+        const image = await pdfDocument.embedJpg(replacement.jpegBytes);
+        const fitted = image.scaleToFit(width, height);
+
+        pdfDocument.removePage(pageIndex);
+        const newPage = pdfDocument.insertPage(pageIndex, [width, height]);
+        newPage.drawImage(image, {
+          x: (width - fitted.width) / 2,
+          y: (height - fitted.height) / 2,
+          width: fitted.width,
+          height: fitted.height,
+        });
+      }
     }
 
     const rotatedPages: number[] = [];
