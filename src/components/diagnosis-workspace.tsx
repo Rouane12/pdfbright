@@ -15,6 +15,7 @@ import {
   type PdfCleanupResult,
   type PdfCleanupSelection,
 } from "@/lib/pdf-cleanup/types";
+import { OCR_LANGUAGE_OPTIONS, type PdfOcrLanguage } from "@/lib/pdf-ocr/types";
 import type { PdfAnalysisResult } from "@/lib/pdf-analysis/types";
 
 interface DiagnosisWorkspaceProps {
@@ -25,23 +26,23 @@ interface DiagnosisWorkspaceProps {
   debugCleanup?: boolean;
 }
 
-const M4_SUPPORTED_FIXES = new Set<DiagnosisFixId>([
+const M5_SUPPORTED_FIXES = new Set<DiagnosisFixId>([
   "straighten",
   "rotate",
+  "searchable-text",
   "remove-blank-pages",
   "improve-readability",
   "normalize-pages",
 ]);
 
 function isCleanupAvailable(id: DiagnosisFixId) {
-  return M4_SUPPORTED_FIXES.has(id);
+  return M5_SUPPORTED_FIXES.has(id);
 }
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024 * 1024) {
     return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   }
-
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
@@ -66,9 +67,7 @@ function initialSelection(plan: ReturnType<typeof buildDiagnosisPlan>): PdfClean
 }
 
 function evidenceLabel(item: DiagnosisRecommendation) {
-  if (!isCleanupAvailable(item.id)) {
-    return item.id === "searchable-text" ? "OCR later" : "Compression later";
-  }
+  if (!isCleanupAvailable(item.id)) return "Compression later";
   if (item.destructive) return "Review first";
   if (item.evidence === "fact") return "Detected";
   if ((item.confidence ?? 0) >= 0.55) return "Likely";
@@ -94,6 +93,19 @@ function describeCleanupProgress(progress: PdfCleanupProgress | null) {
       return "Cleaning scanned pages…";
     case "applying-page-fixes":
       return "Applying safe page fixes…";
+    case "ocr-loading":
+      return "Loading local text recognition…";
+    case "ocr-recognizing": {
+      const page = progress.pageNumber && progress.pageCount
+        ? ` page ${progress.pageNumber} of ${progress.pageCount}`
+        : " scanned pages";
+      const percent = typeof progress.pageProgress === "number"
+        ? ` · ${Math.round(progress.pageProgress * 100)}%`
+        : "";
+      return `Making${page} searchable…${percent}`;
+    }
+    case "ocr-overlaying":
+      return "Adding the searchable text layer…";
     case "saving":
       return "Building the cleaned PDF…";
     case "validating":
@@ -165,6 +177,7 @@ export function DiagnosisWorkspace({
   const cleanupAbortRef = useRef<AbortController | null>(null);
   const downloadUrlRef = useRef<string | null>(null);
   const [selected, setSelected] = useState<PdfCleanupSelection>(() => initialSelection(plan));
+  const [ocrLanguage, setOcrLanguage] = useState<PdfOcrLanguage>("eng");
   const [reviewing, setReviewing] = useState<DiagnosisFixId | null>(null);
   const [isCleaning, setIsCleaning] = useState(false);
   const [cleanupProgress, setCleanupProgress] = useState<PdfCleanupProgress | null>(null);
@@ -179,9 +192,7 @@ export function DiagnosisWorkspace({
   useEffect(() => {
     return () => {
       cleanupAbortRef.current?.abort();
-      if (downloadUrlRef.current) {
-        URL.revokeObjectURL(downloadUrlRef.current);
-      }
+      if (downloadUrlRef.current) URL.revokeObjectURL(downloadUrlRef.current);
     };
   }, []);
 
@@ -205,6 +216,11 @@ export function DiagnosisWorkspace({
     setSelected((current) => ({ ...current, [id]: value }));
   }
 
+  function changeOcrLanguage(value: PdfOcrLanguage) {
+    clearCleanupOutput();
+    setOcrLanguage(value);
+  }
+
   async function runCleanup() {
     if (selectedCount === 0 || isCleaning) return;
 
@@ -218,12 +234,11 @@ export function DiagnosisWorkspace({
       const output = await cleanupPdfFile(file, result, selected, {
         signal: controller.signal,
         onProgress: setCleanupProgress,
+        ocrLanguage,
       });
 
       const blobBytes = Uint8Array.from(output.bytes);
-      const url = URL.createObjectURL(
-        new Blob([blobBytes.buffer], { type: "application/pdf" }),
-      );
+      const url = URL.createObjectURL(new Blob([blobBytes.buffer], { type: "application/pdf" }));
       downloadUrlRef.current = url;
       setDownloadUrl(url);
       setCleanupResult(output);
@@ -256,26 +271,15 @@ export function DiagnosisWorkspace({
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-semibold text-slate-950" title={file.name}>
-            {file.name}
-          </p>
+          <p className="truncate text-base font-semibold text-slate-950" title={file.name}>{file.name}</p>
           <p className="mt-1 text-sm text-slate-500">
             {formatFileSize(file.size)} · {result.pageCount} {result.pageCount === 1 ? "page" : "pages"}
           </p>
         </div>
 
         <div className="flex shrink-0 gap-2">
-          <button type="button" className="workspace-link" onClick={onReplace} disabled={isCleaning}>
-            Replace
-          </button>
-          <button
-            type="button"
-            className="workspace-link workspace-link--danger"
-            onClick={onRemove}
-            disabled={isCleaning}
-          >
-            Remove
-          </button>
+          <button type="button" className="workspace-link" onClick={onReplace} disabled={isCleaning}>Replace</button>
+          <button type="button" className="workspace-link workspace-link--danger" onClick={onRemove} disabled={isCleaning}>Remove</button>
         </div>
       </div>
 
@@ -305,18 +309,11 @@ export function DiagnosisWorkspace({
                   className={`diagnosis-finding ${selected[item.id] ? "diagnosis-finding--selected" : ""} ${!available ? "diagnosis-finding--future" : ""}`}
                   role="listitem"
                 >
-                  <div className="finding-icon" aria-hidden="true">
-                    <FindingIcon id={item.id} />
-                  </div>
-
+                  <div className="finding-icon" aria-hidden="true"><FindingIcon id={item.id} /></div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-base font-semibold tracking-tight text-slate-950">
-                        {item.title}
-                      </h3>
-                      <span
-                        className={`finding-badge ${item.destructive ? "finding-badge--review" : ""} ${!available ? "finding-badge--future" : ""}`}
-                      >
+                      <h3 className="text-base font-semibold tracking-tight text-slate-950">{item.title}</h3>
+                      <span className={`finding-badge ${item.destructive ? "finding-badge--review" : ""} ${!available ? "finding-badge--future" : ""}`}>
                         {evidenceLabel(item)}
                       </span>
                     </div>
@@ -336,27 +333,18 @@ export function DiagnosisWorkspace({
                         {isReviewing ? (
                           <div id={`${controlId}-review`} className="review-panel">
                             <p className="font-semibold text-slate-800">{pageListLabel(item.pageNumbers)}</p>
-                            <p className="mt-1 text-slate-600">
-                              This is a heuristic finding. Keep removal disabled unless these pages are safe to delete.
-                            </p>
+                            <p className="mt-1 text-slate-600">This is a heuristic finding. Keep removal disabled unless these pages are safe to delete.</p>
                           </div>
                         ) : null}
                       </div>
                     ) : item.pageNumbers.length > 0 && item.pageNumbers.length <= 5 ? (
-                      <p className="mt-2 text-xs font-medium text-slate-500">
-                        {pageListLabel(item.pageNumbers)}
-                      </p>
+                      <p className="mt-2 text-xs font-medium text-slate-500">{pageListLabel(item.pageNumbers)}</p>
                     ) : null}
                   </div>
 
-                  <label
-                    className={`finding-toggle ${!available ? "finding-toggle--disabled" : ""}`}
-                    htmlFor={controlId}
-                  >
+                  <label className={`finding-toggle ${!available ? "finding-toggle--disabled" : ""}`} htmlFor={controlId}>
                     <span className="sr-only">
-                      {available
-                        ? `${selected[item.id] ? "Disable" : "Enable"} ${item.title}`
-                        : `${item.title} is not available in the current cleanup core`}
+                      {available ? `${selected[item.id] ? "Disable" : "Enable"} ${item.title}` : `${item.title} is not available yet`}
                     </span>
                     <input
                       id={controlId}
@@ -365,9 +353,7 @@ export function DiagnosisWorkspace({
                       disabled={!available || isCleaning}
                       onChange={(event) => setFix(item.id, event.target.checked)}
                     />
-                    <span className="toggle-track" aria-hidden="true">
-                      <span className="toggle-thumb" />
-                    </span>
+                    <span className="toggle-track" aria-hidden="true"><span className="toggle-thumb" /></span>
                   </label>
                 </article>
               );
@@ -381,10 +367,7 @@ export function DiagnosisWorkspace({
             {ADVANCED_FIX_OPTIONS.map((option) => {
               const available = isCleanupAvailable(option.id);
               return (
-                <label
-                  key={option.id}
-                  className={`advanced-fix-option ${!available ? "advanced-fix-option--disabled" : ""}`}
-                >
+                <label key={option.id} className={`advanced-fix-option ${!available ? "advanced-fix-option--disabled" : ""}`}>
                   <input
                     type="checkbox"
                     checked={selected[option.id]}
@@ -402,14 +385,34 @@ export function DiagnosisWorkspace({
               );
             })}
           </div>
+
+          {selected["searchable-text"] ? (
+            <div className="border-t border-slate-200 px-4 py-4">
+              <label className="block max-w-sm" htmlFor="ocr-language">
+                <span className="block text-sm font-semibold text-slate-900">OCR language</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">
+                  Choose the main language printed on the scanned pages. Recognition runs locally in your browser; the language model may be downloaded and cached.
+                </span>
+                <select
+                  id="ocr-language"
+                  value={ocrLanguage}
+                  disabled={isCleaning}
+                  onChange={(event) => changeOcrLanguage(event.target.value as PdfOcrLanguage)}
+                  className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                >
+                  {OCR_LANGUAGE_OPTIONS.map((language) => (
+                    <option key={language.code} value={language.code}>{language.label}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : null}
         </details>
 
         <div className="diagnosis-actions">
           <div>
             <p className="text-sm font-semibold text-slate-900">
-              {selectedCount === 0
-                ? "No available fixes selected"
-                : `${selectedCount} ${selectedCount === 1 ? "fix" : "fixes"} selected`}
+              {selectedCount === 0 ? "No available fixes selected" : `${selectedCount} ${selectedCount === 1 ? "fix" : "fixes"} selected`}
             </p>
             <p id="cleanup-status-note" className="mt-1 text-xs leading-5 text-slate-500">
               {isCleaning
@@ -435,13 +438,9 @@ export function DiagnosisWorkspace({
 
         <div aria-live="polite" aria-atomic="true">
           {cleanupError ? (
-            <p className="diagnosis-cleanup-error" role="alert">
-              {cleanupError} Your original file is unchanged.
-            </p>
+            <p className="diagnosis-cleanup-error" role="alert">{cleanupError} Your original file is unchanged.</p>
           ) : cleanupResult ? (
-            <p className="diagnosis-cleanup-success" role="status">
-              Cleaned output validated successfully. Your original file was not changed.
-            </p>
+            <p className="diagnosis-cleanup-success" role="status">Cleaned output validated successfully. Your original file was not changed.</p>
           ) : null}
         </div>
 
