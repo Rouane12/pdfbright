@@ -362,10 +362,19 @@
   }
 
   .diagnosis-finding {
-    grid-template-columns: minmax(0, 1fr) auto;
+    position: relative;
+    display: block;
+    padding: 0.95rem 4.25rem 0.95rem 0.95rem;
   }
 
   .finding-icon {
     display: none;
+  }
+
+  .finding-toggle {
+    position: absolute;
+    top: 0.9rem;
+    right: 0.9rem;
+    padding-top: 0;
   }
 }
