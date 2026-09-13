@@ -163,7 +163,7 @@ export function UploadDropzone() {
         ) : null}
       </div>
 
-      <p className="mt-4 text-center text-xs leading-5 text-slate-500">
+      <p className="mt-4 text-center text-[0.8rem] leading-5 text-slate-600 sm:text-sm">
         No signup required · Local processing where possible
       </p>
     </div>
