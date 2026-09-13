@@ -12,6 +12,9 @@ const VISUAL_RENDER_MAX_DIMENSION = 2200;
 const VISUAL_RENDER_MAX_SCALE = 2.25;
 const MIN_STRAIGHTEN_CONFIDENCE = 0.4;
 
+type PdfJsLoadingTask = ReturnType<(typeof import("pdfjs-dist"))["getDocument"]>;
+type PdfJsDocumentProxy = Awaited<PdfJsLoadingTask["promise"]>;
+
 export interface CleanupPdfOptions {
   signal?: AbortSignal;
   onProgress?: (progress: PdfCleanupProgress) => void;
@@ -97,7 +100,7 @@ function isVisualCleanupEligible(page: PdfPageAnalysis) {
 }
 
 async function buildVisualReplacement(
-  documentProxy: Awaited<ReturnType<(typeof import("pdfjs-dist"))["getDocument"]>["promise"]>,
+  documentProxy: PdfJsDocumentProxy,
   page: PdfPageAnalysis,
   selection: PdfCleanupSelection,
   signal?: AbortSignal,
@@ -115,72 +118,70 @@ async function buildVisualReplacement(
 
   abortIfNeeded(signal);
   const pdfPage = await documentProxy.getPage(page.pageNumber);
-  const annotations = await pdfPage.getAnnotations({ intent: "display" });
+  let canvas: HTMLCanvasElement | null = null;
+  let outputCanvas: HTMLCanvasElement | null = null;
 
-  if (annotations.length > 0) {
+  try {
+    const annotations = await pdfPage.getAnnotations({ intent: "display" });
+    if (annotations.length > 0) return null;
+
+    const baseViewport = pdfPage.getViewport({ scale: 1, rotation: 0 });
+    const maxDimension = Math.max(baseViewport.width, baseViewport.height);
+    const scale = Math.max(
+      1,
+      Math.min(VISUAL_RENDER_MAX_SCALE, VISUAL_RENDER_MAX_DIMENSION / maxDimension),
+    );
+    const viewport = pdfPage.getViewport({ scale, rotation: 0 });
+    canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(viewport.width));
+    canvas.height = Math.max(1, Math.round(viewport.height));
+
+    const context = canvas.getContext("2d", {
+      alpha: false,
+      willReadFrequently: wantsReadability,
+    });
+
+    if (!context) {
+      throw new Error("Canvas context unavailable while preparing visual cleanup.");
+    }
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    await pdfPage.render({
+      canvas,
+      canvasContext: context,
+      viewport,
+      background: "#ffffff",
+    }).promise;
+    abortIfNeeded(signal);
+
+    if (wantsReadability) {
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      applyConservativeReadability(imageData);
+      context.putImageData(imageData, 0, 0);
+    }
+
+    const correction = wantsStraightening ? -(page.skew.estimatedDegrees ?? 0) : 0;
+    outputCanvas = rotateCanvasPreservingBounds(canvas, correction);
+    const jpegBytes = await canvasToJpegBytes(outputCanvas);
+
+    return {
+      pageNumber: page.pageNumber,
+      jpegBytes,
+      straightened: wantsStraightening,
+      readabilityEnhanced: wantsReadability,
+    };
+  } finally {
+    if (canvas) {
+      canvas.width = 1;
+      canvas.height = 1;
+    }
+    if (outputCanvas && outputCanvas !== canvas) {
+      outputCanvas.width = 1;
+      outputCanvas.height = 1;
+    }
     pdfPage.cleanup();
-    return null;
   }
-
-  const baseViewport = pdfPage.getViewport({ scale: 1, rotation: 0 });
-  const maxDimension = Math.max(baseViewport.width, baseViewport.height);
-  const scale = Math.max(
-    1,
-    Math.min(VISUAL_RENDER_MAX_SCALE, VISUAL_RENDER_MAX_DIMENSION / maxDimension),
-  );
-  const viewport = pdfPage.getViewport({ scale, rotation: 0 });
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(viewport.width));
-  canvas.height = Math.max(1, Math.round(viewport.height));
-
-  const context = canvas.getContext("2d", {
-    alpha: false,
-    willReadFrequently: wantsReadability,
-  });
-
-  if (!context) {
-    pdfPage.cleanup();
-    throw new Error("Canvas context unavailable while preparing visual cleanup.");
-  }
-
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  await pdfPage.render({
-    canvas,
-    canvasContext: context,
-    viewport,
-    background: "#ffffff",
-  }).promise;
-  abortIfNeeded(signal);
-
-  if (wantsReadability) {
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    applyConservativeReadability(imageData);
-    context.putImageData(imageData, 0, 0);
-  }
-
-  const correction = wantsStraightening ? -(page.skew.estimatedDegrees ?? 0) : 0;
-  const outputCanvas = rotateCanvasPreservingBounds(canvas, correction);
-  const jpegBytes = await canvasToJpegBytes(outputCanvas);
-
-  canvas.width = 1;
-  canvas.height = 1;
-  if (outputCanvas !== canvas) {
-    outputCanvas.width = 1;
-    outputCanvas.height = 1;
-  }
-  pdfPage.cleanup();
-
-  return {
-    pageNumber: page.pageNumber,
-    jpegBytes,
-    straightened: wantsStraightening,
-    readabilityEnhanced: wantsReadability,
-  };
-}
-
-function outputTextCharacters(textContent: Awaited<ReturnType<unknown extends never ? never : never>>) {
-  return textContent;
 }
 
 async function validateOutput(
@@ -224,49 +225,54 @@ async function validateOutput(
       abortIfNeeded(signal);
       const original = retainedPages[outputIndex];
       const outputPage = await documentProxy.getPage(outputIndex + 1);
-      const viewport = outputPage.getViewport({ scale: 1 });
 
-      if (
-        !Number.isFinite(viewport.width) ||
-        !Number.isFinite(viewport.height) ||
-        viewport.width <= 0 ||
-        viewport.height <= 0
-      ) {
-        throw new PdfCleanupError(
-          "output-invalid",
-          `Output page ${outputIndex + 1} has invalid dimensions.`,
-        );
-      }
+      try {
+        const viewport = outputPage.getViewport({ scale: 1 });
+        if (
+          !Number.isFinite(viewport.width) ||
+          !Number.isFinite(viewport.height) ||
+          viewport.width <= 0 ||
+          viewport.height <= 0
+        ) {
+          throw new PdfCleanupError(
+            "output-invalid",
+            `Output page ${outputIndex + 1} has invalid dimensions.`,
+          );
+        }
 
-      if (original.hasExtractableText && !visuallyReplacedPages.has(original.pageNumber)) {
-        const textContent = await outputPage.getTextContent();
-        let characters = 0;
-        for (const item of textContent.items) {
-          if ("str" in item && typeof item.str === "string") {
-            characters += item.str.replace(/\s+/g, " ").trim().length;
+        if (original.hasExtractableText && !visuallyReplacedPages.has(original.pageNumber)) {
+          const textContent = await outputPage.getTextContent();
+          let characters = 0;
+          for (const item of textContent.items) {
+            if ("str" in item && typeof item.str === "string") {
+              characters += item.str.replace(/\s+/g, " ").trim().length;
+            }
           }
-        }
 
-        const minimumExpected = Math.max(3, Math.floor(original.extractableTextCharacters * 0.8));
-        if (characters < minimumExpected) {
-          throw new PdfCleanupError(
-            "output-invalid",
-            `Output page ${outputIndex + 1} lost too much extractable text during cleanup.`,
+          const minimumExpected = Math.max(
+            3,
+            Math.floor(original.extractableTextCharacters * 0.8),
           );
+          if (characters < minimumExpected) {
+            throw new PdfCleanupError(
+              "output-invalid",
+              `Output page ${outputIndex + 1} lost too much extractable text during cleanup.`,
+            );
+          }
+          checkedTextPages += 1;
+        } else if (!original.blankness.likelyBlank) {
+          const operators = await outputPage.getOperatorList();
+          if (operators.fnArray.length === 0) {
+            throw new PdfCleanupError(
+              "output-invalid",
+              `Output page ${outputIndex + 1} unexpectedly contains no visible drawing operations.`,
+            );
+          }
+          checkedVisualPages += 1;
         }
-        checkedTextPages += 1;
-      } else if (!original.blankness.likelyBlank) {
-        const operators = await outputPage.getOperatorList();
-        if (operators.fnArray.length === 0) {
-          throw new PdfCleanupError(
-            "output-invalid",
-            `Output page ${outputIndex + 1} unexpectedly contains no visible drawing operations.`,
-          );
-        }
-        checkedVisualPages += 1;
+      } finally {
+        outputPage.cleanup();
       }
-
-      outputPage.cleanup();
     }
 
     return {
@@ -428,7 +434,11 @@ export async function cleanupPdfFile(
       pdfDocument.removePage(pageNumber - 1);
     }
 
+    const retainedOriginalPageNumbers = analysis.pages
+      .filter((page) => !removedPages.has(page.pageNumber))
+      .map((page) => page.pageNumber);
     const normalizedPages: number[] = [];
+
     if (selection["normalize-pages"] && pdfDocument.getPageCount() > 0) {
       const pages = pdfDocument.getPages();
       const targetWidth = Math.max(...pages.map((page) => page.getWidth()));
@@ -441,7 +451,7 @@ export async function cleanupPdfFile(
 
         if (Math.abs(width - targetWidth) > 0.5 || Math.abs(height - targetHeight) > 0.5) {
           page.setSize(targetWidth, targetHeight);
-          normalizedPages.push(index + 1);
+          normalizedPages.push(retainedOriginalPageNumbers[index]);
         }
       }
     }
