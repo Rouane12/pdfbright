@@ -15,6 +15,11 @@ type AccountState = {
   currentPeriodEnd: string | null;
 };
 
+type AccountReadResult = {
+  account: AccountState;
+  warning: string | null;
+};
+
 function readUpgradePlan(value: string | null): UpgradePlan | null {
   return value === "monthly" || value === "yearly" ? value : null;
 }
@@ -31,18 +36,18 @@ export function AccountPanel() {
   const upgradePlan = readUpgradePlan(searchParams.get("upgrade"));
   const checkoutSuccess = searchParams.get("checkout") === "success";
 
-  const readAccountState = useCallback(async () => {
+  const readAccountState = useCallback(async (): Promise<AccountReadResult | null> => {
     const supabase = getSupabaseBrowserClient();
     const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    if (userError || !user) {
+    const user = session?.user;
+    if (!user) {
       return null;
     }
 
-    const [{ data: profile, error: profileError }, { data: subscription, error: subscriptionError }] = await Promise.all([
+    const [profileResult, subscriptionResult] = await Promise.all([
       supabase.from("profiles").select("plan").eq("user_id", user.id).maybeSingle(),
       supabase
         .from("subscriptions")
@@ -51,16 +56,28 @@ export function AccountPanel() {
         .maybeSingle(),
     ]);
 
-    if (profileError || subscriptionError) {
-      throw profileError ?? subscriptionError;
+    const warning =
+      profileResult.error || subscriptionResult.error
+        ? "You are signed in, but some plan details could not be loaded yet. You can still use your account while we retry."
+        : null;
+
+    if (profileResult.error) {
+      console.error("PDFBright profile lookup failed", profileResult.error);
+    }
+
+    if (subscriptionResult.error) {
+      console.error("PDFBright subscription lookup failed", subscriptionResult.error);
     }
 
     return {
-      email: user.email ?? "Signed-in user",
-      plan: profile?.plan === "pro" ? "pro" : "free",
-      subscriptionStatus: subscription?.status ?? null,
-      currentPeriodEnd: subscription?.current_period_end ?? null,
-    } satisfies AccountState;
+      account: {
+        email: user.email ?? "Signed-in user",
+        plan: profileResult.data?.plan === "pro" ? "pro" : "free",
+        subscriptionStatus: subscriptionResult.data?.status ?? null,
+        currentPeriodEnd: subscriptionResult.data?.current_period_end ?? null,
+      },
+      warning,
+    };
   }, []);
 
   useEffect(() => {
@@ -71,19 +88,21 @@ export function AccountPanel() {
       setError(null);
 
       try {
-        const nextAccount = await readAccountState();
+        const result = await readAccountState();
 
         if (cancelled) return;
 
-        if (!nextAccount) {
+        if (!result) {
           router.replace("/login");
           return;
         }
 
-        setAccount(nextAccount);
-      } catch {
+        setAccount(result.account);
+        setError(result.warning);
+      } catch (loadError) {
+        console.error("PDFBright account load failed", loadError);
         if (!cancelled) {
-          setError("Your account is signed in, but we could not load the plan details yet.");
+          setError("Your account could not be loaded. Refresh the page or sign in again.");
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -116,12 +135,13 @@ export function AccountPanel() {
         attempts += 1;
 
         try {
-          const refreshed = await readAccountState();
-          if (cancelled || !refreshed) return;
+          const result = await readAccountState();
+          if (cancelled || !result) return;
 
-          setAccount(refreshed);
+          setAccount(result.account);
+          setError(result.warning);
 
-          if (refreshed.plan === "pro") {
+          if (result.account.plan === "pro") {
             setBillingMessage("PDFBright Pro is active on this account.");
             window.clearInterval(timer);
             router.replace("/account");
@@ -180,8 +200,11 @@ export function AccountPanel() {
       };
 
       if (response.status === 409 && payload.code === "subscription_exists") {
-        const refreshed = await readAccountState();
-        if (refreshed) setAccount(refreshed);
+        const result = await readAccountState();
+        if (result) {
+          setAccount(result.account);
+          setError(result.warning);
+        }
         router.replace("/account");
         return;
       }
@@ -259,7 +282,12 @@ export function AccountPanel() {
   }
 
   if (!account) {
-    return null;
+    return (
+      <main className="account-shell account-shell--loading">
+        <div className="account-loading-mark" aria-hidden="true">✦</div>
+        <p>{error ?? "We could not open your PDFBright account."}</p>
+      </main>
+    );
   }
 
   const visibleBillingMessage =
