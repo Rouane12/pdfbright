@@ -1,32 +1,41 @@
 import "./diagnosis.css";
 import "./cleanup.css";
 import "./brand-sections.css";
+import "./identity-v2.css";
 import { UploadDropzone } from "@/components/upload-dropzone";
 
-const fixes = [
+type FixIconKind = "straighten" | "rotate" | "ocr" | "blank" | "compress" | "normalize";
+
+const fixes: Array<{ title: string; description: string; icon: FixIconKind }> = [
   {
     title: "Crooked pages",
     description: "Straighten scanned pages without making you tune technical settings.",
+    icon: "straighten",
   },
   {
     title: "Sideways pages",
     description: "Detect pages that need rotation and orient them correctly.",
+    icon: "rotate",
   },
   {
     title: "Unsearchable scans",
     description: "Make image-only pages searchable when OCR is available.",
+    icon: "ocr",
   },
   {
     title: "Blank pages",
     description: "Flag likely scanner blanks so you can review them safely.",
+    icon: "blank",
   },
   {
     title: "Large file sizes",
     description: "Reduce oversized PDFs while protecting normal readability.",
+    icon: "compress",
   },
   {
     title: "Inconsistent pages",
     description: "Normalize awkward page sizes and orientation where appropriate.",
+    icon: "normalize",
   },
 ];
 
@@ -64,6 +73,120 @@ function BrandLogo() {
         <span className="brand-wordmark__bright">Br<span className="brand-wordmark__i">i</span>ght</span>
       </span>
     </span>
+  );
+}
+
+function ProblemIcon({ kind }: { kind: FixIconKind }) {
+  const common = {
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+
+  if (kind === "straighten") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path {...common} d="m7 4 9-1 2 15-9 1L7 4Z" />
+        <path {...common} d="M4 20h16M7 16l11-1" />
+      </svg>
+    );
+  }
+
+  if (kind === "rotate") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path {...common} d="M7.2 7.4A7 7 0 1 1 5 13" />
+        <path {...common} d="M7.2 3.8v3.6H3.6" />
+        <rect {...common} x="9" y="8" width="7" height="9" rx="1.4" />
+      </svg>
+    );
+  }
+
+  if (kind === "ocr") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path {...common} d="M6 3.5h8l4 4V20H6V3.5Z" />
+        <path {...common} d="M14 3.8V8h4M9 12h6M9 15h4" />
+        <path {...common} d="m16.5 16.5 3 3M18.6 15.2a2.4 2.4 0 1 1-4.8 0 2.4 2.4 0 0 1 4.8 0Z" />
+      </svg>
+    );
+  }
+
+  if (kind === "blank") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path {...common} d="M6 3.5h8l4 4V20H6V3.5Z" />
+        <path {...common} d="M14 3.8V8h4" />
+        <path {...common} d="M9 14h6" />
+      </svg>
+    );
+  }
+
+  if (kind === "compress") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path {...common} d="M8 3.5h8v17H8z" />
+        <path {...common} d="m3.5 9 3 3-3 3M20.5 9l-3 3 3 3" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect {...common} x="4" y="5" width="7" height="11" rx="1.4" />
+      <rect {...common} x="13" y="8" width="7" height="11" rx="1.4" />
+      <path {...common} d="M8 19h8M10 17l-2 2 2 2M14 17l2 2-2 2" />
+    </svg>
+  );
+}
+
+function BrighteningDemo() {
+  return (
+    <div className="bright-demo" tabIndex={0} aria-label="Illustration of a messy PDF becoming cleaner and more usable">
+      <div className="bright-demo-header" aria-hidden="true">
+        <span className="bright-demo-label">Before</span>
+        <span className="bright-demo-label bright-demo-label--after">After PDFBright</span>
+      </div>
+
+      <div className="bright-demo-stage" aria-hidden="true">
+        <div className="demo-page demo-page--before">
+          <span className="demo-page-fold" />
+          <div className="demo-page-title" />
+          <div className="demo-line demo-line--mid" />
+          <div className="demo-line demo-line--short" />
+          <div className="demo-scan-block" />
+          <div className="demo-page-meta">
+            <span className="demo-chip">crooked</span>
+            <span className="demo-chip">image-only</span>
+            <span className="demo-chip">oversized</span>
+          </div>
+        </div>
+
+        <span className="demo-arrow">→</span>
+
+        <div className="demo-page demo-page--after">
+          <span className="demo-page-fold" />
+          <div className="demo-page-title" />
+          <div className="demo-line demo-line--mid" />
+          <div className="demo-line demo-line--short" />
+          <div className="demo-scan-block" />
+          <div className="demo-page-meta">
+            <span className="demo-chip">straightened</span>
+            <span className="demo-chip">searchable</span>
+            <span className="demo-chip">optimized</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="demo-outcomes" aria-hidden="true">
+        <span className="demo-outcome">Straightened</span>
+        <span className="demo-outcome">Searchable</span>
+        <span className="demo-outcome">Optimized</span>
+        <span className="demo-outcome demo-outcome--spark">Still your document</span>
+      </div>
+    </div>
   );
 }
 
@@ -105,7 +228,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="hero-upload hero-reveal hero-reveal--4 mx-auto mt-10 max-w-4xl sm:mt-12">
+          <div id="upload" className="hero-upload hero-reveal hero-reveal--4 mx-auto mt-10 max-w-4xl scroll-mt-24 sm:mt-12">
             <UploadDropzone />
           </div>
 
@@ -132,12 +255,28 @@ export default function Home() {
           <div className="feature-grid mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {fixes.map((fix) => (
               <article key={fix.title} className="feature-card">
-                <div className="feature-dot" aria-hidden="true" />
+                <div className="problem-icon" aria-hidden="true">
+                  <ProblemIcon kind={fix.icon} />
+                </div>
                 <h3 className="text-base font-semibold tracking-tight text-slate-950">{fix.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-slate-600">{fix.description}</p>
               </article>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="section-shell identity-demo-section" aria-labelledby="bright-demo-heading">
+        <div className="section-inner section-reveal identity-demo-layout">
+          <div className="identity-demo-copy">
+            <p className="section-kicker section-kicker--spark">The PDFBright effect</p>
+            <h2 id="bright-demo-heading" className="section-title">Messy in. Clear out.</h2>
+            <p className="section-copy">
+              PDFBright is built around one visual idea: the document stays yours while the annoying parts get straightened, clarified, and cleaned up around it.
+            </p>
+            <p className="mt-5 text-sm font-semibold text-slate-500">Hover or focus the preview to see the brightening sweep.</p>
+          </div>
+          <BrighteningDemo />
         </div>
       </section>
 
@@ -226,6 +365,7 @@ export default function Home() {
                 <span className="pricing-period">/ month</span>
               </div>
               <p className="pricing-yearly">or $59.99 billed yearly</p>
+              <span className="pricing-savings">Save about 37% yearly</span>
               <h3 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">More room for repeat and heavy use</h3>
               <p className="mt-3 text-sm leading-6 text-slate-600">Higher limits for larger PDFs, heavier OCR, faster repeat workflows, and more demanding cleanup.</p>
               <ul className="pricing-list">
@@ -264,7 +404,7 @@ export default function Home() {
       </section>
 
       <section className="px-5 py-16 sm:px-6 sm:py-20 lg:px-8">
-        <div className="launch-cta section-reveal mx-auto max-w-4xl px-6 py-10 text-center sm:px-10 sm:py-12">
+        <div className="launch-cta mx-auto max-w-4xl px-6 py-10 text-center sm:px-10 sm:py-12">
           <span className="launch-cta__spark" aria-hidden="true">✦</span>
           <h2 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Have a messy PDF?</h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
