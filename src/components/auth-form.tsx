@@ -1,21 +1,84 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 type AuthMode = "login" | "signup";
+type Status = { kind: "success" | "error"; message: string } | null;
 
 export function AuthForm({ mode }: { mode: AuthMode }) {
-  const [status, setStatus] = useState<string | null>(null);
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<Status>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isLogin = mode === "login";
 
-  function showPreviewNotice() {
-    setStatus("Authentication is not connected in this preview yet. No account was changed and no email was sent.");
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+
+    void supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        router.replace("/account");
+      }
+    });
+  }, [router]);
+
+  async function handleGoogleSignIn() {
+    setStatus(null);
+    setIsSubmitting(true);
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const redirectTo = `${window.location.origin}/account`;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo },
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Google sign-in could not start.";
+      setStatus({ kind: "error", message });
+      setIsSubmitting(false);
+    }
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    showPreviewNotice();
+    setStatus(null);
+    setIsSubmitting(true);
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const redirectTo = `${window.location.origin}/account`;
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          shouldCreateUser: !isLogin,
+          emailRedirectTo: redirectTo,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setStatus({
+        kind: "success",
+        message: isLogin
+          ? "Check your inbox. We sent a secure PDFBright sign-in link."
+          : "Check your inbox to finish creating your PDFBright account.",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "We could not send the sign-in link.";
+      setStatus({ kind: "error", message });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -28,9 +91,14 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           : "Create an account when you want Pro access, higher limits, and a consistent experience across sessions."}
       </p>
 
-      <button className="auth-social-button" type="button" onClick={showPreviewNotice}>
+      <button
+        className="auth-social-button"
+        type="button"
+        onClick={handleGoogleSignIn}
+        disabled={isSubmitting}
+      >
         <span className="google-mark" aria-hidden="true">G</span>
-        Continue with Google
+        {isSubmitting ? "Opening secure sign-in…" : "Continue with Google"}
       </button>
 
       <div className="auth-divider"><span>or continue with email</span></div>
@@ -43,16 +111,27 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           name="email"
           autoComplete="email"
           placeholder="you@example.com"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          disabled={isSubmitting}
           required
         />
-        <button className="auth-primary-button" type="submit">
-          {isLogin ? "Email me a sign-in link" : "Create account with email"}
+        <button className="auth-primary-button" type="submit" disabled={isSubmitting}>
+          {isSubmitting
+            ? "Sending secure link…"
+            : isLogin
+              ? "Email me a sign-in link"
+              : "Create account with email"}
         </button>
       </form>
 
-      <p className="auth-magic-note">No password to remember. We plan to use secure email sign-in links and OAuth.</p>
+      <p className="auth-magic-note">Secure email sign-in links. No password to remember.</p>
 
-      {status ? <p className="auth-preview-notice" role="status">{status}</p> : null}
+      {status ? (
+        <p className="auth-preview-notice" data-kind={status.kind} role="status">
+          {status.message}
+        </p>
+      ) : null}
 
       <p className="auth-switch">
         {isLogin ? "New to PDFBright?" : "Already have an account?"}{" "}
