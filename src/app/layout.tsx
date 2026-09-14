@@ -9,6 +9,7 @@ import "./auth.css";
 import "./account.css";
 import "./identity-v3.css";
 import "./identity-v4.css";
+import "./identity-v5.css";
 
 export const metadata: Metadata = {
   title: {
