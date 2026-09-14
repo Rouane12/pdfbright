@@ -277,7 +277,7 @@ export function UploadDropzone() {
 
       <p className="mt-4 text-center text-[0.8rem] leading-5 text-slate-600 sm:text-sm">
         Current processing runs locally in your browser · No signup required ·{" "}
-        <a className="font-semibold text-indigo-700 underline-offset-4 hover:underline" href="/privacy">
+        <a className="brand-link font-semibold" href="/privacy">
           Privacy details
         </a>
       </p>
