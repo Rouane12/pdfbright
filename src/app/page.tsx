@@ -47,20 +47,32 @@ const steps = [
   },
 ];
 
+function BrandLogo() {
+  return (
+    <span className="brand-logo" aria-label="PDFBright">
+      <span className="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none">
+          <path d="M7.2 3.5h10.2l7.4 7.5v16.3c0 .7-.6 1.2-1.2 1.2H7.2c-.7 0-1.2-.6-1.2-1.2V4.8c0-.7.5-1.3 1.2-1.3Z" fill="white" stroke="currentColor" strokeWidth="2" />
+          <path d="M17.4 3.8v6c0 .8.6 1.4 1.4 1.4h5.7" fill="#DDF3FF" stroke="currentColor" strokeWidth="2" />
+          <path d="M10 13.5h7M10 17.3h8.5M10 21.1h5.8" stroke="#9FB2C8" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M22 16.2c.8 3.8 2.5 5.5 6.3 6.3-3.8.8-5.5 2.5-6.3 6.3-.8-3.8-2.5-5.5-6.3-6.3 3.8-.8 5.5-2.5 6.3-6.3Z" className="brand-spark" />
+        </svg>
+      </span>
+      <span className="brand-wordmark" aria-hidden="true">
+        <span className="brand-wordmark__pdf">PDF</span>
+        <span className="brand-wordmark__bright">Br<span className="brand-wordmark__i">i</span>ght</span>
+      </span>
+    </span>
+  );
+}
+
 export default function Home() {
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#fbfcff] text-slate-950">
-      <header className="border-b border-slate-200/80 bg-white/90 backdrop-blur">
+    <main className="min-h-screen overflow-x-hidden bg-[#f8fbff] text-slate-950">
+      <header className="site-header">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-6 lg:px-8">
-          <a href="#top" className="group inline-flex items-center gap-2.5" aria-label="PDFBright home">
-            <span className="brand-mark" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M7 3.75h6.4L18 8.35v11.9H7V3.75Z" stroke="currentColor" strokeWidth="1.6" />
-                <path d="M13 3.9v4.6h4.6" stroke="currentColor" strokeWidth="1.6" />
-                <path d="m17.35 3.4.5 1.15 1.15.5-1.15.5-.5 1.15-.5-1.15-1.15-.5 1.15-.5.5-1.15Z" fill="currentColor" />
-              </svg>
-            </span>
-            <span className="text-[1.05rem] font-bold tracking-[-0.03em]">PDFBright</span>
+          <a href="#top" className="group inline-flex items-center" aria-label="PDFBright home">
+            <BrandLogo />
           </a>
 
           <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 sm:flex" aria-label="Primary navigation">
@@ -76,24 +88,29 @@ export default function Home() {
       <div id="top" />
 
       <section className="hero-surface">
+        <div className="hero-orb hero-orb--left" aria-hidden="true" />
+        <div className="hero-orb hero-orb--right" aria-hidden="true" />
         <div className="mx-auto max-w-6xl px-5 pb-20 pt-16 sm:px-6 sm:pb-24 sm:pt-20 lg:px-8 lg:pt-24">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="eyebrow mx-auto">A calmer way to clean PDFs</div>
-            <h1 className="mt-5 text-balance text-4xl font-bold tracking-[-0.045em] text-slate-950 sm:text-5xl lg:text-6xl">
+            <div className="eyebrow hero-reveal hero-reveal--1 mx-auto">
+              <span className="eyebrow-spark" aria-hidden="true">✦</span>
+              A brighter way to clean PDFs
+            </div>
+            <h1 className="hero-title hero-reveal hero-reveal--2 mt-5 text-balance text-4xl font-bold tracking-[-0.045em] text-slate-950 sm:text-5xl lg:text-6xl">
               Fix messy PDFs in one click.
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
+            <p className="hero-copy hero-reveal hero-reveal--3 mx-auto mt-6 max-w-2xl text-pretty text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
               Clean scans, straighten pages, make text searchable, and reduce file size automatically.
             </p>
           </div>
 
-          <div className="mx-auto mt-10 max-w-4xl sm:mt-12">
+          <div className="hero-upload hero-reveal hero-reveal--4 mx-auto mt-10 max-w-4xl sm:mt-12">
             <UploadDropzone />
           </div>
 
           <a
             href="#how-it-works"
-            className="mx-auto mt-8 flex w-fit items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-4"
+            className="hero-scroll hero-reveal hero-reveal--5 mx-auto mt-8 flex w-fit items-center gap-2 text-sm font-semibold text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-4"
           >
             See how it works
             <span aria-hidden="true">↓</span>
@@ -136,7 +153,7 @@ export default function Home() {
           <div className="mt-10 grid gap-4 lg:grid-cols-3">
             {steps.map((step) => (
               <article key={step.number} className="step-card">
-                <span className="text-xs font-bold tracking-[0.16em] text-indigo-600">{step.number}</span>
+                <span className="step-number">{step.number}</span>
                 <h3 className="mt-5 text-xl font-semibold tracking-tight text-slate-950">{step.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-slate-600">{step.description}</p>
               </article>
@@ -164,8 +181,8 @@ export default function Home() {
               <span className="trust-pill">No document-content analytics</span>
             </div>
             <div className="mt-5 flex flex-wrap gap-4 text-sm font-semibold">
-              <a className="text-indigo-700 hover:underline" href="/privacy">Privacy details</a>
-              <a className="text-indigo-700 hover:underline" href="/security">Security overview</a>
+              <a className="brand-link" href="/privacy">Privacy details</a>
+              <a className="brand-link" href="/security">Security overview</a>
             </div>
           </div>
         </div>
@@ -183,7 +200,7 @@ export default function Home() {
 
           <div className="mx-auto mt-10 grid max-w-3xl gap-4 md:grid-cols-2">
             <article className="pricing-card pricing-card--featured">
-              <p className="text-sm font-semibold text-indigo-700">Free</p>
+              <p className="brand-link text-sm font-semibold">Free</p>
               <h3 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">Clean everyday PDFs</h3>
               <p className="mt-3 text-sm leading-6 text-slate-600">Single-document cleanup with practical limits while we keep local processing generous.</p>
             </article>
@@ -220,7 +237,8 @@ export default function Home() {
       </section>
 
       <section className="px-5 py-16 sm:px-6 sm:py-20 lg:px-8">
-        <div className="mx-auto max-w-4xl rounded-[2rem] border border-indigo-100 bg-indigo-50 px-6 py-10 text-center sm:px-10 sm:py-12">
+        <div className="launch-cta mx-auto max-w-4xl px-6 py-10 text-center sm:px-10 sm:py-12">
+          <span className="launch-cta__spark" aria-hidden="true">✦</span>
           <h2 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Have a messy PDF?</h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
             Start with the file. PDFBright is designed to figure out the rest.
@@ -233,8 +251,8 @@ export default function Home() {
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-7 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <p>© 2026 PDFBright</p>
           <div className="flex flex-wrap gap-x-4 gap-y-2 font-medium">
-            <a className="hover:text-slate-900" href="/privacy">Privacy</a>
-            <a className="hover:text-slate-900" href="/security">Security</a>
+            <a className="footer-link" href="/privacy">Privacy</a>
+            <a className="footer-link" href="/security">Security</a>
           </div>
           <p>Fix messy PDFs in one click.</p>
         </div>
