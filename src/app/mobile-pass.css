@@ -14,7 +14,8 @@
   }
 
   .site-header nav > span {
-    display: none !important;
+    display: inline !important;
+    color: #94a3b8;
   }
 
   .brand-logo {
@@ -182,23 +183,33 @@
 
 @media (max-width: 380px) {
   .site-header > div {
-    gap: 0.45rem;
-    padding-left: 0.85rem !important;
-    padding-right: 0.85rem !important;
+    gap: 0.4rem;
+    padding-left: 0.7rem !important;
+    padding-right: 0.7rem !important;
   }
 
   .site-header nav {
-    gap: 0.55rem !important;
-    font-size: 0.68rem !important;
+    gap: 0.45rem !important;
+    font-size: 0.64rem !important;
+    letter-spacing: -0.01em;
+  }
+
+  .brand-logo {
+    gap: 0.38rem;
   }
 
   .brand-mark {
-    width: 1.95rem;
-    height: 1.95rem;
+    width: 1.8rem;
+    height: 1.8rem;
+  }
+
+  .brand-mark svg {
+    width: 1.3rem;
+    height: 1.3rem;
   }
 
   .brand-wordmark {
-    font-size: 0.98rem;
+    font-size: 0.9rem;
   }
 
   .eyebrow {
@@ -238,20 +249,27 @@
 }
 
 @media (max-width: 340px) {
+  .site-header > div {
+    gap: 0.3rem;
+    padding-left: 0.55rem !important;
+    padding-right: 0.55rem !important;
+  }
+
   .site-header nav {
-    gap: 0.45rem !important;
-    font-size: 0.65rem !important;
+    gap: 0.32rem !important;
+    font-size: 0.6rem !important;
   }
 
   .brand-logo {
-    gap: 0.4rem;
+    gap: 0.32rem;
+  }
+
+  .brand-mark {
+    width: 1.7rem;
+    height: 1.7rem;
   }
 
   .brand-wordmark {
-    font-size: 0.94rem;
-  }
-
-  .nav-link:first-child {
-    display: none;
+    font-size: 0.84rem;
   }
 }
