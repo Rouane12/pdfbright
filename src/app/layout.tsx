@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { GlobalSiteHeader } from "@/components/global-site-header";
 import "./globals.css";
 import "./workflow-identity.css";
 import "./workflow-polish.css";
 import "./workflow-polish-v3.css";
 import "./mobile-pass.css";
+import "./auth.css";
 
 export const metadata: Metadata = {
   title: {
@@ -20,7 +22,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <GlobalSiteHeader />
+        {children}
+      </body>
     </html>
   );
 }
