@@ -72,9 +72,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: checkoutUrl });
   } catch (error) {
     console.error("PDFBright checkout creation failed", error);
-    return NextResponse.json(
-      { error: "Checkout could not be started. Please try again." },
-      { status: 500 },
-    );
+
+    const message =
+      process.env.LEMON_SQUEEZY_TEST_MODE === "true" && error instanceof Error
+        ? error.message
+        : "Checkout could not be started. Please try again.";
+
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
