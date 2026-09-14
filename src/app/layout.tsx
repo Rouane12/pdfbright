@@ -13,6 +13,7 @@ import "./identity-v4.css";
 import "./identity-v5.css";
 import "./identity-v6.css";
 import "./identity-v7.css";
+import "./identity-v8.css";
 
 export const metadata: Metadata = {
   title: {
