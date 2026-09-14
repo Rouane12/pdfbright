@@ -35,13 +35,14 @@ export async function requestMagicLink(formData: FormData) {
 
   const requestHeaders = await headers();
   const origin = resolveRequestOrigin(requestHeaders);
+  const callbackUrl = new URL("/auth/confirm", origin).toString();
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
       shouldCreateUser: true,
-      emailRedirectTo: origin,
+      emailRedirectTo: callbackUrl,
     },
   });
 
