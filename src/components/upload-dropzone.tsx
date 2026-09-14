@@ -41,8 +41,45 @@ function describeProgress(progress: PdfAnalysisProgress | null) {
   }
 }
 
+function UploadSourceIcon({ kind }: { kind: "device" | "drive" | "dropbox" | "onedrive" }) {
+  if (kind === "device") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M7 3.5h7l4 4V20H7V3.5Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        <path d="M14 3.8V8h4M12 16V10m0 0-2.4 2.4M12 10l2.4 2.4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (kind === "drive") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m9 3 4.8 8.2H8.3L3.6 19 9 3Z" fill="#34A853" />
+        <path d="M9 3h6l5.4 9.3h-5.9L9 3Z" fill="#FBBC04" />
+        <path d="M8.3 11.2h5.5l3.2 5.5-2.1 3.3H3.6l4.7-8.8Z" fill="#4285F4" />
+      </svg>
+    );
+  }
+
+  if (kind === "dropbox") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m6.3 4 5.7 3.6-5.7 3.6L.7 7.6 6.3 4Zm11.4 0 5.6 3.6-5.6 3.6L12 7.6 17.7 4ZM6.3 12.1l5.7 3.6-5.7 3.6-5.6-3.6 5.6-3.6Zm11.4 0 5.6 3.6-5.6 3.6-5.7-3.6 5.7-3.6ZM6.9 20l5.1-3.2 5.1 3.2-5.1 3.2L6.9 20Z" fill="#0061FF" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M8.2 17.8h10.2a4.1 4.1 0 0 0 .4-8.2 6.2 6.2 0 0 0-11.4-1.8A5.1 5.1 0 0 0 8.2 17.8Z" fill="#1A73E8" />
+      <path d="M4.5 17.8h8.7a3.5 3.5 0 0 0 .3-7 5.3 5.3 0 0 0-9.8-1.5 4.3 4.3 0 0 0 .8 8.5Z" fill="#36BFFA" opacity=".92" />
+    </svg>
+  );
+}
+
 export function UploadDropzone() {
   const inputRef = useRef<HTMLInputElement>(null);
+  const sourceMenuRef = useRef<HTMLDetailsElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const analysisRunRef = useRef(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -64,6 +101,13 @@ export function UploadDropzone() {
       abortRef.current?.abort();
     };
   }, []);
+
+  function openDevicePicker() {
+    if (sourceMenuRef.current) {
+      sourceMenuRef.current.open = false;
+    }
+    inputRef.current?.click();
+  }
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
@@ -169,7 +213,7 @@ export function UploadDropzone() {
           key={`${analysisResult.analyzedAt}-${selectedFile.name}`}
           file={selectedFile}
           result={analysisResult}
-          onReplace={() => inputRef.current?.click()}
+          onReplace={openDevicePicker}
           onRemove={removeFile}
           debugCleanup={cleanupDebugEnabled}
         />
@@ -217,7 +261,7 @@ export function UploadDropzone() {
                   <button
                     type="button"
                     className="button button--primary"
-                    onClick={() => inputRef.current?.click()}
+                    onClick={openDevicePicker}
                   >
                     Replace PDF
                   </button>
@@ -238,14 +282,65 @@ export function UploadDropzone() {
                 <p className="mt-5 text-xl font-semibold tracking-tight text-slate-950">
                   Drop your PDF here
                 </p>
-                <p className="mt-2 text-sm leading-6 text-slate-500">or choose a file from your device</p>
-                <button
-                  type="button"
-                  className="button button--primary mt-6"
-                  onClick={() => inputRef.current?.click()}
-                >
-                  Choose a PDF
-                </button>
+                <p className="mt-2 text-sm leading-6 text-slate-500">or choose where your PDF lives</p>
+
+                <div className="upload-source-picker mt-6">
+                  <button
+                    type="button"
+                    className="upload-source-picker__main"
+                    onClick={openDevicePicker}
+                  >
+                    <UploadSourceIcon kind="device" />
+                    <span>Choose a PDF</span>
+                  </button>
+
+                  <details ref={sourceMenuRef} className="upload-source-picker__menu">
+                    <summary aria-label="Choose another PDF source">
+                      <svg viewBox="0 0 20 20" aria-hidden="true">
+                        <path d="m6 8 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </summary>
+                    <div className="upload-source-popover">
+                      <button type="button" className="upload-source-option" onClick={openDevicePicker}>
+                        <span className="upload-source-option__icon upload-source-option__icon--device"><UploadSourceIcon kind="device" /></span>
+                        <span className="upload-source-option__copy">
+                          <strong>From device</strong>
+                          <small>Choose a PDF already on this device</small>
+                        </span>
+                      </button>
+
+                      <button type="button" className="upload-source-option" disabled title="Google Drive import is coming soon">
+                        <span className="upload-source-option__icon"><UploadSourceIcon kind="drive" /></span>
+                        <span className="upload-source-option__copy">
+                          <strong>Google Drive</strong>
+                          <small>Cloud import</small>
+                        </span>
+                        <span className="upload-source-option__soon">Soon</span>
+                      </button>
+
+                      <button type="button" className="upload-source-option" disabled title="Dropbox import is coming soon">
+                        <span className="upload-source-option__icon"><UploadSourceIcon kind="dropbox" /></span>
+                        <span className="upload-source-option__copy">
+                          <strong>Dropbox</strong>
+                          <small>Cloud import</small>
+                        </span>
+                        <span className="upload-source-option__soon">Soon</span>
+                      </button>
+
+                      <button type="button" className="upload-source-option" disabled title="OneDrive import is coming soon">
+                        <span className="upload-source-option__icon"><UploadSourceIcon kind="onedrive" /></span>
+                        <span className="upload-source-option__copy">
+                          <strong>OneDrive</strong>
+                          <small>Cloud import</small>
+                        </span>
+                        <span className="upload-source-option__soon">Soon</span>
+                      </button>
+
+                      <p className="upload-source-popover__note">✦ Device upload stays the fastest, most private path.</p>
+                    </div>
+                  </details>
+                </div>
+
                 <p className="mt-4 text-xs leading-5 text-slate-500">
                   PDF only · Up to {MAX_FILE_SIZE_MB} MB · Up to {MAX_PAGE_COUNT} pages
                 </p>
