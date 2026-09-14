@@ -1,62 +1,98 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
+
+type UpgradePlan = "monthly" | "yearly";
+type BillingAction = UpgradePlan | "portal" | null;
 
 type AccountState = {
   email: string;
   plan: "free" | "pro";
+  subscriptionStatus: string | null;
+  currentPeriodEnd: string | null;
 };
+
+function readUpgradePlan(value: string | null): UpgradePlan | null {
+  return value === "monthly" || value === "yearly" ? value : null;
+}
 
 export function AccountPanel() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [account, setAccount] = useState<AccountState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [billingMessage, setBillingMessage] = useState<string | null>(null);
+  const [billingAction, setBillingAction] = useState<BillingAction>(null);
+  const attemptedUpgrade = useRef<UpgradePlan | null>(null);
+  const upgradePlan = readUpgradePlan(searchParams.get("upgrade"));
+  const checkoutSuccess = searchParams.get("checkout") === "success";
+
+  async function readAccountState() {
+    const supabase = getSupabaseBrowserClient();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return null;
+    }
+
+    const [{ data: profile, error: profileError }, { data: subscription, error: subscriptionError }] = await Promise.all([
+      supabase.from("profiles").select("plan").eq("user_id", user.id).maybeSingle(),
+      supabase
+        .from("subscriptions")
+        .select("status, current_period_end")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
+
+    if (profileError || subscriptionError) {
+      throw profileError ?? subscriptionError;
+    }
+
+    return {
+      email: user.email ?? "Signed-in user",
+      plan: profile?.plan === "pro" ? "pro" : "free",
+      subscriptionStatus: subscription?.status ?? null,
+      currentPeriodEnd: subscription?.current_period_end ?? null,
+    } satisfies AccountState;
+  }
 
   useEffect(() => {
-    const supabase = getSupabaseBrowserClient();
     let cancelled = false;
 
     async function loadAccount() {
       setLoading(true);
       setError(null);
 
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      try {
+        const nextAccount = await readAccountState();
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      if (userError || !user) {
-        router.replace("/login");
-        return;
+        if (!nextAccount) {
+          router.replace("/login");
+          return;
+        }
+
+        setAccount(nextAccount);
+      } catch {
+        if (!cancelled) {
+          setError("Your account is signed in, but we could not load the plan details yet.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("plan")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (cancelled) return;
-
-      if (profileError) {
-        setError("Your account is signed in, but we could not load the plan details yet.");
-      }
-
-      setAccount({
-        email: user.email ?? "Signed-in user",
-        plan: profile?.plan === "pro" ? "pro" : "free",
-      });
-      setLoading(false);
     }
 
     void loadAccount();
 
+    const supabase = getSupabaseBrowserClient();
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
         router.replace("/");
@@ -69,10 +105,143 @@ export function AccountPanel() {
     };
   }, [router]);
 
+  useEffect(() => {
+    if (!checkoutSuccess || !account || account.plan === "pro") return;
+
+    let cancelled = false;
+    let attempts = 0;
+    setBillingMessage("Payment received. Finalizing your PDFBright Pro access…");
+
+    const timer = window.setInterval(() => {
+      void (async () => {
+        attempts += 1;
+
+        try {
+          const refreshed = await readAccountState();
+          if (cancelled || !refreshed) return;
+
+          setAccount(refreshed);
+
+          if (refreshed.plan === "pro") {
+            setBillingMessage("PDFBright Pro is active on this account.");
+            window.clearInterval(timer);
+            router.replace("/account");
+          } else if (attempts >= 12) {
+            setBillingMessage("Your payment is complete, but Pro access is still syncing. Refresh this page in a moment if it does not update automatically.");
+            window.clearInterval(timer);
+          }
+        } catch {
+          if (attempts >= 12) {
+            setBillingMessage("Your payment is complete, but we could not confirm the entitlement yet. Please refresh shortly.");
+            window.clearInterval(timer);
+          }
+        }
+      })();
+    }, 1500);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [account, checkoutSuccess, router]);
+
   const initials = useMemo(() => {
     if (!account?.email) return "P";
     return account.email.slice(0, 1).toUpperCase();
   }, [account]);
+
+  async function startCheckout(plan: UpgradePlan) {
+    setBillingMessage(null);
+    setBillingAction(plan);
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        router.replace(`/login?upgrade=${plan}`);
+        return;
+      }
+
+      const response = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ plan }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        url?: string;
+        error?: string;
+        code?: string;
+      };
+
+      if (response.status === 409 && payload.code === "subscription_exists") {
+        const refreshed = await readAccountState();
+        if (refreshed) setAccount(refreshed);
+        router.replace("/account");
+        return;
+      }
+
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error ?? "Checkout could not be started.");
+      }
+
+      window.location.assign(payload.url);
+    } catch (checkoutError) {
+      setBillingMessage(checkoutError instanceof Error ? checkoutError.message : "Checkout could not be started.");
+      setBillingAction(null);
+      router.replace("/account");
+    }
+  }
+
+  useEffect(() => {
+    if (!account || !upgradePlan || account.plan === "pro" || attemptedUpgrade.current === upgradePlan) {
+      return;
+    }
+
+    attemptedUpgrade.current = upgradePlan;
+    void startCheckout(upgradePlan);
+  }, [account, upgradePlan]);
+
+  async function openBillingPortal() {
+    setBillingMessage(null);
+    setBillingAction("portal");
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        router.replace("/login");
+        return;
+      }
+
+      const response = await fetch("/api/billing/portal", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as { url?: string; error?: string };
+
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error ?? "Billing management could not be opened.");
+      }
+
+      window.location.assign(payload.url);
+    } catch (portalError) {
+      setBillingMessage(portalError instanceof Error ? portalError.message : "Billing management could not be opened.");
+      setBillingAction(null);
+    }
+  }
 
   async function signOut() {
     const supabase = getSupabaseBrowserClient();
@@ -104,12 +273,13 @@ export function AccountPanel() {
           <div>
             <p className="account-kicker"><span aria-hidden="true">✦</span> Your PDFBright account</p>
             <h1>Good to have you here.</h1>
-            <p>Your account keeps access, plan status, and future usage allowances tied to one identity.</p>
+            <p>Your account keeps access, plan status, and usage allowances tied to one identity.</p>
           </div>
           <div className="account-avatar" aria-hidden="true">{initials}</div>
         </div>
 
         {error ? <div className="account-notice account-notice--warning" role="status">{error}</div> : null}
+        {billingMessage ? <div className="account-notice" role="status">{billingMessage}</div> : null}
 
         <div className="account-grid">
           <article className="account-card account-card--identity">
@@ -127,7 +297,23 @@ export function AccountPanel() {
                 ? "Your Pro entitlement is active on this account."
                 : "Upgrade when you need larger files, heavier OCR, and more room for repeat workflows."}
             </p>
-            {account.plan === "free" ? <Link className="account-primary-link" href="/#pricing">See Pro pricing</Link> : null}
+            {account.plan === "pro" && account.subscriptionStatus ? (
+              <p className="account-card-copy">Subscription status: <strong>{account.subscriptionStatus.replaceAll("_", " ")}</strong>.</p>
+            ) : null}
+            {account.plan === "free" ? (
+              <div className="account-actions">
+                <button className="account-primary-link" type="button" onClick={() => void startCheckout("monthly")} disabled={billingAction !== null}>
+                  {billingAction === "monthly" ? "Opening checkout…" : "Go Pro monthly — $7.99"}
+                </button>
+                <button className="account-signout" type="button" onClick={() => void startCheckout("yearly")} disabled={billingAction !== null}>
+                  {billingAction === "yearly" ? "Opening checkout…" : "Yearly — $59.99"}
+                </button>
+              </div>
+            ) : (
+              <button className="account-primary-link" type="button" onClick={() => void openBillingPortal()} disabled={billingAction !== null}>
+                {billingAction === "portal" ? "Opening billing…" : "Manage billing"}
+              </button>
+            )}
           </article>
 
           <article className="account-card account-card--privacy">
