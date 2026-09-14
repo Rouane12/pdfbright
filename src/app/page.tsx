@@ -1,5 +1,6 @@
 import "./diagnosis.css";
 import "./cleanup.css";
+import "./brand-sections.css";
 import { UploadDropzone } from "@/components/upload-dropzone";
 
 const fixes = [
@@ -118,17 +119,17 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section-shell border-y border-slate-200/80 bg-white" aria-labelledby="fixes-heading">
-        <div className="section-inner">
+      <section className="section-shell brand-band brand-band--white border-y border-slate-200/80" aria-labelledby="fixes-heading">
+        <div className="section-inner section-reveal">
           <div className="max-w-2xl">
-            <p className="section-kicker">One focused workflow</p>
+            <p className="section-kicker section-kicker--spark">One focused workflow</p>
             <h2 id="fixes-heading" className="section-title">The annoying PDF problems, handled together.</h2>
             <p className="section-copy">
               Instead of making you choose between a dozen separate tools, PDFBright is designed to diagnose the document first and recommend the fixes that actually apply.
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="feature-grid mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {fixes.map((fix) => (
               <article key={fix.title} className="feature-card">
                 <div className="feature-dot" aria-hidden="true" />
@@ -140,17 +141,17 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="how-it-works" className="section-shell" aria-labelledby="how-heading">
-        <div className="section-inner">
+      <section id="how-it-works" className="section-shell brand-band brand-band--soft" aria-labelledby="how-heading">
+        <div className="section-inner section-reveal">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="section-kicker">How it works</p>
+            <p className="section-kicker section-kicker--spark">How it works</p>
             <h2 id="how-heading" className="section-title">From messy file to usable PDF.</h2>
             <p className="section-copy mx-auto">
               The workflow stays simple even when the document is not.
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 lg:grid-cols-3">
+          <div className="steps-grid mt-10 grid gap-4 lg:grid-cols-3">
             {steps.map((step) => (
               <article key={step.number} className="step-card">
                 <span className="step-number">{step.number}</span>
@@ -162,13 +163,17 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section-shell border-y border-slate-200/80 bg-white" aria-labelledby="privacy-heading">
-        <div className="section-inner grid items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+      <section className="section-shell brand-band brand-band--mist border-y border-slate-200/80" aria-labelledby="privacy-heading">
+        <div className="section-inner section-reveal grid items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
           <div>
-            <p className="section-kicker">Privacy by design</p>
+            <p className="section-kicker section-kicker--spark">Privacy by design</p>
             <h2 id="privacy-heading" className="section-title">Your document is not our product.</h2>
+            <p className="section-copy">
+              Keep the workflow simple without turning your files into somebody else&apos;s dataset.
+            </p>
           </div>
           <div className="trust-card">
+            <div className="trust-label">Local-first by default</div>
             <p className="text-base leading-7 text-slate-700">
               In the current version, supported analysis, cleanup, OCR and file optimization run in your browser. PDFBright does not intentionally upload the selected PDF to a document-processing server. Your browser may still make ordinary requests for app and OCR runtime assets.
             </p>
@@ -188,36 +193,58 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="pricing" className="section-shell" aria-labelledby="pricing-heading">
-        <div className="section-inner">
+      <section id="pricing" className="section-shell brand-band brand-band--white" aria-labelledby="pricing-heading">
+        <div className="section-inner section-reveal">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="section-kicker">Simple pricing</p>
+            <p className="section-kicker section-kicker--spark">Simple pricing</p>
             <h2 id="pricing-heading" className="section-title">Start free. Upgrade when your workflow gets heavier.</h2>
             <p className="section-copy mx-auto">
-              Core cleanup is designed to stay useful for free. Pro will add more room for larger files, batch work, and heavier OCR usage.
+              Core cleanup stays useful for free. Pro gives repeat users more room for larger files, heavier OCR, and demanding workflows.
             </p>
           </div>
 
-          <div className="mx-auto mt-10 grid max-w-3xl gap-4 md:grid-cols-2">
+          <div className="pricing-grid mx-auto mt-10 grid max-w-4xl gap-4 md:grid-cols-2">
             <article className="pricing-card pricing-card--featured">
-              <p className="brand-link text-sm font-semibold">Free</p>
-              <h3 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">Clean everyday PDFs</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-600">Single-document cleanup with practical limits while we keep local processing generous.</p>
+              <span className="pricing-badge">Free</span>
+              <div className="pricing-price-row">
+                <span className="pricing-price">$0</span>
+                <span className="pricing-period">to get started</span>
+              </div>
+              <h3 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">Clean everyday PDFs</h3>
+              <p className="mt-3 text-sm leading-6 text-slate-600">Single-document cleanup with practical limits while local processing stays generous.</p>
+              <ul className="pricing-list">
+                <li>Core cleanup workflow</li>
+                <li>No signup for the initial experience</li>
+                <li>Up to 25 pages in the current free workflow</li>
+              </ul>
             </article>
-            <article className="pricing-card">
-              <p className="text-sm font-semibold text-slate-500">Pro · coming later</p>
-              <h3 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">For repeat and heavy use</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-600">Larger documents, batch workflows, higher OCR allowances, and faster server-assisted processing when needed.</p>
+
+            <article className="pricing-card pricing-card--pro">
+              <span className="pricing-badge pricing-badge--pro">PDFBright Pro</span>
+              <div className="pricing-price-row">
+                <span className="pricing-price">$7.99</span>
+                <span className="pricing-period">/ month</span>
+              </div>
+              <p className="pricing-yearly">or $59.99 billed yearly</p>
+              <h3 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">More room for repeat and heavy use</h3>
+              <p className="mt-3 text-sm leading-6 text-slate-600">Higher limits for larger PDFs, heavier OCR, faster repeat workflows, and more demanding cleanup.</p>
+              <ul className="pricing-list">
+                <li>Larger file and page allowances</li>
+                <li>Higher OCR usage limits</li>
+                <li>More headroom for repeat workflows</li>
+              </ul>
+              <p className="pricing-note">Core PDF cleanup remains free. Pro is for people who need more capacity, not a paywall around the basic workflow.</p>
             </article>
           </div>
         </div>
       </section>
 
-      <section className="section-shell border-t border-slate-200/80 bg-white" aria-labelledby="faq-heading">
-        <div className="section-inner grid gap-8 lg:grid-cols-[0.75fr_1.25fr]">
+      <section className="section-shell brand-band brand-band--soft border-t border-slate-200/80" aria-labelledby="faq-heading">
+        <div className="section-inner section-reveal grid gap-8 lg:grid-cols-[0.75fr_1.25fr]">
           <div>
-            <p className="section-kicker">FAQ</p>
+            <p className="section-kicker section-kicker--spark">FAQ</p>
             <h2 id="faq-heading" className="section-title">A few useful answers.</h2>
+            <p className="section-copy">Short answers to the things people should know before trusting a PDF tool with their documents.</p>
           </div>
           <div className="space-y-3">
             <details className="faq-item">
@@ -237,7 +264,7 @@ export default function Home() {
       </section>
 
       <section className="px-5 py-16 sm:px-6 sm:py-20 lg:px-8">
-        <div className="launch-cta mx-auto max-w-4xl px-6 py-10 text-center sm:px-10 sm:py-12">
+        <div className="launch-cta section-reveal mx-auto max-w-4xl px-6 py-10 text-center sm:px-10 sm:py-12">
           <span className="launch-cta__spark" aria-hidden="true">✦</span>
           <h2 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Have a messy PDF?</h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
