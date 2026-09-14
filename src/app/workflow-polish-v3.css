@@ -1,0 +1,77 @@
+.advanced-fix-option input {
+  accent-color: #0b7cff !important;
+}
+
+.advanced-fix-option input:checked {
+  filter: saturate(1.08);
+}
+
+.finding-badge {
+  border-color: #bfe4f8;
+  background: #f3fbff;
+  color: #0872d8;
+}
+
+.finding-toggle input:checked + .toggle-track {
+  border-color: #0a83e9;
+  background: linear-gradient(135deg, #16a2ff 0%, #0878ee 100%);
+}
+
+.processing-orbit::after {
+  background: #0b7cff;
+  box-shadow: 0 0 0 5px rgba(11, 124, 255, 0.1);
+}
+
+.processing-orbit--inner::after {
+  background: #ffb000;
+  box-shadow: 0 0 0 5px rgba(255, 176, 0, 0.1);
+}
+
+.processing-status-dot {
+  background: #0b7cff;
+  box-shadow: 0 0 0 5px rgba(11, 124, 255, 0.1);
+}
+
+.result-summary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.result-summary-grid > div {
+  min-height: 5.35rem;
+}
+
+.result-summary-grid > div:nth-child(4):last-child {
+  grid-column: auto;
+}
+
+.result-preview-card--cleaned .result-canvas-shell {
+  background:
+    linear-gradient(45deg, #edf8ff 25%, transparent 25%),
+    linear-gradient(-45deg, #edf8ff 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #fff6dc 75%),
+    linear-gradient(-45deg, transparent 75%, #fff6dc 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+}
+
+.result-preview-card--cleaned figcaption {
+  border-bottom-color: #cfe8f7;
+  background: linear-gradient(90deg, #f8fcff, #fffdf7);
+}
+
+.result-feedback-option:hover {
+  border-color: #8fd1f7;
+  color: #075fbd;
+}
+
+@media (max-width: 700px) {
+  .result-summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .advanced-fix-option input:checked {
+    filter: none;
+  }
+}
