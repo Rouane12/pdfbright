@@ -26,14 +26,16 @@ export function getSupabaseAuthServerClient() {
 }
 
 export function getSupabaseAdminClient() {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const secretKey =
+    process.env.SUPABASE_SECRET_KEY ??
+    process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!serviceRoleKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured.");
+  if (!secretKey) {
+    throw new Error("SUPABASE_SECRET_KEY is not configured.");
   }
 
   if (!adminClient) {
-    adminClient = createClient(supabaseUrl, serviceRoleKey, {
+    adminClient = createClient(supabaseUrl, secretKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
