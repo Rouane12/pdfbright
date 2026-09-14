@@ -8,6 +8,7 @@ import "./mobile-pass.css";
 import "./auth.css";
 import "./account.css";
 import "./identity-v3.css";
+import "./identity-v4.css";
 
 export const metadata: Metadata = {
   title: {
