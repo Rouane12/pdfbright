@@ -1,6 +1,9 @@
 import "./diagnosis.css";
 import "./cleanup.css";
 import { UploadDropzone } from "@/components/upload-dropzone";
+import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 const fixes = [
   {
@@ -47,7 +50,11 @@ const steps = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const isSignedIn = Boolean(data?.claims?.sub);
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#fbfcff] text-slate-950">
       <header className="border-b border-slate-200/80 bg-white/90 backdrop-blur">
@@ -66,7 +73,9 @@ export default function Home() {
           <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 sm:flex" aria-label="Primary navigation">
             <a className="nav-link" href="#how-it-works">How it works</a>
             <a className="nav-link" href="#pricing">Pricing</a>
-            <a className="nav-link" href="/login">Sign in</a>
+            <a className="nav-link" href={isSignedIn ? "/account" : "/login"}>
+              {isSignedIn ? "Account" : "Sign in"}
+            </a>
           </nav>
         </div>
       </header>
