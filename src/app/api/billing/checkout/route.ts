@@ -16,7 +16,28 @@ function isBillingPlan(value: unknown): value is BillingPlan {
   return value === "monthly" || value === "yearly";
 }
 
+function describeCheckoutError(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (error && typeof error === "object") {
+    const candidate = error as Record<string, unknown>;
+    const parts = ["message", "details", "hint", "code"]
+      .map((key) => candidate[key])
+      .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+
+    if (parts.length > 0) {
+      return parts.join(" · ");
+    }
+  }
+
+  return "Checkout could not be started. Please try again.";
+}
+
 export async function POST(request: Request) {
+  let stage = "request";
+
   try {
     const accessToken = readBearerToken(request);
 
@@ -24,6 +45,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Sign in before upgrading." }, { status: 401 });
     }
 
+    stage = "auth";
     const supabase = getSupabaseAuthServerClient();
     const {
       data: { user },
@@ -40,6 +62,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Choose a valid PDFBright Pro plan." }, { status: 400 });
     }
 
+    stage = "subscription_lookup";
     const admin = getSupabaseAdminClient();
     const { data: existingSubscription, error: subscriptionError } = await admin
       .from("subscriptions")
@@ -61,6 +84,7 @@ export async function POST(request: Request) {
       );
     }
 
+    stage = "lemon_checkout";
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin).replace(/\/$/, "");
     const checkoutUrl = await createLemonCheckout({
       plan: body.plan,
@@ -71,18 +95,17 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: checkoutUrl });
   } catch (error) {
-    console.error("PDFBright checkout creation failed", error);
+    console.error("PDFBright checkout creation failed", { stage, error });
 
     const showPreviewError = process.env.VERCEL_ENV !== "production";
-    const message =
-      showPreviewError && error instanceof Error
-        ? error.message
-        : "Checkout could not be started. Please try again.";
+    const message = showPreviewError
+      ? describeCheckoutError(error)
+      : "Checkout could not be started. Please try again.";
 
     return NextResponse.json(
       {
         error: message,
-        ...(showPreviewError ? { code: "checkout_create_failed" } : {}),
+        ...(showPreviewError ? { code: "checkout_create_failed", stage } : {}),
       },
       { status: 500 },
     );
