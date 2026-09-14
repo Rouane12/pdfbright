@@ -167,10 +167,13 @@
 }
 
 /* Handwritten document annotations: intentionally sparse. */
-.brand-scribble {
+.brand-scribble,
+.hero-upload::before,
+.feature-grid::before,
+.demo-page--before::before,
+.demo-page--after::before {
   color: var(--scribble);
   font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
-  font-size: 0.9rem;
   font-weight: 600;
   line-height: 1.35;
   letter-spacing: 0.01em;
@@ -182,124 +185,157 @@
   position: relative;
 }
 
-.brand-scribble--hero {
+.hero-upload::before {
+  content: "drop it in…";
   position: absolute;
-  right: -6.4rem;
+  right: -6.35rem;
   top: 3.5rem;
-  width: 6rem;
+  width: 5.7rem;
+  color: #7189a0;
+  font-size: 0.84rem;
   text-align: left;
   transform: rotate(5deg);
 }
 
-.brand-scribble--hero::after {
+.hero-upload::after {
   content: "↙";
-  display: block;
-  margin: -0.1rem 0 0 0.7rem;
-  color: #8ca0b2;
-  font-size: 1.2rem;
+  position: absolute;
+  right: -2.5rem;
+  top: 5.1rem;
+  color: #95a7b7;
+  font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
+  font-size: 1.15rem;
+  transform: rotate(8deg);
+  pointer-events: none;
 }
 
-.brand-scribble--tools {
-  display: inline-block;
-  margin-top: 1.15rem;
-  color: #7089a0;
-  transform: rotate(-2.2deg);
+.feature-grid {
+  position: relative;
+}
+
+.feature-grid::before {
+  content: "one upload, no tool hunting ↘";
+  position: absolute;
+  right: 0.25rem;
+  top: -2.45rem;
+  color: #7189a0;
+  font-size: 0.78rem;
+  transform: rotate(-2.5deg);
 }
 
 .bright-demo {
   isolation: isolate;
 }
 
-.brand-scribble--before,
-.brand-scribble--after {
+.demo-page--before::before,
+.demo-page--after::before {
   position: absolute;
-  z-index: 5;
+  z-index: 4;
   max-width: 7rem;
-  font-size: 0.78rem;
+  font-size: 0.73rem;
 }
 
-.brand-scribble--before {
-  left: 2.15rem;
-  top: 5.45rem;
-  color: #788b9c;
-  transform: rotate(-8deg);
+.demo-page--before::before {
+  content: "a little messy…";
+  left: 1rem;
+  top: 5.1rem;
+  color: #7f8f9c;
+  transform: rotate(-7deg);
 }
 
-.brand-scribble--after {
-  right: 1.55rem;
-  top: 5.25rem;
-  color: #3178b6;
+.demo-page--after::before {
+  content: "same file. cleaner result.";
+  right: 0.85rem;
+  top: 5rem;
+  color: #3779b2;
   text-align: right;
   transform: rotate(6deg);
 }
 
-/* Expressive icon family: same shape language, different tool personalities. */
+/* Expressive icon family: same shape language, distinct tool personalities. */
 .problem-icon {
   overflow: visible;
 }
 
+.feature-card:nth-child(1) .problem-icon,
 .problem-icon--straighten {
   border-color: #bfe4fb;
   background: linear-gradient(145deg, #ffffff, #edf9ff);
   color: #087cf0;
 }
 
+.feature-card:nth-child(2) .problem-icon,
 .problem-icon--rotate {
   border-color: #baeaf2;
   background: linear-gradient(145deg, #ffffff, #effcff);
   color: #0ba8c7;
 }
 
+.feature-card:nth-child(3) .problem-icon,
 .problem-icon--ocr {
   border-color: #bfeacb;
   background: linear-gradient(145deg, #ffffff, #effcf3);
   color: #18a558;
 }
 
+.feature-card:nth-child(3) .problem-icon::before,
 .problem-icon--ocr::before {
   content: "OCR";
   position: absolute;
   left: 50%;
-  bottom: 0.22rem;
+  bottom: 0.2rem;
   color: #14944d;
-  font-size: 0.42rem;
+  font-size: 0.4rem;
   font-weight: 900;
   letter-spacing: 0.045em;
   transform: translateX(-50%);
 }
 
+.feature-card:nth-child(3) .problem-icon svg,
 .problem-icon--ocr svg {
   transform: translateY(-0.16rem) scale(0.88);
 }
 
+.feature-card:nth-child(4) .problem-icon,
 .problem-icon--blank {
   border-color: #f7dfaa;
   background: linear-gradient(145deg, #ffffff, #fffaf0);
   color: #d79200;
 }
 
+.feature-card:nth-child(5) .problem-icon,
 .problem-icon--compress {
   border-color: #ffd1cd;
   background: linear-gradient(145deg, #ffffff, #fff4f2);
   color: #ef5a4f;
 }
 
+.feature-card:nth-child(6) .problem-icon,
 .problem-icon--normalize {
   border-color: #ded1ff;
   background: linear-gradient(145deg, #ffffff, #f7f3ff);
   color: #7b5be7;
 }
 
-.feature-card:hover .problem-icon--straighten { box-shadow: 0 12px 27px rgba(11, 124, 255, 0.14); }
-.feature-card:hover .problem-icon--rotate { box-shadow: 0 12px 27px rgba(11, 168, 199, 0.14); }
-.feature-card:hover .problem-icon--ocr { box-shadow: 0 12px 27px rgba(24, 165, 88, 0.13); }
-.feature-card:hover .problem-icon--blank { box-shadow: 0 12px 27px rgba(215, 146, 0, 0.13); }
-.feature-card:hover .problem-icon--compress { box-shadow: 0 12px 27px rgba(239, 90, 79, 0.13); }
-.feature-card:hover .problem-icon--normalize { box-shadow: 0 12px 27px rgba(123, 91, 231, 0.13); }
+.feature-card:nth-child(1):hover .problem-icon { box-shadow: 0 12px 27px rgba(11, 124, 255, 0.14); }
+.feature-card:nth-child(2):hover .problem-icon { box-shadow: 0 12px 27px rgba(11, 168, 199, 0.14); }
+.feature-card:nth-child(3):hover .problem-icon { box-shadow: 0 12px 27px rgba(24, 165, 88, 0.13); }
+.feature-card:nth-child(4):hover .problem-icon { box-shadow: 0 12px 27px rgba(215, 146, 0, 0.13); }
+.feature-card:nth-child(5):hover .problem-icon { box-shadow: 0 12px 27px rgba(239, 90, 79, 0.13); }
+.feature-card:nth-child(6):hover .problem-icon { box-shadow: 0 12px 27px rgba(123, 91, 231, 0.13); }
 
 /* Tiny branded imperfections should disappear before they compete with content. */
 @media (max-width: 1180px) {
-  .brand-scribble--hero {
+  .hero-upload::before,
+  .hero-upload::after {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .feature-grid::before,
+  .demo-page--before::before,
+  .demo-page--after::before {
     display: none;
   }
 }
@@ -308,12 +344,6 @@
   .global-site-header__inner {
     height: 3.85rem;
     padding-inline: 0.8rem;
-  }
-
-  .brand-scribble--tools,
-  .brand-scribble--before,
-  .brand-scribble--after {
-    display: none;
   }
 
   .global-nav-mobile__panel {
