@@ -3,6 +3,7 @@ import "./globals.css";
 import "./workflow-identity.css";
 import "./workflow-polish.css";
 import "./workflow-polish-v3.css";
+import "./mobile-pass.css";
 
 export const metadata: Metadata = {
   title: {
