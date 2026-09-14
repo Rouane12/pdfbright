@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./workflow-identity.css";
+import "./workflow-polish.css";
 
 export const metadata: Metadata = {
   title: {
