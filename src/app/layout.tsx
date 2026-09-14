@@ -6,6 +6,7 @@ import "./workflow-polish.css";
 import "./workflow-polish-v3.css";
 import "./mobile-pass.css";
 import "./auth.css";
+import "./auth-providers.css";
 import "./account.css";
 import "./identity-v3.css";
 import "./identity-v4.css";
