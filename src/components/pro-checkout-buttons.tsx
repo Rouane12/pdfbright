@@ -1,50 +1,14 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 import type { BillingPlan } from "@/lib/billing/lemon-squeezy";
 
 type PendingPlan = BillingPlan | null;
 
-async function beginCheckout(plan: BillingPlan) {
-  const supabase = getSupabaseBrowserClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session?.access_token) {
-    window.location.assign(`/login?upgrade=${plan}`);
-    return;
-  }
-
-  const response = await fetch("/api/billing/checkout", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify({ plan }),
-  });
-
-  const payload = (await response.json().catch(() => ({}))) as {
-    url?: string;
-    error?: string;
-    code?: string;
-  };
-
-  if (response.status === 409 && payload.code === "subscription_exists") {
-    window.location.assign("/account");
-    return;
-  }
-
-  if (!response.ok || !payload.url) {
-    throw new Error(payload.error ?? "Checkout could not be started.");
-  }
-
-  window.location.assign(payload.url);
-}
-
 export function ProCheckoutButtons() {
+  const router = useRouter();
   const [pendingPlan, setPendingPlan] = useState<PendingPlan>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,7 +17,41 @@ export function ProCheckoutButtons() {
     setPendingPlan(plan);
 
     try {
-      await beginCheckout(plan);
+      const supabase = getSupabaseBrowserClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        router.push(`/login?upgrade=${plan}`);
+        return;
+      }
+
+      const response = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ plan }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        url?: string;
+        error?: string;
+        code?: string;
+      };
+
+      if (response.status === 409 && payload.code === "subscription_exists") {
+        router.push("/account");
+        return;
+      }
+
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error ?? "Checkout could not be started.");
+      }
+
+      window.location.assign(payload.url);
     } catch (checkoutError) {
       setError(checkoutError instanceof Error ? checkoutError.message : "Checkout could not be started.");
       setPendingPlan(null);
