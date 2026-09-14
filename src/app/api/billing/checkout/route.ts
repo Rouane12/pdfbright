@@ -73,11 +73,18 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("PDFBright checkout creation failed", error);
 
+    const showPreviewError = process.env.VERCEL_ENV !== "production";
     const message =
-      process.env.LEMON_SQUEEZY_TEST_MODE === "true" && error instanceof Error
+      showPreviewError && error instanceof Error
         ? error.message
         : "Checkout could not be started. Please try again.";
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: message,
+        ...(showPreviewError ? { code: "checkout_create_failed" } : {}),
+      },
+      { status: 500 },
+    );
   }
 }
