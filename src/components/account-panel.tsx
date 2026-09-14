@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 type UpgradePlan = "monthly" | "yearly";
@@ -31,7 +31,7 @@ export function AccountPanel() {
   const upgradePlan = readUpgradePlan(searchParams.get("upgrade"));
   const checkoutSuccess = searchParams.get("checkout") === "success";
 
-  async function readAccountState() {
+  const readAccountState = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
     const {
       data: { user },
@@ -61,7 +61,7 @@ export function AccountPanel() {
       subscriptionStatus: subscription?.status ?? null,
       currentPeriodEnd: subscription?.current_period_end ?? null,
     } satisfies AccountState;
-  }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,14 +103,13 @@ export function AccountPanel() {
       cancelled = true;
       authListener.subscription.unsubscribe();
     };
-  }, [router]);
+  }, [readAccountState, router]);
 
   useEffect(() => {
     if (!checkoutSuccess || !account || account.plan === "pro") return;
 
     let cancelled = false;
     let attempts = 0;
-    setBillingMessage("Payment received. Finalizing your PDFBright Pro access…");
 
     const timer = window.setInterval(() => {
       void (async () => {
@@ -143,14 +142,14 @@ export function AccountPanel() {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [account, checkoutSuccess, router]);
+  }, [account, checkoutSuccess, readAccountState, router]);
 
   const initials = useMemo(() => {
     if (!account?.email) return "P";
     return account.email.slice(0, 1).toUpperCase();
   }, [account]);
 
-  async function startCheckout(plan: UpgradePlan) {
+  const startCheckout = useCallback(async (plan: UpgradePlan) => {
     setBillingMessage(null);
     setBillingAction(plan);
 
@@ -197,7 +196,7 @@ export function AccountPanel() {
       setBillingAction(null);
       router.replace("/account");
     }
-  }
+  }, [readAccountState, router]);
 
   useEffect(() => {
     if (!account || !upgradePlan || account.plan === "pro" || attemptedUpgrade.current === upgradePlan) {
@@ -206,9 +205,9 @@ export function AccountPanel() {
 
     attemptedUpgrade.current = upgradePlan;
     void startCheckout(upgradePlan);
-  }, [account, upgradePlan]);
+  }, [account, startCheckout, upgradePlan]);
 
-  async function openBillingPortal() {
+  const openBillingPortal = useCallback(async () => {
     setBillingMessage(null);
     setBillingAction("portal");
 
@@ -241,7 +240,7 @@ export function AccountPanel() {
       setBillingMessage(portalError instanceof Error ? portalError.message : "Billing management could not be opened.");
       setBillingAction(null);
     }
-  }
+  }, [router]);
 
   async function signOut() {
     const supabase = getSupabaseBrowserClient();
@@ -263,6 +262,12 @@ export function AccountPanel() {
     return null;
   }
 
+  const visibleBillingMessage =
+    billingMessage ??
+    (checkoutSuccess && account.plan === "free"
+      ? "Payment received. Finalizing your PDFBright Pro access…"
+      : null);
+
   return (
     <main className="account-shell">
       <div className="account-page-orb account-page-orb--one" aria-hidden="true" />
@@ -279,7 +284,7 @@ export function AccountPanel() {
         </div>
 
         {error ? <div className="account-notice account-notice--warning" role="status">{error}</div> : null}
-        {billingMessage ? <div className="account-notice" role="status">{billingMessage}</div> : null}
+        {visibleBillingMessage ? <div className="account-notice" role="status">{visibleBillingMessage}</div> : null}
 
         <div className="account-grid">
           <article className="account-card account-card--identity">
