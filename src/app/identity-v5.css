@@ -1,0 +1,110 @@
+/* PDFBright Identity Pass 5: stronger ambient color without turning the UI into color blocks. */
+
+:root {
+  --brand-blue-haze: rgba(11, 124, 255, 0.115);
+  --brand-cyan-haze: rgba(58, 190, 255, 0.095);
+  --brand-gold-haze: rgba(255, 176, 0, 0.085);
+}
+
+/* Hero: preserve a clean reading center while making the blue/gold atmosphere visible at the edges. */
+.hero-surface {
+  background:
+    radial-gradient(ellipse 36rem 28rem at 7% 44%, var(--brand-blue-haze), transparent 72%),
+    radial-gradient(ellipse 34rem 24rem at 94% 28%, var(--brand-gold-haze), transparent 70%),
+    radial-gradient(circle at 50% -8%, rgba(31, 169, 255, 0.19), transparent 38rem),
+    linear-gradient(180deg, #f9fdff 0%, #f4faff 52%, #ffffff 100%);
+}
+
+.hero-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 20rem 13rem at 21% 72%, rgba(77, 198, 255, 0.085), transparent 72%),
+    radial-gradient(ellipse 18rem 12rem at 83% 72%, rgba(255, 198, 73, 0.07), transparent 72%);
+  filter: blur(7px);
+}
+
+.hero-orb {
+  opacity: 0.66;
+  filter: blur(13px);
+}
+
+.hero-orb--left {
+  background: rgba(54, 181, 255, 0.2);
+}
+
+.hero-orb--right {
+  background: rgba(255, 176, 0, 0.145);
+}
+
+/* Richer section atmosphere. The content area stays white; the color lives mostly around the perimeter. */
+.brand-band--white::before {
+  background:
+    radial-gradient(ellipse 26rem 20rem at 7% 18%, rgba(11, 124, 255, 0.09), transparent 72%),
+    radial-gradient(ellipse 20rem 16rem at 92% 82%, rgba(255, 176, 0, 0.045), transparent 75%),
+    #ffffff;
+}
+
+.brand-band--mist::before {
+  background:
+    radial-gradient(ellipse 26rem 18rem at 91% 24%, rgba(255, 176, 0, 0.11), transparent 73%),
+    radial-gradient(ellipse 25rem 19rem at 9% 76%, rgba(11, 124, 255, 0.09), transparent 74%),
+    linear-gradient(180deg, #f7fcff 0%, #eef8ff 100%);
+}
+
+.brand-band--soft::before {
+  background:
+    radial-gradient(ellipse 27rem 20rem at 10% 16%, rgba(11, 124, 255, 0.105), transparent 72%),
+    radial-gradient(ellipse 24rem 18rem at 92% 80%, rgba(255, 176, 0, 0.085), transparent 73%),
+    linear-gradient(180deg, #f8fcff 0%, #f5faff 100%);
+}
+
+.identity-demo-section {
+  background:
+    radial-gradient(ellipse 31rem 22rem at 8% 22%, rgba(11, 124, 255, 0.13), transparent 72%),
+    radial-gradient(ellipse 27rem 20rem at 92% 72%, rgba(255, 176, 0, 0.105), transparent 72%),
+    linear-gradient(180deg, #f5fbff 0%, #ffffff 100%);
+}
+
+#pricing.brand-band--white::before {
+  background:
+    radial-gradient(ellipse 25rem 19rem at 14% 26%, rgba(11, 124, 255, 0.085), transparent 72%),
+    radial-gradient(ellipse 26rem 20rem at 82% 50%, rgba(255, 176, 0, 0.105), transparent 72%),
+    #ffffff;
+}
+
+/* Let major surfaces catch a little of the ambient blue rather than floating in neutral gray shadow. */
+.upload-zone,
+.trust-card,
+.pricing-card--pro,
+.launch-cta,
+.diagnosis-shell,
+.cleanup-shell {
+  box-shadow:
+    0 22px 56px rgba(7, 26, 51, 0.075),
+    0 0 0 1px rgba(11, 124, 255, 0.018),
+    0 18px 48px rgba(11, 124, 255, 0.035);
+}
+
+@media (max-width: 639px) {
+  .hero-surface {
+    background:
+      radial-gradient(ellipse 17rem 22rem at -8% 34%, rgba(11, 124, 255, 0.12), transparent 72%),
+      radial-gradient(ellipse 15rem 20rem at 108% 24%, rgba(255, 176, 0, 0.085), transparent 72%),
+      radial-gradient(circle at 50% -5%, rgba(31, 169, 255, 0.16), transparent 24rem),
+      linear-gradient(180deg, #f8fcff 0%, #f3f9ff 58%, #ffffff 100%);
+  }
+
+  .hero-orb {
+    opacity: 0.48;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-orb {
+    animation: none !important;
+  }
+}
