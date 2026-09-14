@@ -166,22 +166,12 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       </p>
 
       <div className="auth-provider-grid" aria-label="Sign in options">
-        <button
-          className="auth-provider-button auth-provider-button--google"
-          type="button"
-          onClick={() => void handleOAuth("google")}
-          disabled={isSubmitting}
-        >
+        <button className="auth-provider-button auth-provider-button--google" type="button" onClick={() => void handleOAuth("google")} disabled={isSubmitting}>
           <GoogleIcon />
           <span>{pendingAction === "google" ? "Opening…" : "Google"}</span>
         </button>
 
-        <button
-          className="auth-provider-button auth-provider-button--facebook"
-          type="button"
-          onClick={() => void handleOAuth("facebook")}
-          disabled={isSubmitting}
-        >
+        <button className="auth-provider-button auth-provider-button--facebook" type="button" onClick={() => void handleOAuth("facebook")} disabled={isSubmitting}>
           <FacebookIcon />
           <span>{pendingAction === "facebook" ? "Opening…" : "Facebook"}</span>
         </button>
@@ -220,9 +210,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
               aria-label="Work email or company domain"
               required
             />
-            <button type="submit" disabled={isSubmitting}>
-              {pendingAction === "sso" ? "Opening…" : "Continue"}
-            </button>
+            <button type="submit" disabled={isSubmitting}>{pendingAction === "sso" ? "Opening…" : "Continue"}</button>
           </div>
         </form>
       ) : null}
@@ -243,21 +231,13 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           required
         />
         <button className="auth-primary-button" type="submit" disabled={isSubmitting}>
-          {pendingAction === "email"
-            ? "Sending secure link…"
-            : isLogin
-              ? "Email me a sign-in link"
-              : "Create account with email"}
+          {pendingAction === "email" ? "Sending secure link…" : isLogin ? "Email me a sign-in link" : "Create account with email"}
         </button>
       </form>
 
       <p className="auth-magic-note">Secure email sign-in links. No password to remember.</p>
 
-      {status ? (
-        <p className="auth-preview-notice" data-kind={status.kind} role="status">
-          {status.message}
-        </p>
-      ) : null}
+      {status ? <p className="auth-preview-notice" data-kind={status.kind} role="status">{status.message}</p> : null}
 
       <p className="auth-switch">
         {isLogin ? "New to PDFBright?" : "Already have an account?"}{" "}
@@ -265,7 +245,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       </p>
 
       <p className="auth-legal">
-        By continuing, you agree to PDFBright&apos;s terms and acknowledge the <Link href="/privacy">Privacy Policy</Link>.
+        By continuing, you agree to PDFBright&apos;s <Link href="/terms">Terms of Use</Link> and acknowledge the <Link href="/privacy">Privacy Policy</Link>.
       </p>
     </div>
   );
