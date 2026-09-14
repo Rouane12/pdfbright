@@ -7,47 +7,26 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 type AuthMode = "login" | "signup";
 type Status = { kind: "success" | "error"; message: string } | null;
-type PendingAction = "google" | "facebook" | "sso" | "email" | null;
+type PendingAction = "google" | "email" | null;
 
 function getAccountRedirect() {
   return `${window.location.origin}/account`;
 }
 
-function normalizeSsoDomain(value: string) {
-  const trimmed = value.trim().toLowerCase();
-  if (!trimmed) return "";
-
-  if (trimmed.includes("@")) {
-    return trimmed.split("@").pop() ?? "";
-  }
-
-  return trimmed.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
-}
-
 function GoogleIcon() {
-  return <span className="google-mark" aria-hidden="true">G</span>;
-}
-
-function FacebookIcon() {
-  return <span className="facebook-mark" aria-hidden="true">f</span>;
-}
-
-function SsoIcon() {
   return (
-    <span className="sso-mark" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none">
-        <path d="M5 9.5V7.8A2.8 2.8 0 0 1 7.8 5h8.4A2.8 2.8 0 0 1 19 7.8v8.4a2.8 2.8 0 0 1-2.8 2.8H9.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M3.8 12h8.4M8.8 8.8 12 12l-3.2 3.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </span>
+    <svg className="google-mark" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M21.6 12.227c0-.709-.064-1.391-.182-2.045H12v3.868h5.382a4.6 4.6 0 0 1-1.996 3.018v2.51h3.232c1.891-1.741 2.982-4.305 2.982-7.351Z" />
+      <path fill="#34A853" d="M12 22c2.7 0 4.964-.895 6.618-2.423l-3.232-2.509c-.895.6-2.041.955-3.386.955-2.605 0-4.809-1.759-5.6-4.123H3.059v2.591A9.998 9.998 0 0 0 12 22Z" />
+      <path fill="#FBBC05" d="M6.4 13.9A6.013 6.013 0 0 1 6.086 12c0-.659.114-1.3.314-1.9V7.509H3.059A9.994 9.994 0 0 0 2 12c0 1.614.386 3.141 1.059 4.491L6.4 13.9Z" />
+      <path fill="#EA4335" d="M12 5.977c1.468 0 2.786.505 3.823 1.496l2.868-2.868C16.959 2.991 14.695 2 12 2a9.998 9.998 0 0 0-8.941 5.509L6.4 10.1C7.191 7.736 9.395 5.977 12 5.977Z" />
+    </svg>
   );
 }
 
 export function AuthForm({ mode }: { mode: AuthMode }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [ssoIdentity, setSsoIdentity] = useState("");
-  const [showSso, setShowSso] = useState(false);
   const [status, setStatus] = useState<Status>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const isLogin = mode === "login";
@@ -63,14 +42,14 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     });
   }, [router]);
 
-  async function handleOAuth(provider: "google" | "facebook") {
+  async function handleGoogleOAuth() {
     setStatus(null);
-    setPendingAction(provider);
+    setPendingAction("google");
 
     try {
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
+        provider: "google",
         options: {
           redirectTo: getAccountRedirect(),
         },
@@ -83,42 +62,9 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         return;
       }
 
-      throw new Error(`${provider === "google" ? "Google" : "Facebook"} sign-in did not return a secure redirect.`);
+      throw new Error("Google sign-in did not return a secure redirect.");
     } catch (error) {
-      const providerLabel = provider === "google" ? "Google" : "Facebook";
-      const message = error instanceof Error ? error.message : `${providerLabel} sign-in could not start.`;
-      setStatus({ kind: "error", message });
-      setPendingAction(null);
-    }
-  }
-
-  async function handleSsoSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setStatus(null);
-
-    const domain = normalizeSsoDomain(ssoIdentity);
-    if (!domain || !domain.includes(".")) {
-      setStatus({ kind: "error", message: "Enter your work email or company domain to continue with SSO." });
-      return;
-    }
-
-    setPendingAction("sso");
-
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const { data, error } = await supabase.auth.signInWithSSO({
-        domain,
-        options: {
-          redirectTo: getAccountRedirect(),
-        },
-      });
-
-      if (error) throw error;
-      if (!data?.url) throw new Error("No SSO provider is configured for that company domain yet.");
-
-      window.location.assign(data.url);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "SSO sign-in could not start.";
+      const message = error instanceof Error ? error.message : "Google sign-in could not start.";
       setStatus({ kind: "error", message });
       setPendingAction(null);
     }
@@ -166,54 +112,16 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       </p>
 
       <div className="auth-provider-grid" aria-label="Sign in options">
-        <button className="auth-provider-button auth-provider-button--google" type="button" onClick={() => void handleOAuth("google")} disabled={isSubmitting}>
-          <GoogleIcon />
-          <span>{pendingAction === "google" ? "Opening…" : "Google"}</span>
-        </button>
-
-        <button className="auth-provider-button auth-provider-button--facebook" type="button" onClick={() => void handleOAuth("facebook")} disabled={isSubmitting}>
-          <FacebookIcon />
-          <span>{pendingAction === "facebook" ? "Opening…" : "Facebook"}</span>
-        </button>
-
         <button
-          className="auth-provider-button auth-provider-button--sso"
+          className="auth-provider-button auth-provider-button--google"
           type="button"
-          onClick={() => {
-            setStatus(null);
-            setShowSso((value) => !value);
-          }}
+          onClick={() => void handleGoogleOAuth()}
           disabled={isSubmitting}
-          aria-expanded={showSso}
-          aria-controls="pdfbright-sso-panel"
         >
-          <SsoIcon />
-          <span>SSO</span>
+          <GoogleIcon />
+          <span>{pendingAction === "google" ? "Opening Google…" : "Continue with Google"}</span>
         </button>
       </div>
-
-      {showSso ? (
-        <form id="pdfbright-sso-panel" className="auth-sso-panel" onSubmit={handleSsoSubmit}>
-          <div className="auth-sso-copy">
-            <strong>Company SSO</strong>
-            <span>Use your work email or company domain.</span>
-          </div>
-          <div className="auth-sso-row">
-            <input
-              type="text"
-              inputMode="email"
-              autoComplete="email"
-              placeholder="you@company.com"
-              value={ssoIdentity}
-              onChange={(event) => setSsoIdentity(event.target.value)}
-              disabled={isSubmitting}
-              aria-label="Work email or company domain"
-              required
-            />
-            <button type="submit" disabled={isSubmitting}>{pendingAction === "sso" ? "Opening…" : "Continue"}</button>
-          </div>
-        </form>
-      ) : null}
 
       <div className="auth-divider"><span>or continue with email</span></div>
 
@@ -231,13 +139,21 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           required
         />
         <button className="auth-primary-button" type="submit" disabled={isSubmitting}>
-          {pendingAction === "email" ? "Sending secure link…" : isLogin ? "Email me a sign-in link" : "Create account with email"}
+          {pendingAction === "email"
+            ? "Sending secure link…"
+            : isLogin
+              ? "Email me a sign-in link"
+              : "Create account with email"}
         </button>
       </form>
 
       <p className="auth-magic-note">Secure email sign-in links. No password to remember.</p>
 
-      {status ? <p className="auth-preview-notice" data-kind={status.kind} role="status">{status.message}</p> : null}
+      {status ? (
+        <p className="auth-preview-notice" data-kind={status.kind} role="status">
+          {status.message}
+        </p>
+      ) : null}
 
       <p className="auth-switch">
         {isLogin ? "New to PDFBright?" : "Already have an account?"}{" "}
