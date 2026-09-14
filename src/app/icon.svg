@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="PDFBright">
+  <defs>
+    <linearGradient id="pageBlue" x1="18" y1="14" x2="104" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#23B5FF"/>
+      <stop offset="1" stop-color="#0B63F6"/>
+    </linearGradient>
+    <linearGradient id="sparkGold" x1="72" y1="60" x2="112" y2="108" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD739"/>
+      <stop offset="1" stop-color="#FF9D00"/>
+    </linearGradient>
+  </defs>
+  <path d="M25 12h51l27 27v72c0 4.4-3.6 8-8 8H25c-4.4 0-8-3.6-8-8V20c0-4.4 3.6-8 8-8Z" fill="url(#pageBlue)"/>
+  <path d="M31 23h39l22 22v58c0 3.3-2.7 6-6 6H31c-3.3 0-6-2.7-6-6V29c0-3.3 2.7-6 6-6Z" fill="#fff"/>
+  <path d="M70 23v18c0 3.3 2.7 6 6 6h16L70 23Z" fill="#BFE8FF"/>
+  <path d="M39 47h25M39 61h34M39 75h25M39 89h17" stroke="#A8B7C9" stroke-width="6" stroke-linecap="round"/>
+  <path d="M88 63c2.6 12.7 8.2 18.3 21 21-12.8 2.6-18.4 8.2-21 21-2.6-12.8-8.2-18.4-21-21 12.8-2.7 18.4-8.3 21-21Z" fill="url(#sparkGold)" stroke="#fff" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M108 61l6-6M110 103l6 6M68 104l-6 6" stroke="#FFB000" stroke-width="6" stroke-linecap="round"/>
+</svg>
