@@ -78,7 +78,13 @@ export function ProductAnalytics() {
           observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.35 },
+      {
+        // Long responsive sections can never reach a large intersection ratio on
+        // shorter viewports. A small threshold still means the section was
+        // genuinely brought into view while working reliably across devices.
+        threshold: 0.05,
+        rootMargin: "0px 0px -10% 0px",
+      },
     );
 
     for (const section of sectionEvents.keys()) sectionObserver.observe(section);
@@ -113,23 +119,6 @@ export function ProductAnalytics() {
       if (!(target instanceof Element)) return;
       const control = target.closest("button, a");
       if (!control) return;
-
-      if (control.closest("#pricing")) {
-        const label = control.textContent?.trim();
-        const plan = label?.startsWith("Choose monthly")
-          ? "monthly"
-          : label?.startsWith("Choose yearly")
-            ? "yearly"
-            : null;
-
-        if (plan) {
-          captureAnalyticsEvent(
-            "pricing_cta_clicked",
-            { plan, placement: "pricing" },
-            { immediate: true },
-          );
-        }
-      }
 
       if (control.classList.contains("result-download")) {
         captureAnalyticsEvent("download_clicked", { local_vs_server: "local" });
