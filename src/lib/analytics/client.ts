@@ -21,11 +21,25 @@ type AnalyticsProperties = Record<
   string | number | boolean | null | undefined
 >;
 
+function analyticsEnabled() {
+  return Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY && typeof window !== "undefined");
+}
+
+export function identifyAnalyticsUser(userId: string) {
+  if (!analyticsEnabled() || !userId) return;
+  posthog.identify(userId);
+}
+
+export function resetAnalyticsUser() {
+  if (!analyticsEnabled()) return;
+  posthog.reset();
+}
+
 export function captureAnalyticsEvent(
   event: AnalyticsEventName,
   properties: AnalyticsProperties = {},
 ) {
-  if (!process.env.NEXT_PUBLIC_POSTHOG_KEY || typeof window === "undefined") return;
+  if (!analyticsEnabled()) return;
 
   const safeProperties = Object.fromEntries(
     Object.entries(properties).filter(([, value]) => value !== undefined),
