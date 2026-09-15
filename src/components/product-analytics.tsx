@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import {
   captureAnalyticsEvent,
@@ -25,6 +26,7 @@ function selectedPdfFromEvent(event: Event) {
 }
 
 export function ProductAnalytics() {
+  const pathname = usePathname();
   const diagnosisSeenRef = useRef(false);
   const resultSeenRef = useRef(false);
 
@@ -48,7 +50,7 @@ export function ProductAnalytics() {
       if (userId) identifyAnalyticsUser(userId);
     });
 
-    if (window.location.pathname === "/") {
+    if (pathname === "/") {
       captureAnalyticsEvent("landing_view");
     }
 
@@ -132,7 +134,7 @@ export function ProductAnalytics() {
       document.removeEventListener("drop", markUploadStart, true);
       document.removeEventListener("click", handleClick, true);
     };
-  }, []);
+  }, [pathname]);
 
   return null;
 }
