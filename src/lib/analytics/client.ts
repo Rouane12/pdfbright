@@ -21,6 +21,10 @@ type AnalyticsProperties = Record<
   string | number | boolean | null | undefined
 >;
 
+type AnalyticsCaptureOptions = {
+  immediate?: boolean;
+};
+
 function analyticsEnabled() {
   return Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY && typeof window !== "undefined");
 }
@@ -38,6 +42,7 @@ export function resetAnalyticsUser() {
 export function captureAnalyticsEvent(
   event: AnalyticsEventName,
   properties: AnalyticsProperties = {},
+  options: AnalyticsCaptureOptions = {},
 ) {
   if (!analyticsEnabled()) return;
 
@@ -45,7 +50,16 @@ export function captureAnalyticsEvent(
     Object.entries(properties).filter(([, value]) => value !== undefined),
   );
 
-  posthog.capture(event, safeProperties);
+  posthog.capture(
+    event,
+    safeProperties,
+    options.immediate
+      ? {
+          transport: "sendBeacon",
+          send_instantly: true,
+        }
+      : undefined,
+  );
 }
 
 export function fileSizeBucket(bytes: number) {
