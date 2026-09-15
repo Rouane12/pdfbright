@@ -11,6 +11,7 @@ export type LemonSubscriptionAttributes = {
   status: string;
   renews_at: string | null;
   ends_at: string | null;
+  test_mode?: boolean;
   urls?: {
     customer_portal?: string | null;
     update_payment_method?: string | null;
