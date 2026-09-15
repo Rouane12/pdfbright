@@ -54,7 +54,16 @@ export function ProductAnalytics() {
       captureAnalyticsEvent("landing_view");
     }
 
-    const sectionEvents = new Map<Element, "pricing_view" | "how_it_works_view">();
+    type SectionEvent = "pricing_view" | "how_it_works_view";
+    const seenSectionEvents = new Set<SectionEvent>();
+
+    function captureSectionView(event: SectionEvent) {
+      if (seenSectionEvents.has(event)) return;
+      seenSectionEvents.add(event);
+      captureAnalyticsEvent(event);
+    }
+
+    const sectionEvents = new Map<Element, SectionEvent>();
     const pricing = document.querySelector("#pricing");
     const howItWorks = document.querySelector("#how-it-works");
     if (pricing) sectionEvents.set(pricing, "pricing_view");
@@ -65,7 +74,7 @@ export function ProductAnalytics() {
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
           const event = sectionEvents.get(entry.target);
-          if (event) captureAnalyticsEvent(event);
+          if (event) captureSectionView(event);
           observer.unobserve(entry.target);
         }
       },
@@ -73,6 +82,17 @@ export function ProductAnalytics() {
     );
 
     for (const section of sectionEvents.keys()) sectionObserver.observe(section);
+
+    function captureHashSection() {
+      if (window.location.hash === "#pricing") {
+        captureSectionView("pricing_view");
+      } else if (window.location.hash === "#how-it-works") {
+        captureSectionView("how_it_works_view");
+      }
+    }
+
+    window.addEventListener("hashchange", captureHashSection);
+    const hashFrame = window.requestAnimationFrame(captureHashSection);
 
     function markUploadStart(event: Event) {
       const file = selectedPdfFromEvent(event);
@@ -93,6 +113,23 @@ export function ProductAnalytics() {
       if (!(target instanceof Element)) return;
       const control = target.closest("button, a");
       if (!control) return;
+
+      if (control.closest("#pricing")) {
+        const label = control.textContent?.trim();
+        const plan = label?.startsWith("Choose monthly")
+          ? "monthly"
+          : label?.startsWith("Choose yearly")
+            ? "yearly"
+            : null;
+
+        if (plan) {
+          captureAnalyticsEvent(
+            "pricing_cta_clicked",
+            { plan, placement: "pricing" },
+            { immediate: true },
+          );
+        }
+      }
 
       if (control.classList.contains("result-download")) {
         captureAnalyticsEvent("download_clicked", { local_vs_server: "local" });
@@ -130,6 +167,8 @@ export function ProductAnalytics() {
       authListener.subscription.unsubscribe();
       sectionObserver.disconnect();
       workflowObserver.disconnect();
+      window.cancelAnimationFrame(hashFrame);
+      window.removeEventListener("hashchange", captureHashSection);
       document.removeEventListener("change", markUploadStart, true);
       document.removeEventListener("drop", markUploadStart, true);
       document.removeEventListener("click", handleClick, true);
