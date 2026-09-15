@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { captureServerAnalyticsEvent } from "@/lib/analytics/server";
 import {
   createLemonCheckout,
   hasProAccess,
@@ -91,6 +92,11 @@ export async function POST(request: Request) {
       userId: user.id,
       email: user.email,
       redirectUrl: `${appUrl}/account?checkout=success`,
+    });
+
+    await captureServerAnalyticsEvent("checkout_started", user.id, {
+      plan: body.plan,
+      test_mode: process.env.LEMON_SQUEEZY_TEST_MODE === "true",
     });
 
     return NextResponse.json({ url: checkoutUrl });
