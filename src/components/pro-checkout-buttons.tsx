@@ -14,7 +14,7 @@ export function ProCheckoutButtons() {
   const [error, setError] = useState<string | null>(null);
 
   async function handleCheckout(plan: BillingPlan) {
-    captureAnalyticsEvent("pricing_cta_clicked", { plan });
+    captureAnalyticsEvent("pricing_cta_clicked", { plan }, { immediate: true });
     setError(null);
     setPendingPlan(plan);
 
@@ -53,7 +53,6 @@ export function ProCheckoutButtons() {
         throw new Error(payload.error ?? "Checkout could not be started.");
       }
 
-      captureAnalyticsEvent("checkout_started", { plan });
       window.location.assign(payload.url);
     } catch (checkoutError) {
       captureAnalyticsEvent("checkout_failed", { plan });
