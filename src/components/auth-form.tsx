@@ -1,16 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 type AuthMode = "login" | "signup";
+type UpgradePlan = "monthly" | "yearly";
 type Status = { kind: "success" | "error"; message: string } | null;
 type PendingAction = "google" | "email" | null;
 
-function getAccountRedirect() {
-  return `${window.location.origin}/account`;
+function readUpgradePlan(value: string | null): UpgradePlan | null {
+  return value === "monthly" || value === "yearly" ? value : null;
+}
+
+function getAccountRedirect(upgradePlan: UpgradePlan | null) {
+  const url = new URL("/account", window.location.origin);
+
+  if (upgradePlan) {
+    url.searchParams.set("upgrade", upgradePlan);
+  }
+
+  return url.toString();
 }
 
 function GoogleIcon() {
@@ -26,21 +37,25 @@ function GoogleIcon() {
 
 export function AuthForm({ mode }: { mode: AuthMode }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const isLogin = mode === "login";
   const isSubmitting = pendingAction !== null;
+  const upgradePlan = useMemo(() => readUpgradePlan(searchParams.get("upgrade")), [searchParams]);
+  const accountPath = upgradePlan ? `/account?upgrade=${upgradePlan}` : "/account";
+  const alternateAuthPath = `${isLogin ? "/signup" : "/login"}${upgradePlan ? `?upgrade=${upgradePlan}` : ""}`;
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
 
     void supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
-        router.replace("/account");
+        router.replace(accountPath);
       }
     });
-  }, [router]);
+  }, [accountPath, router]);
 
   async function handleGoogleOAuth() {
     setStatus(null);
@@ -51,7 +66,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: getAccountRedirect(),
+          redirectTo: getAccountRedirect(upgradePlan),
         },
       });
 
@@ -81,7 +96,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         email: email.trim(),
         options: {
           shouldCreateUser: !isLogin,
-          emailRedirectTo: getAccountRedirect(),
+          emailRedirectTo: getAccountRedirect(upgradePlan),
         },
       });
 
@@ -110,6 +125,12 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           ? "Sign in to keep your Pro access and usage connected across sessions."
           : "Create an account when you want Pro access, higher limits, and a consistent experience across sessions."}
       </p>
+
+      {upgradePlan ? (
+        <p className="auth-preview-notice" data-kind="success" role="status">
+          Sign in first, then we&apos;ll continue straight to your {upgradePlan === "monthly" ? "monthly" : "yearly"} PDFBright Pro checkout.
+        </p>
+      ) : null}
 
       <div className="auth-provider-grid" aria-label="Sign in options">
         <button
@@ -157,7 +178,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
       <p className="auth-switch">
         {isLogin ? "New to PDFBright?" : "Already have an account?"}{" "}
-        <Link href={isLogin ? "/signup" : "/login"}>{isLogin ? "Create an account" : "Log in"}</Link>
+        <Link href={alternateAuthPath}>{isLogin ? "Create an account" : "Log in"}</Link>
       </p>
 
       <p className="auth-legal">
