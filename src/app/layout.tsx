@@ -15,12 +15,35 @@ import "./identity-v6.css";
 import "./identity-v7.css";
 import "./identity-v8.css";
 
+const siteTitle = "PDFBright — Clean, Straighten & Make PDFs Searchable";
+const siteDescription =
+  "Clean messy PDFs in one focused workflow: straighten scans, make text searchable, remove blank pages, normalize pages, and reduce file size.";
+
 export const metadata: Metadata = {
-  title: {
-    default: "PDFBright",
-    template: "%s | PDFBright",
+  metadataBase: new URL("https://pdfbright.app"),
+  applicationName: "PDFBright",
+  title: siteTitle,
+  description: siteDescription,
+  alternates: {
+    canonical: "/",
   },
-  description: "Fix messy PDFs in one click.",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "/",
+    siteName: "PDFBright",
+    title: siteTitle,
+    description: siteDescription,
+  },
+  twitter: {
+    card: "summary",
+    title: siteTitle,
+    description: siteDescription,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
