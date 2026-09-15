@@ -1,3 +1,4 @@
+import { resolveProcessingEntitlement } from "@/lib/billing/processing-entitlement-client";
 import {
   MAX_FILE_SIZE_BYTES,
   MAX_FILE_SIZE_MB,
@@ -133,11 +134,19 @@ export async function preflightPdfFile(file: File, signal?: AbortSignal): Promis
     );
   }
 
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    throw new PdfPreflightError(
-      "file-too-large",
-      `This PDF is larger than the current ${MAX_FILE_SIZE_MB} MB limit.`,
-    );
+  const entitlement = await resolveProcessingEntitlement();
+  abortIfNeeded(signal);
+
+  const maxFileSizeBytes = Math.min(MAX_FILE_SIZE_BYTES, entitlement.limits.maxFileSizeBytes);
+  const maxFileSizeMB = Math.min(MAX_FILE_SIZE_MB, entitlement.limits.maxFileSizeMB);
+  const maxPageCount = Math.min(MAX_PAGE_COUNT, entitlement.limits.maxPageCount);
+
+  if (file.size > maxFileSizeBytes) {
+    const message =
+      entitlement.plan === "pro"
+        ? `This PDF is larger than the current Pro ${maxFileSizeMB} MB limit.`
+        : `This PDF is larger than the Free ${maxFileSizeMB} MB limit. PDFBright Pro supports files up to ${MAX_FILE_SIZE_MB} MB.`;
+    throw new PdfPreflightError("file-too-large", message);
   }
 
   try {
@@ -159,11 +168,12 @@ export async function preflightPdfFile(file: File, signal?: AbortSignal): Promis
         throw new PdfPreflightError("damaged-pdf", "This PDF does not contain any readable pages.");
       }
 
-      if (documentProxy.numPages > MAX_PAGE_COUNT) {
-        throw new PdfPreflightError(
-          "page-limit",
-          `This PDF has ${documentProxy.numPages} pages. The current limit is ${MAX_PAGE_COUNT} pages.`,
-        );
+      if (documentProxy.numPages > maxPageCount) {
+        const message =
+          entitlement.plan === "pro"
+            ? `This PDF has ${documentProxy.numPages} pages. The current Pro limit is ${maxPageCount} pages.`
+            : `This PDF has ${documentProxy.numPages} pages. The Free limit is ${maxPageCount} pages; PDFBright Pro supports up to ${MAX_PAGE_COUNT} pages.`;
+        throw new PdfPreflightError("page-limit", message);
       }
 
       for (let pageNumber = 1; pageNumber <= documentProxy.numPages; pageNumber += 1) {
