@@ -4,7 +4,10 @@ import { useEffect, useRef } from "react";
 import {
   captureAnalyticsEvent,
   fileSizeBucket,
+  identifyAnalyticsUser,
+  resetAnalyticsUser,
 } from "@/lib/analytics/client";
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 function selectedPdfFromEvent(event: Event) {
   if (event.type === "change") {
@@ -27,6 +30,23 @@ export function ProductAnalytics() {
 
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return;
+
+    const supabase = getSupabaseBrowserClient();
+
+    void supabase.auth.getSession().then(({ data }) => {
+      const userId = data.session?.user?.id;
+      if (userId) identifyAnalyticsUser(userId);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        resetAnalyticsUser();
+        return;
+      }
+
+      const userId = session?.user?.id;
+      if (userId) identifyAnalyticsUser(userId);
+    });
 
     if (window.location.pathname === "/") {
       captureAnalyticsEvent("landing_view");
@@ -105,6 +125,7 @@ export function ProductAnalytics() {
     inspectWorkflowState();
 
     return () => {
+      authListener.subscription.unsubscribe();
       sectionObserver.disconnect();
       workflowObserver.disconnect();
       document.removeEventListener("change", markUploadStart, true);
