@@ -3,6 +3,7 @@ import "./cleanup.css";
 import "./brand-sections.css";
 import "./identity-v2.css";
 import { UploadDropzone } from "@/components/upload-dropzone";
+import { ProCheckoutButtons } from "@/components/pro-checkout-buttons";
 
 type FixIconKind = "straighten" | "rotate" | "ocr" | "blank" | "compress" | "normalize";
 
@@ -353,8 +354,8 @@ export default function Home() {
               <p className="mt-3 text-sm leading-6 text-slate-600">Single-document cleanup with practical limits while local processing stays generous.</p>
               <ul className="pricing-list">
                 <li>Core cleanup workflow</li>
-                <li>No signup for the initial experience</li>
-                <li>Up to 25 pages in the current free workflow</li>
+                <li>Up to 10 MB and 10 pages per PDF</li>
+                <li>Up to 3 OCR pages per document</li>
               </ul>
             </article>
 
@@ -369,10 +370,11 @@ export default function Home() {
               <h3 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">More room for repeat and heavy use</h3>
               <p className="mt-3 text-sm leading-6 text-slate-600">Higher limits for larger PDFs, heavier OCR, faster repeat workflows, and more demanding cleanup.</p>
               <ul className="pricing-list">
-                <li>Larger file and page allowances</li>
-                <li>Higher OCR usage limits</li>
-                <li>More headroom for repeat workflows</li>
+                <li>Up to 25 MB and 25 pages per PDF</li>
+                <li>Up to 10 OCR pages per document</li>
+                <li>Higher limits for repeat workflows</li>
               </ul>
+              <ProCheckoutButtons />
               <p className="pricing-note">Core PDF cleanup remains free. Pro is for people who need more capacity, not a paywall around the basic workflow.</p>
             </article>
           </div>
