@@ -10,10 +10,6 @@ import {
   type PdfAnalysisResult,
 } from "@/lib/pdf-analysis/types";
 import { PdfPreflightError, preflightPdfFile } from "@/lib/security/pdf-preflight";
-import {
-  MAX_FILE_SIZE_MB,
-  MAX_PAGE_COUNT,
-} from "@/lib/security/processing-policy";
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024 * 1024) {
@@ -342,7 +338,7 @@ export function UploadDropzone() {
                 </div>
 
                 <p className="mt-4 text-xs leading-5 text-slate-500">
-                  PDF only · Up to {MAX_FILE_SIZE_MB} MB · Up to {MAX_PAGE_COUNT} pages
+                  PDF only · Free: up to 10 MB / 10 pages · Pro: up to 25 MB / 25 pages
                 </p>
               </div>
             )}
