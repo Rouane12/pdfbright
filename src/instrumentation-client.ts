@@ -11,6 +11,7 @@ if (key && host) {
     capture_pageview: false,
     capture_pageleave: false,
     disable_session_recording: true,
+    disable_capture_url_hashes: true,
     persistence: "localStorage",
   });
 }
