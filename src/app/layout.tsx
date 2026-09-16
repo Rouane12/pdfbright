@@ -15,6 +15,7 @@ import "./identity-v5.css";
 import "./identity-v6.css";
 import "./identity-v7.css";
 import "./identity-v8.css";
+import "./m11-launch-fixes.css";
 
 const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
 
