@@ -21,6 +21,8 @@ const privacyPage = await text("src/app/privacy/page.tsx");
 const loginLayout = await text("src/app/login/layout.tsx");
 const signupLayout = await text("src/app/signup/layout.tsx");
 const accountLayout = await text("src/app/account/layout.tsx");
+const authForm = await text("src/components/auth-form.tsx");
+const accountPanel = await text("src/components/account-panel.tsx");
 const checkoutRoute = await text("src/app/api/billing/checkout/route.ts");
 const entitlementRoute = await text("src/app/api/account/entitlement/route.ts");
 const entitlementClient = await text("src/lib/billing/processing-entitlement-client.ts");
@@ -61,6 +63,13 @@ for (const [name, source] of [
 ]) {
   if (!/index:\s*false/.test(source)) fail(`${name} route must remain noindex`);
 }
+
+if (!authForm.includes("supabase.auth.signInWithOtp")) fail("existing-account email login must remain passwordless");
+if (!authForm.includes("shouldCreateUser: false")) fail("login must not silently create a new account");
+if (!authForm.includes("supabase.auth.signUp")) fail("signup must remain a distinct registration path");
+if (!authForm.includes("makeUnmanagedSignupPassword()")) fail("email signup must keep its server-managed/random password strategy");
+if (!authForm.includes("crypto.randomUUID()")) fail("unmanaged signup password must be generated from cryptographic randomness");
+if (/type=["']password["']/.test(authForm)) fail("PDFBright auth UI must not expose a user-managed password field while launch auth is passwordless");
 
 const forbiddenAnalyticsTokens = ["file.name", "filename:", "extracted_text", "ocr_content", "document_subject", "page_image"];
 for (const token of forbiddenAnalyticsTokens) {
@@ -121,6 +130,10 @@ if (
 }
 if (!webhookRoute.includes("billingPlanForPriceId(priceId)")) fail("Paddle webhook must validate subscription prices against configured PDFBright prices");
 if (!webhookRoute.includes('provider: "paddle"')) fail("Paddle webhook must persist Paddle as the billing provider");
+if (!webhookRoute.includes("scheduled_change_action")) fail("Paddle webhook must persist scheduled subscription changes");
+if (!webhookRoute.includes("scheduled_change_at")) fail("Paddle webhook must persist scheduled subscription change timing");
+if (!accountPanel.includes("scheduled_change_action")) fail("account UI must load scheduled billing changes");
+if (!accountPanel.includes("Cancels on")) fail("account UI must explain scheduled cancellation timing");
 
 if (failures.length) {
   console.error("M11 source audit failed:\n- " + failures.join("\n- "));
