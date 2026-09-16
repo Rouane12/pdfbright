@@ -39,7 +39,8 @@ for (const route of searchRoutes) {
   if (!sitemap.includes(route)) fail(`sitemap is missing ${route}`);
 }
 
-if (!robots.includes('disallow: "/api/"')) fail("robots.ts must keep API routes out of crawling");
+const apiDisallowPattern = /disallow\s*:\s*(?:["']\/api\/["']|\[\s*["']\/api\/["']\s*\])/m;
+if (!apiDisallowPattern.test(robots)) fail("robots.ts must keep API routes out of crawling");
 if (!robots.includes('sitemap: `${baseUrl}/sitemap.xml`')) fail("robots.ts must advertise the generated sitemap");
 
 if (!processingPolicy.includes('CURRENT_PROCESSING_CLASS = "local"')) fail("current processing class must remain explicitly local for launch");
