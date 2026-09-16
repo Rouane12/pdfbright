@@ -10,7 +10,15 @@ import {
 } from "@/lib/analytics/client";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
-const acquisitionLandingPaths = new Set(["/", "/clean-scanned-pdf"]);
+const acquisitionLandingPaths = new Set([
+  "/",
+  "/clean-scanned-pdf",
+  "/make-pdf-searchable",
+  "/straighten-pdf",
+  "/remove-blank-pages",
+  "/compress-scanned-pdf",
+  "/improve-scanned-pdf",
+]);
 
 function selectedPdfFromEvent(event: Event) {
   if (event.type === "change") {
@@ -36,6 +44,11 @@ export function ProductAnalytics() {
     if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return;
 
     const supabase = getSupabaseBrowserClient();
+    const entryPath = acquisitionLandingPaths.has(pathname) ? pathname : null;
+    const workflowProperties = {
+      local_vs_server: "local",
+      entry_path: entryPath,
+    };
 
     void supabase.auth.getSession().then(({ data }) => {
       const userId = data.session?.user?.id;
@@ -52,8 +65,8 @@ export function ProductAnalytics() {
       if (userId) identifyAnalyticsUser(userId);
     });
 
-    if (acquisitionLandingPaths.has(pathname)) {
-      captureAnalyticsEvent("landing_view", { landing_path: pathname });
+    if (entryPath) {
+      captureAnalyticsEvent("landing_view", { landing_path: entryPath });
     }
 
     type SectionEvent = "pricing_view" | "how_it_works_view";
@@ -111,8 +124,8 @@ export function ProductAnalytics() {
       diagnosisSeenRef.current = false;
       resultSeenRef.current = false;
       const properties = {
+        ...workflowProperties,
         file_size_bucket: fileSizeBucket(file.size),
-        local_vs_server: "local",
       };
       captureAnalyticsEvent("upload_started", properties);
       captureAnalyticsEvent("analysis_started", properties);
@@ -125,26 +138,26 @@ export function ProductAnalytics() {
       if (!control) return;
 
       if (control.classList.contains("result-download")) {
-        captureAnalyticsEvent("download_clicked", { local_vs_server: "local" });
+        captureAnalyticsEvent("download_clicked", workflowProperties);
         return;
       }
 
       if (control.textContent?.trim() === "Fix My PDF") {
-        captureAnalyticsEvent("cleanup_started", { local_vs_server: "local" });
+        captureAnalyticsEvent("cleanup_started", workflowProperties);
       }
     }
 
     function inspectWorkflowState() {
       if (!diagnosisSeenRef.current && document.querySelector(".diagnosis-workspace")) {
         diagnosisSeenRef.current = true;
-        captureAnalyticsEvent("upload_completed", { local_vs_server: "local" });
-        captureAnalyticsEvent("analysis_completed", { local_vs_server: "local" });
-        captureAnalyticsEvent("diagnosis_viewed", { local_vs_server: "local" });
+        captureAnalyticsEvent("upload_completed", workflowProperties);
+        captureAnalyticsEvent("analysis_completed", workflowProperties);
+        captureAnalyticsEvent("diagnosis_viewed", workflowProperties);
       }
 
       if (!resultSeenRef.current && document.querySelector(".result-card")) {
         resultSeenRef.current = true;
-        captureAnalyticsEvent("cleanup_completed", { local_vs_server: "local" });
+        captureAnalyticsEvent("cleanup_completed", workflowProperties);
       }
     }
 
