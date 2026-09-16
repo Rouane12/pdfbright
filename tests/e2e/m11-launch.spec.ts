@@ -136,6 +136,33 @@ test("native-text PDF reaches diagnosis without losing the original workflow", a
   await expect(page.getByText(/KB · 2 pages/)).toBeVisible();
 });
 
+test("Free page limit rejects a 25-page PDF before analysis", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Safety-limit behavior only needs one deterministic browser pass.");
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Choose a PDF file").setInputFiles(path.resolve(".qa-corpus/long-25-pages.pdf"));
+
+  await expect(page.getByText(/25 pages.*Free limit is 10 pages/i)).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".diagnosis-workspace")).toHaveCount(0);
+});
+
+test("Free file-size limit rejects a PDF above 10 MB before parsing", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Safety-limit behavior only needs one deterministic browser pass.");
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Choose a PDF file").setInputFiles(path.resolve(".qa-corpus/free-file-size-limit.pdf"));
+
+  await expect(page.getByText(/larger than the Free 10 MB limit/i)).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".diagnosis-workspace")).toHaveCount(0);
+});
+
+test("unsafe page dimensions are rejected before analysis", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Safety-limit behavior only needs one deterministic browser pass.");
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Choose a PDF file").setInputFiles(path.resolve(".qa-corpus/unsafe-page-dimensions.pdf"));
+
+  await expect(page.getByText(/unusually large and cannot be processed safely/i)).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".diagnosis-workspace")).toHaveCount(0);
+});
+
 test("cleanup output downloads and reopens as a valid PDF", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "chromium-desktop", "One deterministic output-integrity pass is enough for this fixture.");
   test.setTimeout(90_000);
