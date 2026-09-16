@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect } from "react";
 import { captureClientException } from "@/lib/analytics/client";
 
@@ -28,9 +29,9 @@ export default function Error({
           <button type="button" className="button button--primary" onClick={reset}>
             Try again
           </button>
-          <a className="button button--secondary" href="/#upload">
+          <Link className="button button--secondary" href="/#upload">
             Return to cleaner
-          </a>
+          </Link>
         </div>
       </div>
     </main>
