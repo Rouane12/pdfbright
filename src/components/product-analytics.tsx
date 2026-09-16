@@ -10,6 +10,8 @@ import {
 } from "@/lib/analytics/client";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
+const acquisitionLandingPaths = new Set(["/", "/clean-scanned-pdf"]);
+
 function selectedPdfFromEvent(event: Event) {
   if (event.type === "change") {
     const input = event.target;
@@ -50,8 +52,8 @@ export function ProductAnalytics() {
       if (userId) identifyAnalyticsUser(userId);
     });
 
-    if (pathname === "/") {
-      captureAnalyticsEvent("landing_view");
+    if (acquisitionLandingPaths.has(pathname)) {
+      captureAnalyticsEvent("landing_view", { landing_path: pathname });
     }
 
     type SectionEvent = "pricing_view" | "how_it_works_view";
