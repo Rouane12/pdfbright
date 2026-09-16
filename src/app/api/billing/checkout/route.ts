@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { captureServerAnalyticsEvent } from "@/lib/analytics/server";
+import {
+  captureServerAnalyticsEvent,
+  captureServerException,
+} from "@/lib/analytics/server";
 import {
   createLemonCheckout,
   hasProAccess,
@@ -38,6 +41,7 @@ function describeCheckoutError(error: unknown) {
 
 export async function POST(request: Request) {
   let stage = "request";
+  let analyticsUserId: string | null = null;
 
   try {
     const accessToken = readBearerToken(request);
@@ -57,6 +61,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Your sign-in session could not be verified." }, { status: 401 });
     }
 
+    analyticsUserId = user.id;
     const body = (await request.json().catch(() => null)) as { plan?: unknown } | null;
 
     if (!isBillingPlan(body?.plan)) {
@@ -110,6 +115,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: checkoutUrl });
   } catch (error) {
     console.error("PDFBright checkout creation failed", { stage, error });
+    await captureServerException("billing_checkout", error, analyticsUserId, { step: stage });
 
     const showPreviewError = process.env.VERCEL_ENV !== "production";
     const message = showPreviewError
