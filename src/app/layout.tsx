@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { GlobalSiteHeader } from "@/components/global-site-header";
+import { PaddleCheckoutRuntime } from "@/components/paddle-checkout-runtime";
 import { ProductAnalytics } from "@/components/product-analytics";
 import "./globals.css";
 import "./workflow-identity.css";
@@ -60,6 +61,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <PaddleCheckoutRuntime />
         <ProductAnalytics />
         <GlobalSiteHeader />
         {children}
