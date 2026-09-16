@@ -55,7 +55,9 @@ export function captureAnalyticsEvent(
     safeProperties,
     options.immediate
       ? {
-          transport: "sendBeacon",
+          // Force an immediate request, but keep PostHog's normal transport.
+          // The pricing flow performs async auth/API work before navigation, so
+          // sendBeacon is unnecessary and can be less observable in some browsers.
           send_instantly: true,
         }
       : undefined,
