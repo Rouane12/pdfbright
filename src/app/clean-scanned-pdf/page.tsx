@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SeoClusterLinks } from "@/components/seo-cluster-links";
 import { UploadDropzone } from "@/components/upload-dropzone";
 import {
   CURRENT_PROCESSING_CLASS,
@@ -226,6 +227,8 @@ export default function CleanScannedPdfPage() {
           </div>
         </div>
       </section>
+
+      <SeoClusterLinks currentPath="/clean-scanned-pdf" />
 
       <section className="mx-auto max-w-4xl px-5 py-16 sm:px-6 sm:py-20" aria-labelledby="faq-heading">
         <div className="text-center">
