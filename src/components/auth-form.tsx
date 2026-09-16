@@ -105,11 +105,13 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       setStatus({
         kind: "success",
         message: isLogin
-          ? "Check your inbox. We sent a secure PDFBright sign-in link."
-          : "Check your inbox to finish creating your PDFBright account.",
+          ? "If that email is linked to an existing PDFBright account, a secure sign-in link is on its way. Open the latest PDFBright email and click the link to continue."
+          : "Verification email sent. Open the latest PDFBright email and click the secure link to verify your address and finish creating your account.",
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "We could not send the sign-in link.";
+      const message = error instanceof Error ? error.message : isLogin
+        ? "We could not send the sign-in link."
+        : "We could not send the verification email.";
       setStatus({ kind: "error", message });
     } finally {
       setPendingAction(null);
@@ -119,16 +121,16 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
   return (
     <div className="auth-form-wrap">
       <div className="auth-kicker"><span aria-hidden="true">✦</span> PDFBright account</div>
-      <h1>{isLogin ? "Welcome back." : "Create your account."}</h1>
+      <h1>{isLogin ? "Sign in to PDFBright." : "Create your PDFBright account."}</h1>
       <p className="auth-intro">
         {isLogin
-          ? "Sign in to keep your Pro access and usage connected across sessions."
-          : "Create an account when you want Pro access, higher limits, and a consistent experience across sessions."}
+          ? "Use the email address you already registered. We’ll send a secure one-time link that signs you straight into your account."
+          : "Enter your email and we’ll send a verification link. Click it once to verify your address, finish registration, and open your new account."}
       </p>
 
       {upgradePlan ? (
         <p className="auth-preview-notice" data-kind="success" role="status">
-          Sign in first, then we&apos;ll continue straight to your {upgradePlan === "monthly" ? "monthly" : "yearly"} PDFBright Pro checkout.
+          {isLogin ? "Sign in" : "Create your account"} first, then we&apos;ll continue straight to your {upgradePlan === "monthly" ? "monthly" : "yearly"} PDFBright Pro checkout.
         </p>
       ) : null}
 
@@ -140,7 +142,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           disabled={isSubmitting}
         >
           <GoogleIcon />
-          <span>{pendingAction === "google" ? "Opening Google…" : "Continue with Google"}</span>
+          <span>{pendingAction === "google" ? "Opening Google…" : isLogin ? "Sign in with Google" : "Continue with Google"}</span>
         </button>
       </div>
 
@@ -161,14 +163,20 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         />
         <button className="auth-primary-button" type="submit" disabled={isSubmitting}>
           {pendingAction === "email"
-            ? "Sending secure link…"
+            ? isLogin
+              ? "Sending sign-in link…"
+              : "Sending verification email…"
             : isLogin
-              ? "Email me a sign-in link"
-              : "Create account with email"}
+              ? "Send sign-in link"
+              : "Send verification email"}
         </button>
       </form>
 
-      <p className="auth-magic-note">Secure email sign-in links. No password to remember.</p>
+      <p className="auth-magic-note">
+        {isLogin
+          ? "Already registered? The link signs you in. New to PDFBright? Create an account below."
+          : "Your account is ready after you click the verification link in the email."}
+      </p>
 
       {status ? (
         <p className="auth-preview-notice" data-kind={status.kind} role="status">
@@ -177,8 +185,8 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       ) : null}
 
       <p className="auth-switch">
-        {isLogin ? "New to PDFBright?" : "Already have an account?"}{" "}
-        <Link href={alternateAuthPath}>{isLogin ? "Create an account" : "Log in"}</Link>
+        {isLogin ? "Don’t have a PDFBright account yet?" : "Already registered?"}{" "}
+        <Link href={alternateAuthPath}>{isLogin ? "Create your account" : "Sign in"}</Link>
       </p>
 
       <p className="auth-legal">
