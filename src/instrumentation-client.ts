@@ -10,6 +10,7 @@ if (key && host) {
     autocapture: false,
     capture_pageview: false,
     capture_pageleave: false,
+    capture_exceptions: false,
     disable_session_recording: true,
     disable_capture_url_hashes: true,
     persistence: "localStorage",
