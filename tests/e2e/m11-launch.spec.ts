@@ -41,7 +41,10 @@ test("homepage exposes only the authoritative visible header", async ({ page }) 
 
 test("mobile navigation opens and exposes core navigation", async ({ page }, testInfo) => {
   const viewport = page.viewportSize();
-  test.skip(!viewport || viewport.width > 500, "Mobile navigation check only applies to narrow projects.");
+  if (!viewport || viewport.width > 500) {
+    test.skip();
+    return;
+  }
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   const menu = page.getByLabel("Open navigation menu");
