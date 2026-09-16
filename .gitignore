@@ -81,6 +81,9 @@ out
 # Generated vendor assets
 /public/vendor/pdf.worker.min.mjs
 
+# M11 generated synthetic QA corpus
+.qa-corpus/
+
 # Nuxt.js build / generate output
 .nuxt
 dist
