@@ -16,6 +16,8 @@ import "./identity-v6.css";
 import "./identity-v7.css";
 import "./identity-v8.css";
 
+const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://pdfbright.app"),
   title: {
@@ -28,6 +30,11 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/",
   },
+  verification: googleSiteVerification
+    ? {
+        google: googleSiteVerification,
+      }
+    : undefined,
   openGraph: {
     type: "website",
     url: "/",
