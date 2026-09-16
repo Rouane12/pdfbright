@@ -16,6 +16,8 @@ const sitemap = await text("src/app/sitemap.ts");
 const robots = await text("src/app/robots.ts");
 const processingPolicy = await text("src/lib/security/processing-policy.ts");
 const analytics = await text("src/components/product-analytics.tsx");
+const analyticsInit = await text("src/instrumentation-client.ts");
+const privacyPage = await text("src/app/privacy/page.tsx");
 const loginLayout = await text("src/app/login/layout.tsx");
 const signupLayout = await text("src/app/signup/layout.tsx");
 const accountLayout = await text("src/app/account/layout.tsx");
@@ -62,6 +64,26 @@ const forbiddenAnalyticsTokens = ["file.name", "filename:", "extracted_text", "o
 for (const token of forbiddenAnalyticsTokens) {
   if (analytics.toLowerCase().includes(token.toLowerCase())) fail(`analytics source contains forbidden document-content token: ${token}`);
 }
+
+if (analyticsInit.includes("posthog.init")) {
+  if (!privacyPage.includes("PDFBright uses PostHog for limited product analytics")) {
+    fail("privacy policy must disclose active PostHog analytics");
+  }
+  if (!privacyPage.includes("does not intentionally send document contents, filenames, OCR text, extracted text, or page images to analytics")) {
+    fail("privacy policy must preserve the no-document-content analytics disclosure");
+  }
+  if (!privacyPage.includes("PostHog analytics uses browser local storage")) {
+    fail("privacy policy must disclose PostHog localStorage persistence");
+  }
+  if (!privacyPage.includes("IP-derived approximate location")) {
+    fail("privacy policy must disclose analytics IP-derived approximate location metadata");
+  }
+}
+
+if (!analyticsInit.includes("autocapture: false")) fail("PostHog autocapture must remain disabled");
+if (!analyticsInit.includes("capture_pageview: false")) fail("automatic PostHog pageview capture must remain disabled");
+if (!analyticsInit.includes("capture_pageleave: false")) fail("automatic PostHog pageleave capture must remain disabled");
+if (!analyticsInit.includes("disable_session_recording: true")) fail("PostHog session recording must remain disabled");
 
 if (!checkoutRoute.includes("readBearerToken(request)")) fail("checkout must require a bearer token");
 if (!checkoutRoute.includes("supabase.auth.getUser(accessToken)")) fail("checkout must verify the authenticated user server-side");
