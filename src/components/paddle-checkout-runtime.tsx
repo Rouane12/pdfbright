@@ -31,6 +31,7 @@ const paddleEnvironment = process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT?.trim();
 
 export function PaddleCheckoutRuntime() {
   if (!clientToken) return null;
+  const token = clientToken;
 
   function initializePaddle() {
     if (!window.Paddle || window.__pdfBrightPaddleInitialized) return;
@@ -40,7 +41,7 @@ export function PaddleCheckoutRuntime() {
     }
 
     window.Paddle.Initialize({
-      token: clientToken,
+      token,
       checkout: {
         settings: {
           displayMode: "overlay",
