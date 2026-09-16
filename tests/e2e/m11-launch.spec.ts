@@ -1,5 +1,7 @@
+import fs from "node:fs/promises";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
+import { PDFDocument } from "pdf-lib";
 
 const publicRoutes = [
   "/",
@@ -132,4 +134,28 @@ test("native-text PDF reaches diagnosis without losing the original workflow", a
   await expect(page.getByText("native-text.pdf")).toBeVisible();
   await expect(page.getByRole("button", { name: "Fix My PDF" })).toBeVisible();
   await expect(page.getByText(/2 pages/)).toBeVisible();
+});
+
+test("cleanup output downloads and reopens as a valid PDF", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "One deterministic output-integrity pass is enough for this fixture.");
+  test.setTimeout(90_000);
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Choose a PDF file").setInputFiles(path.resolve(".qa-corpus/rotated-and-landscape.pdf"));
+
+  await expect(page.locator(".diagnosis-workspace")).toBeVisible({ timeout: 45_000 });
+  const fixButton = page.getByRole("button", { name: "Fix My PDF" });
+  await expect(fixButton).toBeEnabled();
+  await fixButton.click();
+
+  await expect(page.getByRole("heading", { name: "Your PDF is ready" })).toBeVisible({ timeout: 45_000 });
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Download Clean PDF" }).click();
+  const download = await downloadPromise;
+  const savedPath = testInfo.outputPath("rotated-and-landscape-clean.pdf");
+  await download.saveAs(savedPath);
+
+  const bytes = await fs.readFile(savedPath);
+  const reopened = await PDFDocument.load(bytes);
+  expect(reopened.getPageCount()).toBe(2);
 });
