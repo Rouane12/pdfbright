@@ -3,6 +3,7 @@
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { AnalysisDebugPanel } from "@/components/analysis-debug-panel";
 import { DiagnosisWorkspace } from "@/components/diagnosis-workspace";
+import { captureClientException } from "@/lib/analytics/client";
 import { analyzePdfFile } from "@/lib/pdf-analysis/analyze-pdf";
 import {
   PdfAnalysisError,
@@ -156,6 +157,19 @@ export function UploadDropzone() {
         setError(analysisFailure.message);
         setAnalysisError(null);
       } else {
+        const reportableAnalysisFailure =
+          !(analysisFailure instanceof PdfAnalysisError) ||
+          analysisFailure.code === "browser-memory" ||
+          analysisFailure.code === "analysis-failed";
+
+        if (reportableAnalysisFailure) {
+          captureClientException(
+            "analysis",
+            analysisFailure,
+            analysisFailure instanceof PdfAnalysisError ? analysisFailure.code : "unexpected",
+          );
+        }
+
         setAnalysisError(
           analysisFailure instanceof PdfAnalysisError
             ? analysisFailure.message
