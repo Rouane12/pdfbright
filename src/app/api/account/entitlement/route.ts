@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProcessingAllowance, type PdfBrightPlan } from "@/lib/billing/entitlements";
-import { hasProAccess } from "@/lib/billing/lemon-squeezy";
+import { hasProAccess } from "@/lib/billing/paddle";
 import {
   getSupabaseAdminClient,
   getSupabaseAuthServerClient,
