@@ -1,0 +1,8 @@
+/* M11 launch-candidate fixes.
+ * The root layout owns the single global site header. The homepage still contains
+ * legacy header markup from the pre-global-header shell; keep it out of layout
+ * and the accessibility tree until that dead markup is removed in a safe cleanup.
+ */
+.site-header {
+  display: none !important;
+}

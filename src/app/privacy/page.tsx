@@ -28,7 +28,7 @@ export default function PrivacyPage() {
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Privacy</p>
         <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] sm:text-5xl">Your document is not our product.</h1>
         <p className="mt-5 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg">
-          PDFBright handles documents that may contain sensitive information. This page describes what the current product actually does, including local document processing and optional account authentication.
+          PDFBright handles documents that may contain sensitive information. This page describes what the current product actually does, including local document processing, optional account authentication, billing, and limited product analytics.
         </p>
         <p className="mt-3 text-sm text-slate-500">Processing policy last updated: {PROCESSING_POLICY_LAST_UPDATED}</p>
 
@@ -54,8 +54,15 @@ export default function PrivacyPage() {
 
           <section className={sectionClass}>
             <h2 className="text-xl font-semibold tracking-tight">What PDFBright currently collects</h2>
-            <p className="mt-3 leading-7 text-slate-600">For signed-in users, PDFBright stores the account data needed for access, plan status, billing/entitlement linkage, and future usage allowances. PDFBright application code does not intentionally send document contents or filenames to an analytics service.</p>
-            <p className="mt-3 leading-7 text-slate-600">The site infrastructure may process ordinary web-request metadata needed to deliver and secure the service, such as IP address, browser/user-agent information, requested URLs, and timing/security logs. That is different from document processing.</p>
+            <p className="mt-3 leading-7 text-slate-600">For signed-in users, PDFBright stores the account data needed for access, plan status, billing/entitlement linkage, and future usage allowances. PDFBright application code does not intentionally send document contents, filenames, OCR text, extracted text, or page images to analytics.</p>
+            <p className="mt-3 leading-7 text-slate-600">PDFBright uses PostHog for limited product analytics and error/performance monitoring. The events are designed around product actions such as landing, upload start, analysis, cleanup, download, checkout, and subscription state. Custom PDFBright properties are limited to non-content metadata such as entry path, coarse file-size bucket, processing mode, and plan/billing state where relevant.</p>
+            <p className="mt-3 leading-7 text-slate-600">Like ordinary web infrastructure, the analytics service can also receive standard browser and network metadata associated with those requests, including requested/current URL, referrer, browser and operating-system information, device or viewport characteristics, IP-derived approximate location, and timing/performance information. Signed-in analytics can be associated with PDFBright&apos;s internal user identifier so product events can be attributed to the same account.</p>
+          </section>
+
+          <section className={sectionClass}>
+            <h2 className="text-xl font-semibold tracking-tight">Analytics safeguards</h2>
+            <p className="mt-3 leading-7 text-slate-600">PDFBright disables PostHog autocapture, automatic pageview/pageleave capture, and session recording. PDFBright sends deliberate product events instead of recording page contents or user sessions. Exception reporting is sanitized before application-defined error details are sent.</p>
+            <p className="mt-3 leading-7 text-slate-600">Analytics is not used to upload, inspect, or reconstruct the PDF being processed. The document-processing workflow remains local even when a product analytics event is sent.</p>
           </section>
 
           <section className={sectionClass}>
@@ -70,7 +77,7 @@ export default function PrivacyPage() {
 
           <section className={sectionClass}>
             <h2 className="text-xl font-semibold tracking-tight">Cookies and local storage</h2>
-            <p className="mt-3 leading-7 text-slate-600">Authentication may use browser storage or cookies needed to maintain a secure signed-in session. PDFBright does not currently use advertising cookies. If analytics or other tracking systems are introduced later, this policy will be updated before those systems are enabled where required.</p>
+            <p className="mt-3 leading-7 text-slate-600">Authentication may use browser storage or cookies needed to maintain a secure signed-in session. PDFBright does not currently use advertising cookies. PostHog analytics uses browser local storage to maintain its analytics identifier/state under the current configuration; session recording and broad interaction autocapture are disabled.</p>
           </section>
 
           <section className={sectionClass}>
@@ -85,7 +92,7 @@ export default function PrivacyPage() {
 
           <section className={sectionClass}>
             <h2 className="text-xl font-semibold tracking-tight">Contact and policy changes</h2>
-            <p className="mt-3 leading-7 text-slate-600">Questions about privacy can be sent to <a className="font-semibold text-blue-700 hover:underline" href="mailto:support@pdfbright.app">support@pdfbright.app</a>. This policy will change as PDFBright adds or changes accounts, billing, analytics, or processing architecture, and material changes should be reflected here before the corresponding feature is made available.</p>
+            <p className="mt-3 leading-7 text-slate-600">Questions about privacy can be sent to <a className="font-semibold text-blue-700 hover:underline" href="mailto:support@pdfbright.app">support@pdfbright.app</a>. This policy will change as PDFBright changes accounts, billing, analytics, or processing architecture, and material changes should be reflected here before the corresponding behavior is made available.</p>
           </section>
         </div>
 
