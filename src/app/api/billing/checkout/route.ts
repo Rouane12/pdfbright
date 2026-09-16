@@ -4,10 +4,11 @@ import {
   captureServerException,
 } from "@/lib/analytics/server";
 import {
-  createLemonCheckout,
+  createPaddleCheckout,
+  getPaddleEnvironment,
   hasProAccess,
   type BillingPlan,
-} from "@/lib/billing/lemon-squeezy";
+} from "@/lib/billing/paddle";
 import {
   getSupabaseAdminClient,
   getSupabaseAuthServerClient,
@@ -68,12 +69,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Choose a valid PDFBright Pro plan." }, { status: 400 });
     }
 
-    // Treat an authenticated, valid checkout request as the trusted pricing CTA.
-    // This avoids losing the commercial-funnel event during client navigation.
     await captureServerAnalyticsEvent("pricing_cta_clicked", user.id, {
       plan: body.plan,
       placement: "pricing",
-      test_mode: process.env.LEMON_SQUEEZY_TEST_MODE === "true",
+      test_mode: getPaddleEnvironment() === "sandbox",
+      billing_provider: "paddle",
     });
 
     stage = "subscription_lookup";
@@ -98,21 +98,28 @@ export async function POST(request: Request) {
       );
     }
 
-    stage = "lemon_checkout";
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin).replace(/\/$/, "");
-    const checkoutUrl = await createLemonCheckout({
+    stage = "paddle_checkout";
+    const requestOrigin = new URL(request.url).origin.replace(/\/$/, "");
+    const configuredAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "");
+    const checkoutHost =
+      getPaddleEnvironment() === "sandbox"
+        ? requestOrigin
+        : configuredAppUrl || requestOrigin;
+
+    const checkout = await createPaddleCheckout({
       plan: body.plan,
       userId: user.id,
-      email: user.email,
-      redirectUrl: `${appUrl}/account?checkout=success`,
+      checkoutUrl: checkoutHost,
     });
 
     await captureServerAnalyticsEvent("checkout_started", user.id, {
       plan: body.plan,
-      test_mode: process.env.LEMON_SQUEEZY_TEST_MODE === "true",
+      test_mode: getPaddleEnvironment() === "sandbox",
+      billing_provider: "paddle",
+      transaction_id: checkout.transactionId,
     });
 
-    return NextResponse.json({ url: checkoutUrl });
+    return NextResponse.json({ url: checkout.checkoutUrl });
   } catch (error) {
     console.error("PDFBright checkout creation failed", { stage, error });
     await captureServerException("billing_checkout", error, analyticsUserId, { step: stage });
