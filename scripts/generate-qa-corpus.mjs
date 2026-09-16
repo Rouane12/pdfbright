@@ -107,7 +107,11 @@ async function addTextPage(doc, text, size = [612, 792]) {
   await savePdf("form.pdf", doc, { pages: 1, formFields: 1 });
 }
 
-await fs.writeFile(path.join(outputDir, "malformed.pdf"), "%PDF-1.7\nthis is intentionally malformed\n%%EOF\n", "utf8");
+await fs.writeFile(
+  path.join(outputDir, "malformed.pdf"),
+  "PDFBright M11 intentionally invalid fixture — no PDF header or structure.\n",
+  "utf8",
+);
 manifest.push({ name: "malformed.pdf", kind: "malformed", mustReject: true });
 
 await fs.writeFile(
