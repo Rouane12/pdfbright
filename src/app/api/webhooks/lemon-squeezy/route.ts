@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { captureServerAnalyticsEvent } from "@/lib/analytics/server";
+import {
+  captureServerAnalyticsEvent,
+  captureServerException,
+} from "@/lib/analytics/server";
 import {
   getLemonStoreId,
   hasProAccess,
@@ -87,6 +90,8 @@ async function handleSubscriptionPaymentSuccess(payload: LemonWebhookPayload) {
     return NextResponse.json({ received: true, ignored: true });
   }
 
+  let analyticsUserId: string | null = null;
+
   try {
     const userId = await resolveInvoiceUserId(payload, attributes.subscription_id);
     if (!userId) {
@@ -97,6 +102,7 @@ async function handleSubscriptionPaymentSuccess(payload: LemonWebhookPayload) {
       return NextResponse.json({ received: true, ignored: true });
     }
 
+    analyticsUserId = userId;
     const analyticsProperties = {
       billing_reason: attributes.billing_reason ?? null,
       amount_usd_cents: attributes.total_usd ?? null,
@@ -116,6 +122,9 @@ async function handleSubscriptionPaymentSuccess(payload: LemonWebhookPayload) {
       invoiceId: payload.data.id,
       subscriptionId: attributes.subscription_id,
       error,
+    });
+    await captureServerException("webhook_payment", error, analyticsUserId, {
+      step: "subscription_payment_success",
     });
 
     return NextResponse.json({ error: "Payment webhook processing failed." }, { status: 500 });
@@ -223,6 +232,9 @@ export async function POST(request: Request) {
       eventName,
       subscriptionId: payload.data.id,
       error,
+    });
+    await captureServerException("webhook_subscription_sync", error, userId, {
+      step: eventName,
     });
 
     return NextResponse.json({ error: "Webhook sync failed." }, { status: 500 });
