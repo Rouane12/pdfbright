@@ -17,6 +17,7 @@ async function savePdf(name, doc, expectations = {}) {
   const bytes = await doc.save();
   await fs.writeFile(path.join(outputDir, name), bytes);
   manifest.push({ name, kind: "pdf", ...expectations });
+  return bytes;
 }
 
 async function addTextPage(doc, text, size = [612, 792]) {
@@ -77,7 +78,34 @@ async function addTextPage(doc, text, size = [612, 792]) {
   for (let index = 1; index <= 25; index += 1) {
     await addTextPage(doc, `Long document — page ${index}`);
   }
-  await savePdf("long-25-pages.pdf", doc, { pages: 25 });
+  await savePdf("long-25-pages.pdf", doc, { pages: 25, freeMustReject: true });
+}
+
+{
+  const doc = await PDFDocument.create();
+  await addTextPage(doc, "Unsafe page dimension fixture", [7_201, 792]);
+  await savePdf("unsafe-page-dimensions.pdf", doc, {
+    pages: 1,
+    unsafePageDimension: true,
+    mustReject: true,
+  });
+}
+
+{
+  const doc = await PDFDocument.create();
+  await addTextPage(doc, "Free file-size limit fixture");
+  const validBytes = await doc.save();
+  const targetSize = 10 * 1024 * 1024 + 1;
+  const padded = Buffer.alloc(targetSize);
+  Buffer.from(validBytes).copy(padded, 0);
+  await fs.writeFile(path.join(outputDir, "free-file-size-limit.pdf"), padded);
+  manifest.push({
+    name: "free-file-size-limit.pdf",
+    kind: "pdf",
+    pages: 1,
+    paddedBytes: targetSize,
+    freeMustReject: true,
+  });
 }
 
 {
