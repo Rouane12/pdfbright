@@ -60,7 +60,9 @@ export function ProductAnalytics() {
     function captureSectionView(event: SectionEvent) {
       if (seenSectionEvents.has(event)) return;
       seenSectionEvents.add(event);
-      captureAnalyticsEvent(event);
+      // These section views can be followed immediately by a navigation CTA.
+      // Flush them now rather than risking a queued event during page departure.
+      captureAnalyticsEvent(event, {}, { immediate: true });
     }
 
     const sectionEvents = new Map<Element, SectionEvent>();
