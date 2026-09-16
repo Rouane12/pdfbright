@@ -63,6 +63,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Choose a valid PDFBright Pro plan." }, { status: 400 });
     }
 
+    // Treat an authenticated, valid checkout request as the trusted pricing CTA.
+    // This avoids losing the commercial-funnel event during client navigation.
+    await captureServerAnalyticsEvent("pricing_cta_clicked", user.id, {
+      plan: body.plan,
+      placement: "pricing",
+      test_mode: process.env.LEMON_SQUEEZY_TEST_MODE === "true",
+    });
+
     stage = "subscription_lookup";
     const admin = getSupabaseAdminClient();
     const { data: existingSubscription, error: subscriptionError } = await admin
