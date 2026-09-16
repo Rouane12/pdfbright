@@ -24,7 +24,9 @@ const accountLayout = await text("src/app/account/layout.tsx");
 const checkoutRoute = await text("src/app/api/billing/checkout/route.ts");
 const entitlementRoute = await text("src/app/api/account/entitlement/route.ts");
 const entitlementClient = await text("src/lib/billing/processing-entitlement-client.ts");
-const webhookRoute = await text("src/app/api/webhooks/lemon-squeezy/route.ts");
+const webhookRoute = await text("src/app/api/webhooks/paddle/route.ts");
+const paddleBilling = await text("src/lib/billing/paddle.ts");
+const paddleRuntime = await text("src/components/paddle-checkout-runtime.tsx");
 
 const globalHeaderCount = (layout.match(/<GlobalSiteHeader\s*\/>/g) || []).length;
 if (globalHeaderCount !== 1) fail(`expected exactly one root GlobalSiteHeader render, found ${globalHeaderCount}`);
@@ -87,20 +89,31 @@ if (!analyticsInit.includes("disable_session_recording: true")) fail("PostHog se
 
 if (!checkoutRoute.includes("readBearerToken(request)")) fail("checkout must require a bearer token");
 if (!checkoutRoute.includes("supabase.auth.getUser(accessToken)")) fail("checkout must verify the authenticated user server-side");
+if (!checkoutRoute.includes("createPaddleCheckout")) fail("checkout must create a server-authoritative Paddle transaction");
 if (!entitlementRoute.includes("supabase.auth.getUser(accessToken)")) fail("entitlement must verify the authenticated user server-side");
 if (!entitlementRoute.includes('.from("subscriptions")')) fail("entitlement must resolve plan from the server-side subscription record");
 if (!entitlementClient.includes("return FREE_ENTITLEMENT")) fail("entitlement lookup must fail closed to Free");
 if (!entitlementClient.includes("getProcessingAllowance(plan)")) fail("client processing limits must derive from the server-verified plan");
 
-const signatureCheckIndex = webhookRoute.indexOf("verifyLemonWebhookSignature(rawBody, signature)");
-const subscriptionWriteIndex = webhookRoute.indexOf('.from("subscriptions").upsert');
-if (signatureCheckIndex < 0) fail("Lemon Squeezy webhook must verify its signature");
-if (subscriptionWriteIndex < 0) fail("Lemon Squeezy webhook subscription write is missing");
-if (signatureCheckIndex >= 0 && subscriptionWriteIndex >= 0 && signatureCheckIndex > subscriptionWriteIndex) {
-  fail("Lemon Squeezy webhook must verify its signature before subscription writes");
+if (!paddleBilling.includes('Authorization: `Bearer ${requireEnv("PADDLE_API_KEY")}`')) {
+  fail("Paddle API calls must authenticate with the server-only API key");
 }
-if (!webhookRoute.includes("attributes.store_id !== getLemonStoreId()")) fail("webhook must reject/ignore unknown Lemon Squeezy stores");
-if (!webhookRoute.includes("!isKnownVariant(attributes.variant_id)")) fail("webhook must reject/ignore unknown Lemon Squeezy variants");
+if (!paddleBilling.includes('"https://sandbox-api.paddle.com"') || !paddleBilling.includes('"https://api.paddle.com"')) {
+  fail("Paddle billing helper must keep sandbox and live API endpoints separate");
+}
+if (!paddleBilling.includes('"Paddle-Version": paddleApiVersion')) fail("Paddle API version should be pinned");
+if (!paddleRuntime.includes("NEXT_PUBLIC_PADDLE_CLIENT_TOKEN")) fail("Paddle.js must use the public client-side token");
+if (paddleRuntime.includes("PADDLE_API_KEY")) fail("Paddle server API key must never appear in the client runtime");
+
+const signatureCheckIndex = webhookRoute.indexOf("verifyPaddleWebhookSignature(rawBody, signature)");
+const subscriptionWriteIndex = webhookRoute.indexOf('.from("subscriptions").upsert');
+if (signatureCheckIndex < 0) fail("Paddle webhook must verify Paddle-Signature");
+if (subscriptionWriteIndex < 0) fail("Paddle webhook subscription write is missing");
+if (signatureCheckIndex >= 0 && subscriptionWriteIndex >= 0 && signatureCheckIndex > subscriptionWriteIndex) {
+  fail("Paddle webhook must verify its signature before subscription writes");
+}
+if (!webhookRoute.includes("billingPlanForPriceId(priceId)")) fail("Paddle webhook must validate subscription prices against configured PDFBright prices");
+if (!webhookRoute.includes('provider: "paddle"')) fail("Paddle webhook must persist Paddle as the billing provider");
 
 if (failures.length) {
   console.error("M11 source audit failed:\n- " + failures.join("\n- "));
