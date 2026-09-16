@@ -16,6 +16,8 @@ export type AnalyticsEventName =
   | "checkout_started"
   | "checkout_failed";
 
+export type ClientExceptionStage = "analysis" | "cleanup" | "app_runtime";
+
 type AnalyticsProperties = Record<
   string,
   string | number | boolean | null | undefined
@@ -27,6 +29,27 @@ type AnalyticsCaptureOptions = {
 
 function analyticsEnabled() {
   return Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY && typeof window !== "undefined");
+}
+
+function safeExceptionLabel(value: string | undefined) {
+  if (!value || !/^[a-z0-9:_-]{1,64}$/i.test(value)) return "unexpected";
+  return value;
+}
+
+function buildSanitizedException(error: unknown, stage: ClientExceptionStage) {
+  const safeError = new Error(`PDFBright ${stage.replaceAll("_", " ")} failed`);
+  safeError.name = "PDFBrightHandledError";
+
+  // Preserve useful code frames without forwarding the original exception message,
+  // which may contain a filename, document detail, or library-provided input value.
+  if (error instanceof Error && error.stack) {
+    const [, ...frames] = error.stack.split("\n");
+    if (frames.length > 0) {
+      safeError.stack = `${safeError.name}: ${safeError.message}\n${frames.join("\n")}`;
+    }
+  }
+
+  return safeError;
 }
 
 export function identifyAnalyticsUser(userId: string) {
@@ -62,6 +85,24 @@ export function captureAnalyticsEvent(
         }
       : undefined,
   );
+}
+
+export function captureClientException(
+  stage: ClientExceptionStage,
+  error: unknown,
+  code?: string,
+) {
+  if (!analyticsEnabled()) return;
+
+  const safeCode = safeExceptionLabel(code);
+  posthog.captureException(buildSanitizedException(error, stage), {
+    stage,
+    error_code: safeCode,
+    source: "client",
+    handled: true,
+    $exception_fingerprint: `pdfbright:${stage}:${safeCode}`,
+    $issue_name: `PDFBright ${stage.replaceAll("_", " ")} error`,
+  });
 }
 
 export function fileSizeBucket(bytes: number) {
