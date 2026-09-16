@@ -13,6 +13,8 @@ type AccountState = {
   plan: "free" | "pro";
   subscriptionStatus: string | null;
   currentPeriodEnd: string | null;
+  scheduledChangeAction: string | null;
+  scheduledChangeAt: string | null;
 };
 
 type AccountReadResult = {
@@ -22,6 +24,18 @@ type AccountReadResult = {
 
 function readUpgradePlan(value: string | null): UpgradePlan | null {
   return value === "monthly" || value === "yearly" ? value : null;
+}
+
+function formatSubscriptionDate(value: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(date);
 }
 
 export function AccountPanel() {
@@ -51,7 +65,7 @@ export function AccountPanel() {
       supabase.from("profiles").select("plan").eq("user_id", user.id).maybeSingle(),
       supabase
         .from("subscriptions")
-        .select("status, current_period_end")
+        .select("status, current_period_end, scheduled_change_action, scheduled_change_at")
         .eq("user_id", user.id)
         .maybeSingle(),
     ]);
@@ -75,6 +89,8 @@ export function AccountPanel() {
         plan: profileResult.data?.plan === "pro" ? "pro" : "free",
         subscriptionStatus: subscriptionResult.data?.status ?? null,
         currentPeriodEnd: subscriptionResult.data?.current_period_end ?? null,
+        scheduledChangeAction: subscriptionResult.data?.scheduled_change_action ?? null,
+        scheduledChangeAt: subscriptionResult.data?.scheduled_change_at ?? null,
       },
       warning,
     };
@@ -290,6 +306,10 @@ export function AccountPanel() {
     );
   }
 
+  const scheduledCancellationDate =
+    account.scheduledChangeAction === "cancel"
+      ? formatSubscriptionDate(account.scheduledChangeAt)
+      : null;
   const visibleBillingMessage =
     billingMessage ??
     (checkoutSuccess && account.plan === "free"
@@ -332,6 +352,9 @@ export function AccountPanel() {
             </p>
             {account.plan === "pro" && account.subscriptionStatus ? (
               <p className="account-card-copy">Subscription status: <strong>{account.subscriptionStatus.replaceAll("_", " ")}</strong>.</p>
+            ) : null}
+            {account.plan === "pro" && scheduledCancellationDate ? (
+              <p className="account-card-copy"><strong>Cancels on {scheduledCancellationDate}.</strong> Your Pro access stays active until then.</p>
             ) : null}
             {account.plan === "free" ? (
               <div className="account-actions">
