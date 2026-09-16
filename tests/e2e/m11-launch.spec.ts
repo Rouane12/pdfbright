@@ -47,10 +47,12 @@ test("mobile navigation opens and exposes core navigation", async ({ page }, tes
   const menu = page.getByLabel("Open navigation menu");
   await expect(menu).toBeVisible();
   await menu.click();
-  await expect(page.getByRole("navigation", { name: "Mobile navigation" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "How it works" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Pricing" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Sign in|Account/ })).toBeVisible();
+
+  const mobileNav = page.getByRole("navigation", { name: "Mobile navigation" });
+  await expect(mobileNav).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: "How it works" })).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: "Pricing" })).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: /Sign in|Account/ })).toBeVisible();
 
   await testInfo.attach("mobile-nav-state", {
     body: Buffer.from(`viewport=${viewport.width}x${viewport.height}`),
