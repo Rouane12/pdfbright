@@ -13,7 +13,10 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
-    "check": "npm run lint && npm run typecheck && npm run build"
+    "qa:source": "node scripts/qa-source-audit.mjs",
+    "qa:corpus": "node scripts/generate-qa-corpus.mjs && node scripts/validate-qa-corpus.mjs",
+    "qa": "npm run qa:source && npm run qa:corpus",
+    "check": "npm run lint && npm run typecheck && npm run qa && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",
