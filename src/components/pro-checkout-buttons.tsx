@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { captureAnalyticsEvent } from "@/lib/analytics/client";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 import type { BillingPlan } from "@/lib/billing/lemon-squeezy";
 
@@ -27,6 +28,8 @@ export function ProCheckoutButtons() {
         return;
       }
 
+      // The checkout API records the authenticated pricing CTA and, when a
+      // checkout URL is created, the trusted checkout_started event.
       const response = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: {
@@ -53,6 +56,7 @@ export function ProCheckoutButtons() {
 
       window.location.assign(payload.url);
     } catch (checkoutError) {
+      captureAnalyticsEvent("checkout_failed", { plan });
       setError(checkoutError instanceof Error ? checkoutError.message : "Checkout could not be started.");
       setPendingPlan(null);
     }

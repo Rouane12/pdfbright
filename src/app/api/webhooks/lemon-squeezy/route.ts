@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import {
+  captureServerAnalyticsEvent,
+  captureServerException,
+} from "@/lib/analytics/server";
+import {
   getLemonStoreId,
   hasProAccess,
   isKnownVariant,
@@ -20,6 +24,20 @@ const subscriptionEvents = new Set([
   "subscription_unpaused",
 ]);
 
+const paymentEvents = new Set(["subscription_payment_success"]);
+
+type LemonSubscriptionInvoiceAttributes = {
+  store_id?: number;
+  subscription_id?: number;
+  customer_id?: number;
+  billing_reason?: string;
+  status?: string;
+  currency?: string;
+  total?: number;
+  total_usd?: number;
+  test_mode?: boolean;
+};
+
 type LemonWebhookPayload = {
   meta?: {
     event_name?: string;
@@ -31,9 +49,87 @@ type LemonWebhookPayload = {
   data?: {
     type?: string;
     id?: string;
-    attributes?: LemonSubscriptionAttributes;
+    attributes?: LemonSubscriptionAttributes | LemonSubscriptionInvoiceAttributes;
   };
 };
+
+async function resolveInvoiceUserId(
+  payload: LemonWebhookPayload,
+  subscriptionId: number,
+) {
+  const customUserId = payload.meta?.custom_data?.user_id?.trim();
+  if (customUserId) return customUserId;
+
+  const admin = getSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("subscriptions")
+    .select("user_id")
+    .eq("provider", "lemon_squeezy")
+    .eq("provider_subscription_id", String(subscriptionId))
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.user_id?.trim() || null;
+}
+
+async function handleSubscriptionPaymentSuccess(payload: LemonWebhookPayload) {
+  if (payload.data?.type !== "subscription-invoices" || !payload.data.id || !payload.data.attributes) {
+    return NextResponse.json({ error: "Subscription payment webhook data is incomplete." }, { status: 400 });
+  }
+
+  const attributes = payload.data.attributes as LemonSubscriptionInvoiceAttributes;
+  if (
+    attributes.store_id !== getLemonStoreId() ||
+    typeof attributes.subscription_id !== "number"
+  ) {
+    console.warn("Ignoring Lemon Squeezy payment webhook for an unknown store or subscription", {
+      invoiceId: payload.data.id,
+      storeId: attributes.store_id,
+      subscriptionId: attributes.subscription_id,
+    });
+    return NextResponse.json({ received: true, ignored: true });
+  }
+
+  let analyticsUserId: string | null = null;
+
+  try {
+    const userId = await resolveInvoiceUserId(payload, attributes.subscription_id);
+    if (!userId) {
+      console.warn("Ignoring Lemon Squeezy payment webhook without a PDFBright user mapping", {
+        invoiceId: payload.data.id,
+        subscriptionId: attributes.subscription_id,
+      });
+      return NextResponse.json({ received: true, ignored: true });
+    }
+
+    analyticsUserId = userId;
+    const analyticsProperties = {
+      billing_reason: attributes.billing_reason ?? null,
+      amount_usd_cents: attributes.total_usd ?? null,
+      currency: attributes.currency ?? null,
+      test_mode: attributes.test_mode ?? null,
+    };
+
+    if (attributes.billing_reason === "initial") {
+      await captureServerAnalyticsEvent("purchase_completed", userId, analyticsProperties);
+    } else if (attributes.billing_reason === "renewal") {
+      await captureServerAnalyticsEvent("subscription_renewed", userId, analyticsProperties);
+    }
+
+    return NextResponse.json({ received: true });
+  } catch (error) {
+    console.error("PDFBright Lemon Squeezy payment analytics failed", {
+      invoiceId: payload.data.id,
+      subscriptionId: attributes.subscription_id,
+      error,
+    });
+    await captureServerException("webhook_payment", error, analyticsUserId, {
+      step: "subscription_payment_success",
+    });
+
+    return NextResponse.json({ error: "Payment webhook processing failed." }, { status: 500 });
+  }
+}
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -53,7 +149,15 @@ export async function POST(request: Request) {
 
   const eventName = payload.meta?.event_name;
 
-  if (!eventName || !subscriptionEvents.has(eventName)) {
+  if (!eventName) {
+    return NextResponse.json({ received: true, ignored: true });
+  }
+
+  if (paymentEvents.has(eventName)) {
+    return handleSubscriptionPaymentSuccess(payload);
+  }
+
+  if (!subscriptionEvents.has(eventName)) {
     return NextResponse.json({ received: true, ignored: true });
   }
 
@@ -62,7 +166,7 @@ export async function POST(request: Request) {
   }
 
   const userId = payload.meta?.custom_data?.user_id?.trim();
-  const attributes = payload.data.attributes;
+  const attributes = payload.data.attributes as LemonSubscriptionAttributes;
 
   if (!userId) {
     console.warn("Ignoring Lemon Squeezy subscription webhook without PDFBright user_id", {
@@ -115,12 +219,22 @@ export async function POST(request: Request) {
       throw profileError;
     }
 
+    if (eventName === "subscription_cancelled") {
+      await captureServerAnalyticsEvent("subscription_cancelled", userId, {
+        plan: payload.meta?.custom_data?.plan ?? null,
+        test_mode: attributes.test_mode,
+      });
+    }
+
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error("PDFBright Lemon Squeezy webhook sync failed", {
       eventName,
       subscriptionId: payload.data.id,
       error,
+    });
+    await captureServerException("webhook_subscription_sync", error, userId, {
+      step: eventName,
     });
 
     return NextResponse.json({ error: "Webhook sync failed." }, { status: 500 });

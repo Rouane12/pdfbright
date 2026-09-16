@@ -1,7 +1,7 @@
 # PDFBright — Foundation and Current Milestone State
 
-Status: Milestones 0–2 complete
-Last updated: 2026-09-13
+Status: Milestones 0–10 implemented; M10 is review-ready on the active stacked branch
+Last updated: 2026-09-16
 
 ## Locked decisions
 
@@ -22,8 +22,8 @@ Last updated: 2026-09-13
 - OCR prototype: Tesseract.js in workers
 - Processing model: local-first; server-assisted only where quality/performance requires it
 - Analytics: PostHog, with document content and filenames prohibited from event payloads
-- Authentication candidate: Supabase Auth; no account required before first product value
-- Billing candidate: Lemon Squeezy
+- Authentication: Supabase Auth; no account required before first product value
+- Billing: Lemon Squeezy
 
 ## Environment rules
 
@@ -87,10 +87,27 @@ Last updated: 2026-09-13
 - PR #3 merged into `main` as merge commit `e7b7162cc24bf396ca4990e90ec9355b8fb5b5ce`.
 - Vercel production deployment for the M2 merge completed successfully.
 
+## Current stacked implementation state — Milestones 3–10
+
+Active development has progressed beyond the historical M0–M2 sections above through the diagnosis, cleanup, OCR, optimization, result, privacy/security, account/billing, and SEO/analytics milestones on stacked milestone branches.
+
+Milestone 10 is implementation-complete on `m10/seo-analytics-foundation` and tracked by PR #13. Its latest validation passed:
+
+- Vercel preview deployment: Ready
+- production dependency audit: passed
+- lint: passed
+- TypeScript typecheck: passed
+- production build: passed
+- no unresolved review threads
+
+M10 includes metadata, canonicals, sitemap, robots, noindex auth/account surfaces, privacy-conscious PostHog funnel analytics, sanitized error monitoring, purchase/subscription measurement, Search Console verification support, and the first useful indexable workflow page at `/clean-scanned-pdf`.
+
+See `docs/M10_SEO_ANALYTICS_FOUNDATION.md` for the detailed acceptance checklist and production Search Console activation steps.
+
 ## Next milestone
 
-Milestone 3 — Diagnosis Experience.
+Milestone 11 — Full QA / Launch Candidate.
 
-The next milestone converts the structured M2 analysis into clear human-readable findings and recommendations. It must not perform PDF cleanup yet.
+M11 should validate the full corpus, supported browsers/mobile widths, accessibility, performance, payment flow, privacy behavior, output validity and edge cases before soft launch.
 
-Billing, authentication, OCR, and final cleanup architecture remain intentionally deferred to their planned milestones.
+Do not expand into broad PDF-suite features or additional SEO page families during M11. Reliability and launch readiness take priority.
