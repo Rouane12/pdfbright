@@ -11,7 +11,8 @@ export type ServerExceptionStage =
   | "billing_checkout"
   | "billing_portal"
   | "webhook_payment"
-  | "webhook_subscription_sync";
+  | "webhook_subscription_sync"
+  | "monitoring_probe";
 
 type ServerAnalyticsProperties = Record<
   string,
