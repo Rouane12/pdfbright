@@ -105,11 +105,13 @@ test("checkout rejects an unauthenticated upgrade attempt", async ({ request }) 
   expect(response.status()).toBe(401);
 });
 
-test("Lemon Squeezy webhook rejects an unsigned payload", async ({ request }) => {
-  const response = await request.post("/api/webhooks/lemon-squeezy", {
+test("Paddle webhook rejects an unsigned payload", async ({ request }) => {
+  const response = await request.post("/api/webhooks/paddle", {
     data: {
-      meta: { event_name: "subscription_created" },
-      data: { type: "subscriptions", id: "qa-unsigned" },
+      event_id: "evt_qa_unsigned",
+      event_type: "subscription.created",
+      occurred_at: new Date().toISOString(),
+      data: { id: "sub_qa_unsigned", status: "active" },
     },
   });
   expect(response.status()).toBe(401);
