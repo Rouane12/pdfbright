@@ -1,6 +1,7 @@
 import { PostHog } from "posthog-node";
 
 export type ServerAnalyticsEventName =
+  | "pricing_cta_clicked"
   | "checkout_started"
   | "purchase_completed"
   | "subscription_renewed"
