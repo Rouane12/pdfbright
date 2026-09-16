@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 const baseUrl = "https://pdfbright.app";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date("2026-09-15");
+  const lastModified = new Date("2026-09-16");
 
   return [
     {
@@ -11,6 +11,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified,
       changeFrequency: "weekly",
       priority: 1,
+    },
+    {
+      url: `${baseUrl}/clean-scanned-pdf`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.8,
     },
     {
       url: `${baseUrl}/privacy`,
