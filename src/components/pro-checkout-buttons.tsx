@@ -14,10 +14,16 @@ export function ProCheckoutButtons() {
   const [error, setError] = useState<string | null>(null);
 
   async function handleCheckout(plan: BillingPlan) {
-    captureAnalyticsEvent("pricing_cta_clicked", {
-      plan,
-      placement: "pricing",
-    });
+    // Pricing clicks frequently lead straight into auth or external checkout.
+    // Flush this event immediately so navigation cannot strand it in a client batch.
+    captureAnalyticsEvent(
+      "pricing_cta_clicked",
+      {
+        plan,
+        placement: "pricing",
+      },
+      { immediate: true },
+    );
 
     setError(null);
     setPendingPlan(plan);
@@ -57,13 +63,8 @@ export function ProCheckoutButtons() {
         throw new Error(payload.error ?? "Checkout could not be started.");
       }
 
-      // This is the final on-site step before leaving for Lemon Squeezy.
-      // Send it immediately so navigation cannot strand it in PostHog's batch.
-      captureAnalyticsEvent(
-        "checkout_started",
-        { plan },
-        { immediate: true },
-      );
+      // The checkout API records the trusted server-side checkout_started event
+      // only after Lemon Squeezy returns a valid checkout URL.
       window.location.assign(payload.url);
     } catch (checkoutError) {
       captureAnalyticsEvent("checkout_failed", { plan });
