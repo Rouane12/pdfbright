@@ -133,7 +133,7 @@ test("native-text PDF reaches diagnosis without losing the original workflow", a
   await expect(page.locator(".diagnosis-workspace")).toBeVisible({ timeout: 45_000 });
   await expect(page.getByText("native-text.pdf")).toBeVisible();
   await expect(page.getByRole("button", { name: "Fix My PDF" })).toBeVisible();
-  await expect(page.getByText(/2 pages/)).toBeVisible();
+  await expect(page.getByText(/KB · 2 pages/)).toBeVisible();
 });
 
 test("cleanup output downloads and reopens as a valid PDF", async ({ page }, testInfo) => {
