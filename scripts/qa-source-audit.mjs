@@ -105,12 +105,19 @@ if (!paddleBilling.includes('"Paddle-Version": paddleApiVersion')) fail("Paddle 
 if (!paddleRuntime.includes("NEXT_PUBLIC_PADDLE_CLIENT_TOKEN")) fail("Paddle.js must use the public client-side token");
 if (paddleRuntime.includes("PADDLE_API_KEY")) fail("Paddle server API key must never appear in the client runtime");
 
-const signatureCheckIndex = webhookRoute.indexOf("verifyPaddleWebhookSignature(rawBody, signature)");
+const webhookPostIndex = webhookRoute.indexOf("export async function POST(request: Request)");
+const signatureGuardIndex = webhookRoute.indexOf("if (!verifyPaddleWebhookSignature(rawBody, signature))", webhookPostIndex);
+const transactionDispatchIndex = webhookRoute.indexOf("return handleTransactionCompleted(payload)", webhookPostIndex);
+const subscriptionDispatchIndex = webhookRoute.indexOf("return handleSubscriptionEvent(payload)", webhookPostIndex);
 const subscriptionWriteIndex = webhookRoute.indexOf('.from("subscriptions").upsert');
-if (signatureCheckIndex < 0) fail("Paddle webhook must verify Paddle-Signature");
+if (signatureGuardIndex < 0) fail("Paddle webhook must verify Paddle-Signature");
 if (subscriptionWriteIndex < 0) fail("Paddle webhook subscription write is missing");
-if (signatureCheckIndex >= 0 && subscriptionWriteIndex >= 0 && signatureCheckIndex > subscriptionWriteIndex) {
-  fail("Paddle webhook must verify its signature before subscription writes");
+if (
+  signatureGuardIndex >= 0 &&
+  ((transactionDispatchIndex >= 0 && transactionDispatchIndex < signatureGuardIndex) ||
+    (subscriptionDispatchIndex >= 0 && subscriptionDispatchIndex < signatureGuardIndex))
+) {
+  fail("Paddle webhook must verify its signature before dispatching event handlers");
 }
 if (!webhookRoute.includes("billingPlanForPriceId(priceId)")) fail("Paddle webhook must validate subscription prices against configured PDFBright prices");
 if (!webhookRoute.includes('provider: "paddle"')) fail("Paddle webhook must persist Paddle as the billing provider");
