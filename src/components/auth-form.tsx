@@ -25,7 +25,9 @@ function getAccountRedirect(upgradePlan: UpgradePlan | null) {
 }
 
 function makeUnmanagedSignupPassword() {
-  return `${crypto.randomUUID()}-${crypto.randomUUID()}-Aa9!`;
+  // Supabase's password hashing backend rejects passwords longer than 72 bytes.
+  // A UUID plus a small complexity suffix is random, strong, and safely below that limit.
+  return `${crypto.randomUUID()}-Aa9!`;
 }
 
 function GoogleIcon() {
