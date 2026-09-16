@@ -80,6 +80,39 @@ test("sitemap is fetchable and contains the scanned-PDF search cluster", async (
   }
 });
 
+test("anonymous entitlement stays inside the Free envelope", async ({ request }) => {
+  const response = await request.get("/api/account/entitlement");
+  expect(response.status()).toBe(200);
+  const payload = (await response.json()) as {
+    plan?: unknown;
+    authenticated?: unknown;
+    limits?: { maxFileSizeMB?: unknown; maxPageCount?: unknown; maxOcrPages?: unknown };
+  };
+
+  expect(payload.plan).toBe("free");
+  expect(payload.authenticated).toBe(false);
+  expect(payload.limits?.maxFileSizeMB).toBe(10);
+  expect(payload.limits?.maxPageCount).toBe(10);
+  expect(payload.limits?.maxOcrPages).toBe(3);
+});
+
+test("checkout rejects an unauthenticated upgrade attempt", async ({ request }) => {
+  const response = await request.post("/api/billing/checkout", {
+    data: { plan: "monthly" },
+  });
+  expect(response.status()).toBe(401);
+});
+
+test("Lemon Squeezy webhook rejects an unsigned payload", async ({ request }) => {
+  const response = await request.post("/api/webhooks/lemon-squeezy", {
+    data: {
+      meta: { event_name: "subscription_created" },
+      data: { type: "subscriptions", id: "qa-unsigned" },
+    },
+  });
+  expect(response.status()).toBe(401);
+});
+
 test("malformed PDF is rejected safely", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   const input = page.getByLabel("Choose a PDF file");
