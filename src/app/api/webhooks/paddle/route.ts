@@ -40,6 +40,7 @@ type PaddleSubscriptionData = {
   customer_id?: string;
   next_billed_at?: string | null;
   scheduled_change?: {
+    action?: string | null;
     effective_at?: string | null;
   } | null;
   custom_data?: PaddleCustomData | null;
@@ -201,7 +202,9 @@ async function handleSubscriptionEvent(payload: PaddleWebhookPayload) {
     }
 
     const admin = getSupabaseAdminClient();
-    const periodEnd = data.next_billed_at ?? data.scheduled_change?.effective_at ?? null;
+    const scheduledChangeAction = data.scheduled_change?.action?.trim() || null;
+    const scheduledChangeAt = data.scheduled_change?.effective_at ?? null;
+    const periodEnd = data.next_billed_at ?? scheduledChangeAt ?? null;
     const now = new Date().toISOString();
 
     const { error: subscriptionError } = await admin.from("subscriptions").upsert(
@@ -212,6 +215,8 @@ async function handleSubscriptionEvent(payload: PaddleWebhookPayload) {
         provider_subscription_id: data.id,
         status: data.status,
         current_period_end: periodEnd,
+        scheduled_change_action: scheduledChangeAction,
+        scheduled_change_at: scheduledChangeAt,
         updated_at: now,
       },
       { onConflict: "user_id" },
