@@ -63,6 +63,8 @@ export function GlobalSiteHeader() {
         <nav className="global-nav global-nav--desktop" aria-label="Primary navigation">
           <Link className="nav-link" href="/#how-it-works">How it works</Link>
           <Link className="nav-link" href="/#pricing">Pricing</Link>
+          <Link className="nav-link" href="/terms">Terms</Link>
+          <Link className="nav-link" href="/refund-policy">Refunds</Link>
           <Link className="global-nav__signin" href={accountHref}>{accountLabel}</Link>
         </nav>
 
@@ -82,6 +84,12 @@ export function GlobalSiteHeader() {
             <Link className="global-nav-mobile__item" href="/#pricing">
               <span className="global-nav-mobile__icon global-nav-mobile__icon--pricing"><MenuIcon kind="pricing" /></span>
               <span>Pricing</span>
+            </Link>
+            <Link className="global-nav-mobile__item" href="/terms">
+              <span>Terms of Use</span>
+            </Link>
+            <Link className="global-nav-mobile__item" href="/refund-policy">
+              <span>Refund Policy</span>
             </Link>
             <Link className="global-nav-mobile__item global-nav-mobile__signin" href={accountHref}>
               <span className="global-nav-mobile__icon global-nav-mobile__icon--account"><MenuIcon kind="account" /></span>
