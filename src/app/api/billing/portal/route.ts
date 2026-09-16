@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { captureServerException } from "@/lib/analytics/server";
-import { retrieveLemonSubscription } from "@/lib/billing/lemon-squeezy";
+import { createPaddlePortalSession } from "@/lib/billing/paddle";
 import {
   getSupabaseAdminClient,
   getSupabaseAuthServerClient,
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     const admin = getSupabaseAdminClient();
     const { data: subscription, error: subscriptionError } = await admin
       .from("subscriptions")
-      .select("provider, provider_subscription_id")
+      .select("provider, provider_customer_id, provider_subscription_id")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -44,17 +44,19 @@ export async function POST(request: Request) {
       throw subscriptionError;
     }
 
-    if (subscription?.provider !== "lemon_squeezy" || !subscription.provider_subscription_id) {
+    if (
+      subscription?.provider !== "paddle" ||
+      !subscription.provider_customer_id ||
+      !subscription.provider_subscription_id
+    ) {
       return NextResponse.json({ error: "No PDFBright Pro subscription was found." }, { status: 404 });
     }
 
-    stage = "lemon_subscription";
-    const remoteSubscription = await retrieveLemonSubscription(subscription.provider_subscription_id);
-    const portalUrl = remoteSubscription.attributes.urls?.customer_portal;
-
-    if (!portalUrl) {
-      return NextResponse.json({ error: "Billing management is temporarily unavailable." }, { status: 503 });
-    }
+    stage = "paddle_portal";
+    const portalUrl = await createPaddlePortalSession({
+      customerId: subscription.provider_customer_id,
+      subscriptionId: subscription.provider_subscription_id,
+    });
 
     return NextResponse.json({ url: portalUrl });
   } catch (error) {
