@@ -65,10 +65,7 @@ type PaddleErrorPayload = {
 async function paddleJson<T>(path: string, init: RequestInit): Promise<T> {
   const response = await fetch(`${getPaddleApiBase()}${path}`, {
     ...init,
-    headers: {
-      ...paddleHeaders(),
-      ...(init.headers ?? {}),
-    },
+    headers: paddleHeaders(),
     cache: "no-store",
   });
 
