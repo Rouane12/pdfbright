@@ -23,5 +23,7 @@ jobs:
         run: npm run lint
       - name: Typecheck
         run: npm run typecheck
+      - name: M11 source and corpus QA
+        run: npm run qa
       - name: Build
         run: npm run build
