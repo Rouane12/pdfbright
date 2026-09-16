@@ -2,6 +2,15 @@ import type { MetadataRoute } from "next";
 
 const baseUrl = "https://pdfbright.app";
 
+const scannedPdfSearchRoutes = [
+  "/clean-scanned-pdf",
+  "/make-pdf-searchable",
+  "/straighten-pdf",
+  "/remove-blank-pages",
+  "/compress-scanned-pdf",
+  "/improve-scanned-pdf",
+] as const;
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date("2026-09-16");
 
@@ -12,12 +21,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 1,
     },
-    {
-      url: `${baseUrl}/clean-scanned-pdf`,
+    ...scannedPdfSearchRoutes.map((path, index) => ({
+      url: `${baseUrl}${path}`,
       lastModified,
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
+      changeFrequency: "weekly" as const,
+      priority: index === 0 ? 0.85 : 0.8,
+    })),
     {
       url: `${baseUrl}/privacy`,
       lastModified,
