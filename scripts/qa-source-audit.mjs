@@ -19,6 +19,10 @@ const analytics = await text("src/components/product-analytics.tsx");
 const loginLayout = await text("src/app/login/layout.tsx");
 const signupLayout = await text("src/app/signup/layout.tsx");
 const accountLayout = await text("src/app/account/layout.tsx");
+const checkoutRoute = await text("src/app/api/billing/checkout/route.ts");
+const entitlementRoute = await text("src/app/api/account/entitlement/route.ts");
+const entitlementClient = await text("src/lib/billing/processing-entitlement-client.ts");
+const webhookRoute = await text("src/app/api/webhooks/lemon-squeezy/route.ts");
 
 const globalHeaderCount = (layout.match(/<GlobalSiteHeader\s*\/>/g) || []).length;
 if (globalHeaderCount !== 1) fail(`expected exactly one root GlobalSiteHeader render, found ${globalHeaderCount}`);
@@ -58,6 +62,23 @@ const forbiddenAnalyticsTokens = ["file.name", "filename:", "extracted_text", "o
 for (const token of forbiddenAnalyticsTokens) {
   if (analytics.toLowerCase().includes(token.toLowerCase())) fail(`analytics source contains forbidden document-content token: ${token}`);
 }
+
+if (!checkoutRoute.includes("readBearerToken(request)")) fail("checkout must require a bearer token");
+if (!checkoutRoute.includes("supabase.auth.getUser(accessToken)")) fail("checkout must verify the authenticated user server-side");
+if (!entitlementRoute.includes("supabase.auth.getUser(accessToken)")) fail("entitlement must verify the authenticated user server-side");
+if (!entitlementRoute.includes('.from("subscriptions")')) fail("entitlement must resolve plan from the server-side subscription record");
+if (!entitlementClient.includes("return FREE_ENTITLEMENT")) fail("entitlement lookup must fail closed to Free");
+if (!entitlementClient.includes("getProcessingAllowance(plan)")) fail("client processing limits must derive from the server-verified plan");
+
+const signatureCheckIndex = webhookRoute.indexOf("verifyLemonWebhookSignature(rawBody, signature)");
+const subscriptionWriteIndex = webhookRoute.indexOf('.from("subscriptions").upsert');
+if (signatureCheckIndex < 0) fail("Lemon Squeezy webhook must verify its signature");
+if (subscriptionWriteIndex < 0) fail("Lemon Squeezy webhook subscription write is missing");
+if (signatureCheckIndex >= 0 && subscriptionWriteIndex >= 0 && signatureCheckIndex > subscriptionWriteIndex) {
+  fail("Lemon Squeezy webhook must verify its signature before subscription writes");
+}
+if (!webhookRoute.includes("attributes.store_id !== getLemonStoreId()")) fail("webhook must reject/ignore unknown Lemon Squeezy stores");
+if (!webhookRoute.includes("!isKnownVariant(attributes.variant_id)")) fail("webhook must reject/ignore unknown Lemon Squeezy variants");
 
 if (failures.length) {
   console.error("M11 source audit failed:\n- " + failures.join("\n- "));
