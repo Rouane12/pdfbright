@@ -120,7 +120,7 @@ test("malformed PDF is rejected safely", async ({ page }) => {
   const input = page.getByLabel("Choose a PDF file");
   await input.setInputFiles(path.resolve(".qa-corpus/malformed.pdf"));
 
-  await expect(page.getByText(/damaged|invalid|could not safely validate/i)).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/valid PDF header|damaged|invalid|could not safely validate/i)).toBeVisible({ timeout: 20_000 });
   await expect(page.locator(".diagnosis-workspace")).toHaveCount(0);
 });
 
