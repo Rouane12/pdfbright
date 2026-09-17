@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     const admin = getSupabaseAdminClient();
     const { data: existingSubscription, error: subscriptionError } = await admin
       .from("subscriptions")
-      .select("status, provider_subscription_id")
+      .select("provider, status, provider_subscription_id")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -88,7 +88,10 @@ export async function POST(request: Request) {
       throw subscriptionError;
     }
 
-    if (existingSubscription && hasProAccess(existingSubscription.status)) {
+    if (
+      existingSubscription?.provider === "paddle" &&
+      hasProAccess(existingSubscription.status)
+    ) {
       return NextResponse.json(
         {
           error: "This account already has a PDFBright Pro subscription.",
