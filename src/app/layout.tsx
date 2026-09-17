@@ -18,6 +18,7 @@ import "./identity-v7.css";
 import "./identity-v8.css";
 import "./m11-launch-fixes.css";
 
+// Fresh preview deployment marker — 2026-09-17.
 const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
 
 export const metadata: Metadata = {
