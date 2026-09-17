@@ -89,7 +89,13 @@ async function paddleJson<T>(path: string, init: RequestInit): Promise<T> {
 export async function createPaddleCheckout(input: {
   plan: BillingPlan;
   userId: string;
+  checkoutUrl?: string | null;
 }) {
+  const checkoutUrl =
+    getPaddleEnvironment() === "sandbox"
+      ? "http://localhost:3000"
+      : input.checkoutUrl?.trim() || undefined;
+
   const payload = await paddleJson<{
     data?: {
       id?: string;
@@ -109,6 +115,7 @@ export async function createPaddleCheckout(input: {
         user_id: input.userId,
         plan: input.plan,
       },
+      ...(checkoutUrl ? { checkout: { url: checkoutUrl } } : {}),
     }),
   });
 
