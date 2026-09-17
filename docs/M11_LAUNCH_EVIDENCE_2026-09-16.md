@@ -104,3 +104,5 @@ The following are not yet considered closed by this evidence file:
 ## Launch policy
 
 Do not mark M11 complete while an unresolved P0/P1 remains. PR #15 and PR #14 remain draft until the remaining launch gates are closed or explicitly documented as non-blocking with evidence.
+
+<!-- Deployment refresh trigger: 2026-09-17 -->
