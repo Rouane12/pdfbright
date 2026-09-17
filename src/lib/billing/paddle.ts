@@ -16,6 +16,13 @@ function requireEnv(name: string) {
 }
 
 export function getPaddleEnvironment(): PaddleEnvironment {
+  // Vercel Preview deployments are always test surfaces. Never allow a stale or
+  // mis-scoped environment variable to make a preview talk to Paddle Live.
+  const vercelEnvironment = process.env.VERCEL_ENV?.trim();
+  if (vercelEnvironment && vercelEnvironment !== "production") {
+    return "sandbox";
+  }
+
   return process.env.PADDLE_ENVIRONMENT?.trim() === "live" ? "live" : "sandbox";
 }
 
