@@ -17,6 +17,17 @@ type PaddleRuntime = {
       };
     };
   }): void;
+  Checkout: {
+    open(options: {
+      transactionId: string;
+      settings?: {
+        displayMode?: "overlay";
+        theme?: "light" | "dark";
+        successUrl?: string;
+        showAddDiscounts?: boolean;
+      };
+    }): void;
+  };
 };
 
 declare global {
@@ -27,6 +38,22 @@ declare global {
 }
 
 const clientToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim();
+
+export function openPaddleTransaction(transactionId: string) {
+  if (!window.Paddle || !window.__pdfBrightPaddleInitialized) {
+    throw new Error("Paddle checkout is still loading. Please try again in a moment.");
+  }
+
+  window.Paddle.Checkout.open({
+    transactionId,
+    settings: {
+      displayMode: "overlay",
+      theme: "light",
+      successUrl: `${window.location.origin}/account?checkout=success`,
+      showAddDiscounts: false,
+    },
+  });
+}
 
 export function PaddleCheckoutRuntime() {
   if (!clientToken) return null;
