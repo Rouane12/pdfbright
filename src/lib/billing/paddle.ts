@@ -89,7 +89,6 @@ async function paddleJson<T>(path: string, init: RequestInit): Promise<T> {
 export async function createPaddleCheckout(input: {
   plan: BillingPlan;
   userId: string;
-  checkoutUrl: string;
 }) {
   const payload = await paddleJson<{
     data?: {
@@ -110,20 +109,17 @@ export async function createPaddleCheckout(input: {
         user_id: input.userId,
         plan: input.plan,
       },
-      checkout: {
-        url: input.checkoutUrl,
-      },
     }),
   });
 
-  const checkoutUrl = payload.data?.checkout?.url;
-  if (!checkoutUrl) {
-    throw new Error("Paddle did not return a checkout URL.");
+  const transactionId = payload.data?.id;
+  if (!transactionId) {
+    throw new Error("Paddle did not return a transaction ID.");
   }
 
   return {
-    transactionId: payload.data?.id ?? null,
-    checkoutUrl,
+    transactionId,
+    checkoutUrl: payload.data?.checkout?.url ?? null,
   };
 }
 
