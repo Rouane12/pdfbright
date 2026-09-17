@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { openPaddleTransaction } from "@/components/paddle-checkout-runtime";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 type UpgradePlan = "monthly" | "yearly";
@@ -206,7 +207,7 @@ export function AccountPanel() {
       });
 
       const payload = (await response.json().catch(() => ({}))) as {
-        url?: string;
+        transactionId?: string;
         error?: string;
         code?: string;
       };
@@ -221,15 +222,15 @@ export function AccountPanel() {
         return;
       }
 
-      if (!response.ok || !payload.url) {
+      if (!response.ok || !payload.transactionId) {
         throw new Error(payload.error ?? "Checkout could not be started.");
       }
 
-      window.location.assign(payload.url);
+      openPaddleTransaction(payload.transactionId);
+      setBillingAction(null);
     } catch (checkoutError) {
       setBillingMessage(checkoutError instanceof Error ? checkoutError.message : "Checkout could not be started.");
       setBillingAction(null);
-      router.replace("/account");
     }
   }, [readAccountState, router]);
 
