@@ -27,7 +27,18 @@ declare global {
 }
 
 const clientToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim();
-const paddleEnvironment = process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT?.trim();
+const configuredPaddleEnvironment = process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT?.trim();
+
+function shouldUseSandbox() {
+  const hostname = window.location.hostname.toLowerCase();
+  const isLiveHostname = hostname === "pdfbright.app" || hostname === "www.pdfbright.app";
+
+  // Every Vercel preview or local/dev hostname is a test surface. Only the real
+  // production hostname is allowed to initialize Paddle.js in Live mode.
+  if (!isLiveHostname) return true;
+
+  return configuredPaddleEnvironment === "sandbox";
+}
 
 export function PaddleCheckoutRuntime() {
   if (!clientToken) return null;
@@ -36,7 +47,7 @@ export function PaddleCheckoutRuntime() {
   function initializePaddle() {
     if (!window.Paddle || window.__pdfBrightPaddleInitialized) return;
 
-    if (paddleEnvironment === "sandbox") {
+    if (shouldUseSandbox()) {
       window.Paddle.Environment.set("sandbox");
     }
 
