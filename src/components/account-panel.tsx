@@ -26,6 +26,10 @@ function readUpgradePlan(value: string | null): UpgradePlan | null {
   return value === "monthly" || value === "yearly" ? value : null;
 }
 
+function isActivePaddleSubscription(provider: string | null | undefined, status: string | null | undefined) {
+  return provider === "paddle" && (status === "active" || status === "trialing" || status === "past_due");
+}
+
 function formatSubscriptionDate(value: string | null) {
   if (!value) return null;
   const date = new Date(value);
@@ -61,38 +65,30 @@ export function AccountPanel() {
       return null;
     }
 
-    const [profileResult, subscriptionResult] = await Promise.all([
-      supabase.from("profiles").select("plan").eq("user_id", user.id).maybeSingle(),
-      supabase
-        .from("subscriptions")
-        .select("status, current_period_end, scheduled_change_action, scheduled_change_at")
-        .eq("user_id", user.id)
-        .maybeSingle(),
-    ]);
+    const { data: subscription, error: subscriptionError } = await supabase
+      .from("subscriptions")
+      .select("provider, status, current_period_end, scheduled_change_action, scheduled_change_at")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    const warning =
-      profileResult.error || subscriptionResult.error
-        ? "You are signed in, but some plan details could not be loaded yet. You can still use your account while we retry."
-        : null;
-
-    if (profileResult.error) {
-      console.error("PDFBright profile lookup failed", profileResult.error);
+    if (subscriptionError) {
+      console.error("PDFBright subscription lookup failed", subscriptionError);
     }
 
-    if (subscriptionResult.error) {
-      console.error("PDFBright subscription lookup failed", subscriptionResult.error);
-    }
+    const paddlePro = isActivePaddleSubscription(subscription?.provider, subscription?.status);
 
     return {
       account: {
         email: user.email ?? "Signed-in user",
-        plan: profileResult.data?.plan === "pro" ? "pro" : "free",
-        subscriptionStatus: subscriptionResult.data?.status ?? null,
-        currentPeriodEnd: subscriptionResult.data?.current_period_end ?? null,
-        scheduledChangeAction: subscriptionResult.data?.scheduled_change_action ?? null,
-        scheduledChangeAt: subscriptionResult.data?.scheduled_change_at ?? null,
+        plan: paddlePro ? "pro" : "free",
+        subscriptionStatus: paddlePro ? subscription?.status ?? null : null,
+        currentPeriodEnd: paddlePro ? subscription?.current_period_end ?? null : null,
+        scheduledChangeAction: paddlePro ? subscription?.scheduled_change_action ?? null : null,
+        scheduledChangeAt: paddlePro ? subscription?.scheduled_change_at ?? null : null,
       },
-      warning,
+      warning: subscriptionError
+        ? "You are signed in, but your billing status could not be loaded yet. You can still use your account while we retry."
+        : null,
     };
   }, []);
 
