@@ -104,10 +104,7 @@ export async function POST(request: Request) {
     stage = "paddle_checkout";
     const requestOrigin = new URL(request.url).origin.replace(/\/$/, "");
     const configuredAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "");
-    const checkoutHost =
-      getPaddleEnvironment() === "sandbox"
-        ? requestOrigin
-        : configuredAppUrl || requestOrigin;
+    const checkoutHost = configuredAppUrl || requestOrigin;
 
     const checkout = await createPaddleCheckout({
       plan: body.plan,
@@ -122,7 +119,7 @@ export async function POST(request: Request) {
       transaction_id: checkout.transactionId,
     });
 
-    return NextResponse.json({ url: checkout.checkoutUrl });
+    return NextResponse.json({ transactionId: checkout.transactionId });
   } catch (error) {
     console.error("PDFBright checkout creation failed", { stage, error });
     await captureServerException("billing_checkout", error, analyticsUserId, { step: stage });
