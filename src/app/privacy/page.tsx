@@ -67,7 +67,8 @@ export default function PrivacyPage() {
 
           <section className={sectionClass}>
             <h2 className="text-xl font-semibold tracking-tight">Payments and subscriptions</h2>
-            <p className="mt-3 leading-7 text-slate-600">When paid PDFBright plans are available, checkout and subscription processing may be handled by a third-party merchant of record or payment provider. PDFBright may receive transaction identifiers, subscription status, plan, and entitlement information needed to provide the paid service. Card details are handled by the checkout/payment provider rather than stored directly by PDFBright.</p>
+            <p className="mt-3 leading-7 text-slate-600">PDFBright uses Paddle as the billing and merchant-of-record provider for paid plans. Paddle handles checkout, payment details, applicable billing information, taxes, receipts, and subscription payment processing. PDFBright does not store full card details.</p>
+            <p className="mt-3 leading-7 text-slate-600">To provide and manage Pro access, PDFBright receives and stores the billing linkage needed for the account, such as Paddle customer, transaction, and subscription identifiers, subscription status, selected plan, and billing-period information. This billing metadata is separate from the contents of PDFs you process.</p>
           </section>
 
           <section className={sectionClass}>

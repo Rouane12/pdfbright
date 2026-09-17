@@ -105,11 +105,13 @@ test("checkout rejects an unauthenticated upgrade attempt", async ({ request }) 
   expect(response.status()).toBe(401);
 });
 
-test("Lemon Squeezy webhook rejects an unsigned payload", async ({ request }) => {
-  const response = await request.post("/api/webhooks/lemon-squeezy", {
+test("Paddle webhook rejects an unsigned payload", async ({ request }) => {
+  const response = await request.post("/api/webhooks/paddle", {
     data: {
-      meta: { event_name: "subscription_created" },
-      data: { type: "subscriptions", id: "qa-unsigned" },
+      event_id: "evt_qa_unsigned",
+      event_type: "subscription.created",
+      occurred_at: new Date().toISOString(),
+      data: { id: "sub_qa_unsigned", status: "active" },
     },
   });
   expect(response.status()).toBe(401);
@@ -185,4 +187,98 @@ test("cleanup output downloads and reopens as a valid PDF", async ({ page }, tes
   const bytes = await fs.readFile(savedPath);
   const reopened = await PDFDocument.load(bytes);
   expect(reopened.getPageCount()).toBe(2);
+});
+
+test("blank-page cleanup removes only the confirmed blank page", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Destructive blank-removal integrity only needs one deterministic browser pass.");
+  test.setTimeout(90_000);
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Choose a PDF file").setInputFiles(path.resolve(".qa-corpus/blank-and-near-blank.pdf"));
+
+  await expect(page.locator(".diagnosis-workspace")).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByRole("heading", { name: "1 page appears blank" })).toBeVisible();
+
+  const removalToggle = page.locator("#diagnosis-remove-blank-pages");
+  await expect(removalToggle).not.toBeChecked();
+
+  const reviewButton = page.getByRole("button", { name: "Review pages" });
+  await reviewButton.click();
+  await expect(page.getByText("Pages 1", { exact: true })).toBeVisible();
+  await removalToggle.check();
+
+  const fixButton = page.getByRole("button", { name: "Fix My PDF" });
+  await expect(fixButton).toBeEnabled();
+  await fixButton.click();
+
+  await expect(page.getByRole("heading", { name: "Your PDF is ready" })).toBeVisible({ timeout: 45_000 });
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Download Clean PDF" }).click();
+  const download = await downloadPromise;
+  const savedPath = testInfo.outputPath("blank-and-near-blank-clean.pdf");
+  await download.saveAs(savedPath);
+
+  const bytes = await fs.readFile(savedPath);
+  const reopened = await PDFDocument.load(bytes);
+  expect(reopened.getPageCount()).toBe(1);
+});
+
+test("page normalization preserves all pages and makes dimensions consistent", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Page-normalization integrity only needs one deterministic browser pass.");
+  test.setTimeout(90_000);
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Choose a PDF file").setInputFiles(path.resolve(".qa-corpus/mixed-page-sizes.pdf"));
+
+  await expect(page.locator(".diagnosis-workspace")).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByRole("heading", { name: "Page sizes are inconsistent" })).toBeVisible();
+  await expect(page.locator("#diagnosis-normalize-pages")).toBeChecked();
+
+  await page.getByRole("button", { name: "Fix My PDF" }).click();
+  await expect(page.getByRole("heading", { name: "Your PDF is ready" })).toBeVisible({ timeout: 45_000 });
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Download Clean PDF" }).click();
+  const download = await downloadPromise;
+  const savedPath = testInfo.outputPath("mixed-page-sizes-clean.pdf");
+  await download.saveAs(savedPath);
+
+  const bytes = await fs.readFile(savedPath);
+  const reopened = await PDFDocument.load(bytes);
+  expect(reopened.getPageCount()).toBe(3);
+
+  const sizes = reopened.getPages().map((pdfPage) => pdfPage.getSize());
+  for (const size of sizes.slice(1)) {
+    expect(Math.abs(size.width - sizes[0].width)).toBeLessThan(0.6);
+    expect(Math.abs(size.height - sizes[0].height)).toBeLessThan(0.6);
+  }
+});
+
+test("form fields survive a benign cleanup pass", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Form-preservation integrity only needs one deterministic browser pass.");
+  test.setTimeout(90_000);
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Choose a PDF file").setInputFiles(path.resolve(".qa-corpus/form.pdf"));
+
+  await expect(page.locator(".diagnosis-workspace")).toBeVisible({ timeout: 45_000 });
+  await page.getByText("Customize fixes", { exact: true }).click();
+  const normalizeOption = page.locator(".advanced-fix-option").filter({ hasText: "Make page sizes consistent" }).locator("input");
+  await normalizeOption.check();
+
+  const fixButton = page.getByRole("button", { name: "Fix My PDF" });
+  await expect(fixButton).toBeEnabled();
+  await fixButton.click();
+
+  await expect(page.getByRole("heading", { name: "Your PDF is ready" })).toBeVisible({ timeout: 45_000 });
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Download Clean PDF" }).click();
+  const download = await downloadPromise;
+  const savedPath = testInfo.outputPath("form-clean.pdf");
+  await download.saveAs(savedPath);
+
+  const bytes = await fs.readFile(savedPath);
+  const reopened = await PDFDocument.load(bytes);
+  expect(reopened.getPageCount()).toBe(1);
+  expect(reopened.getForm().getTextField("qa.name").getText()).toBe("Synthetic QA");
 });

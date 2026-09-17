@@ -24,7 +24,7 @@ export default function TermsPage() {
         <p className="mt-5 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg">
           These terms govern access to PDFBright, including the free browser-based cleanup workflow, PDFBright accounts, and any paid plan we make available.
         </p>
-        <p className="mt-3 text-sm text-slate-500">Last updated: 14 September 2026</p>
+        <p className="mt-3 text-sm text-slate-500">Last updated: 16 September 2026</p>
 
         <div className="mt-10 space-y-5">
           <section className={sectionClass}>
@@ -44,7 +44,7 @@ export default function TermsPage() {
 
           <section className={sectionClass}>
             <h2 className="text-xl font-semibold tracking-tight">Paid plans</h2>
-            <p className="mt-3 leading-7 text-slate-600">If you purchase PDFBright Pro, pricing and billing frequency are shown before checkout. Subscription billing may be handled by a third-party merchant-of-record or payment provider. Renewal, cancellation, refunds, taxes, and payment-method handling are subject to the checkout terms shown at purchase and applicable law.</p>
+            <p className="mt-3 leading-7 text-slate-600">If you purchase PDFBright Pro, pricing and billing frequency are shown before checkout. Paddle acts as the merchant of record for PDFBright paid-plan checkout and subscription payment processing. Renewal, cancellation, refunds, taxes, receipts, and payment-method handling are subject to the checkout terms shown at purchase, our <Link className="font-semibold text-blue-700 hover:underline" href="/refund-policy">Refund Policy</Link>, Paddle&apos;s buyer terms, and applicable law.</p>
           </section>
 
           <section className={sectionClass}>
@@ -66,6 +66,7 @@ export default function TermsPage() {
         <div className="mt-8 flex flex-wrap gap-4 text-sm font-semibold">
           <Link className="text-blue-700 hover:underline" href="/">Back to PDFBright</Link>
           <Link className="text-blue-700 hover:underline" href="/privacy">Privacy Policy</Link>
+          <Link className="text-blue-700 hover:underline" href="/refund-policy">Refund Policy</Link>
           <Link className="text-blue-700 hover:underline" href="/data-deletion">Data deletion</Link>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProcessingAllowance, type PdfBrightPlan } from "@/lib/billing/entitlements";
-import { hasProAccess } from "@/lib/billing/lemon-squeezy";
+import { hasProAccess } from "@/lib/billing/paddle";
 import {
   getSupabaseAdminClient,
   getSupabaseAuthServerClient,
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     const admin = getSupabaseAdminClient();
     const { data: subscription, error: subscriptionError } = await admin
       .from("subscriptions")
-      .select("status")
+      .select("provider, status")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -56,7 +56,11 @@ export async function GET(request: Request) {
       throw subscriptionError;
     }
 
-    const plan: PdfBrightPlan = hasProAccess(subscription?.status) ? "pro" : "free";
+    const plan: PdfBrightPlan =
+      subscription?.provider === "paddle" && hasProAccess(subscription.status)
+        ? "pro"
+        : "free";
+
     return entitlementResponse(plan, true);
   } catch (error) {
     console.error("PDFBright entitlement lookup failed", error);

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { openPaddleTransaction } from "@/components/paddle-checkout-runtime";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 type UpgradePlan = "monthly" | "yearly";
@@ -13,6 +14,8 @@ type AccountState = {
   plan: "free" | "pro";
   subscriptionStatus: string | null;
   currentPeriodEnd: string | null;
+  scheduledChangeAction: string | null;
+  scheduledChangeAt: string | null;
 };
 
 type AccountReadResult = {
@@ -22,6 +25,22 @@ type AccountReadResult = {
 
 function readUpgradePlan(value: string | null): UpgradePlan | null {
   return value === "monthly" || value === "yearly" ? value : null;
+}
+
+function isActivePaddleSubscription(provider: string | null | undefined, status: string | null | undefined) {
+  return provider === "paddle" && (status === "active" || status === "trialing" || status === "past_due");
+}
+
+function formatSubscriptionDate(value: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(date);
 }
 
 export function AccountPanel() {
@@ -47,36 +66,30 @@ export function AccountPanel() {
       return null;
     }
 
-    const [profileResult, subscriptionResult] = await Promise.all([
-      supabase.from("profiles").select("plan").eq("user_id", user.id).maybeSingle(),
-      supabase
-        .from("subscriptions")
-        .select("status, current_period_end")
-        .eq("user_id", user.id)
-        .maybeSingle(),
-    ]);
+    const { data: subscription, error: subscriptionError } = await supabase
+      .from("subscriptions")
+      .select("provider, status, current_period_end, scheduled_change_action, scheduled_change_at")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    const warning =
-      profileResult.error || subscriptionResult.error
-        ? "You are signed in, but some plan details could not be loaded yet. You can still use your account while we retry."
-        : null;
-
-    if (profileResult.error) {
-      console.error("PDFBright profile lookup failed", profileResult.error);
+    if (subscriptionError) {
+      console.error("PDFBright subscription lookup failed", subscriptionError);
     }
 
-    if (subscriptionResult.error) {
-      console.error("PDFBright subscription lookup failed", subscriptionResult.error);
-    }
+    const paddlePro = isActivePaddleSubscription(subscription?.provider, subscription?.status);
 
     return {
       account: {
         email: user.email ?? "Signed-in user",
-        plan: profileResult.data?.plan === "pro" ? "pro" : "free",
-        subscriptionStatus: subscriptionResult.data?.status ?? null,
-        currentPeriodEnd: subscriptionResult.data?.current_period_end ?? null,
+        plan: paddlePro ? "pro" : "free",
+        subscriptionStatus: paddlePro ? subscription?.status ?? null : null,
+        currentPeriodEnd: paddlePro ? subscription?.current_period_end ?? null : null,
+        scheduledChangeAction: paddlePro ? subscription?.scheduled_change_action ?? null : null,
+        scheduledChangeAt: paddlePro ? subscription?.scheduled_change_at ?? null : null,
       },
-      warning,
+      warning: subscriptionError
+        ? "You are signed in, but your billing status could not be loaded yet. You can still use your account while we retry."
+        : null,
     };
   }, []);
 
@@ -194,7 +207,7 @@ export function AccountPanel() {
       });
 
       const payload = (await response.json().catch(() => ({}))) as {
-        url?: string;
+        transactionId?: string;
         error?: string;
         code?: string;
       };
@@ -209,15 +222,15 @@ export function AccountPanel() {
         return;
       }
 
-      if (!response.ok || !payload.url) {
+      if (!response.ok || !payload.transactionId) {
         throw new Error(payload.error ?? "Checkout could not be started.");
       }
 
-      window.location.assign(payload.url);
+      openPaddleTransaction(payload.transactionId);
+      setBillingAction(null);
     } catch (checkoutError) {
       setBillingMessage(checkoutError instanceof Error ? checkoutError.message : "Checkout could not be started.");
       setBillingAction(null);
-      router.replace("/account");
     }
   }, [readAccountState, router]);
 
@@ -290,6 +303,10 @@ export function AccountPanel() {
     );
   }
 
+  const scheduledCancellationDate =
+    account.scheduledChangeAction === "cancel"
+      ? formatSubscriptionDate(account.scheduledChangeAt)
+      : null;
   const visibleBillingMessage =
     billingMessage ??
     (checkoutSuccess && account.plan === "free"
@@ -332,6 +349,9 @@ export function AccountPanel() {
             </p>
             {account.plan === "pro" && account.subscriptionStatus ? (
               <p className="account-card-copy">Subscription status: <strong>{account.subscriptionStatus.replaceAll("_", " ")}</strong>.</p>
+            ) : null}
+            {account.plan === "pro" && scheduledCancellationDate ? (
+              <p className="account-card-copy"><strong>Cancels on {scheduledCancellationDate}.</strong> Your Pro access stays active until then.</p>
             ) : null}
             {account.plan === "free" ? (
               <div className="account-actions">

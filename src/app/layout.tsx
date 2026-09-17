@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { GlobalSiteHeader } from "@/components/global-site-header";
+import { PaddleCheckoutRuntime } from "@/components/paddle-checkout-runtime";
 import { ProductAnalytics } from "@/components/product-analytics";
 import "./globals.css";
 import "./workflow-identity.css";
@@ -17,6 +18,7 @@ import "./identity-v7.css";
 import "./identity-v8.css";
 import "./m11-launch-fixes.css";
 
+// Fresh preview deployment marker — 2026-09-17.
 const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
 
 export const metadata: Metadata = {
@@ -60,6 +62,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <PaddleCheckoutRuntime />
         <ProductAnalytics />
         <GlobalSiteHeader />
         {children}

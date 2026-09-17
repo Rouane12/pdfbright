@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { captureAnalyticsEvent } from "@/lib/analytics/client";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
-import type { BillingPlan } from "@/lib/billing/lemon-squeezy";
+import type { BillingPlan } from "@/lib/billing/paddle";
 
 type PendingPlan = BillingPlan | null;
 
@@ -56,7 +56,7 @@ export function ProCheckoutButtons() {
 
       window.location.assign(payload.url);
     } catch (checkoutError) {
-      captureAnalyticsEvent("checkout_failed", { plan });
+      captureAnalyticsEvent("checkout_failed", { plan, billing_provider: "paddle" });
       setError(checkoutError instanceof Error ? checkoutError.message : "Checkout could not be started.");
       setPendingPlan(null);
     }
