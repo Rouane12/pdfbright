@@ -16,14 +16,11 @@ function requireEnv(name: string) {
 }
 
 export function getPaddleEnvironment(): PaddleEnvironment {
-  // Vercel Preview deployments are always test surfaces. Never allow a stale or
-  // mis-scoped environment variable to make a preview talk to Paddle Live.
-  const vercelEnvironment = process.env.VERCEL_ENV?.trim();
-  if (vercelEnvironment && vercelEnvironment !== "production") {
-    return "sandbox";
-  }
-
-  return process.env.PADDLE_ENVIRONMENT?.trim() === "live" ? "live" : "sandbox";
+  // Temporary launch gate: Paddle Live is not approved yet. Keep every build on
+  // Sandbox so Preview/Production aliases cannot accidentally hit Paddle Live
+  // while we finish account/domain verification. Re-enable Live only after
+  // verification is approved and we are ready for the final live-payment proof.
+  return "sandbox";
 }
 
 function getPaddleApiBase() {
