@@ -19,6 +19,7 @@ import "./identity-v8.css";
 import "./m11-launch-fixes.css";
 
 const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
+const billingEnabled = process.env.NEXT_PUBLIC_BILLING_ENABLED === "true";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://pdfbright.app"),
@@ -61,7 +62,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <PaddleCheckoutRuntime />
+        {billingEnabled ? <PaddleCheckoutRuntime /> : null}
         <ProductAnalytics />
         <GlobalSiteHeader />
         {children}
