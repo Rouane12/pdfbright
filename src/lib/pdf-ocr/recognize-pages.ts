@@ -146,6 +146,7 @@ export async function recognizePdfPages(
   }
 
   const entitlement = await resolveProcessingEntitlement();
+  const billingEnabled = process.env.NEXT_PUBLIC_BILLING_ENABLED === "true";
   abortIfNeeded(signal);
   const maxOcrPages = Math.min(LOCAL_OCR_PAGE_LIMIT, entitlement.limits.maxOcrPages);
 
@@ -153,7 +154,9 @@ export async function recognizePdfPages(
     throw new Error(
       entitlement.plan === "pro"
         ? `This PDF has ${targets.length} scanned pages that need OCR. Local OCR is currently limited to ${maxOcrPages} pages because larger jobs can take several minutes in the browser. Heavy OCR will use server-assisted processing in a future update.`
-        : `This PDF has ${targets.length} scanned pages that need OCR. The Free plan supports up to ${maxOcrPages} OCR pages per document; PDFBright Pro supports up to ${LOCAL_OCR_PAGE_LIMIT} local OCR pages.`,
+        : billingEnabled
+          ? `This PDF has ${targets.length} scanned pages that need OCR. The Free plan supports up to ${maxOcrPages} OCR pages per document; PDFBright Pro supports up to ${LOCAL_OCR_PAGE_LIMIT} local OCR pages.`
+          : `This PDF has ${targets.length} scanned pages that need OCR. Free Early Access currently supports up to ${maxOcrPages} OCR pages per document.`,
     );
   }
 
