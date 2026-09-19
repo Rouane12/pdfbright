@@ -1,15 +1,82 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { deflateSync } from "node:zlib";
 import { PDFDocument, StandardFonts, degrees, rgb } from "pdf-lib";
 
 const outputDir = path.resolve(process.env.PDFBRIGHT_QA_DIR || ".qa-corpus");
+const fixturesDir = path.resolve("tests/fixtures");
 const tinyPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZlJQAAAAASUVORK5CYII=",
   "base64",
 );
 
+const CRC_TABLE = Array.from({ length: 256 }, (_, value) => {
+  let crc = value;
+  for (let bit = 0; bit < 8; bit += 1) {
+    crc = (crc & 1) !== 0 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1;
+  }
+  return crc >>> 0;
+});
+
+function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc = CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function pngChunk(type, data) {
+  const typeBytes = Buffer.from(type, "ascii");
+  const payload = Buffer.concat([typeBytes, data]);
+  const chunk = Buffer.alloc(12 + data.length);
+  chunk.writeUInt32BE(data.length, 0);
+  typeBytes.copy(chunk, 4);
+  data.copy(chunk, 8);
+  chunk.writeUInt32BE(crc32(payload), 8 + data.length);
+  return chunk;
+}
+
+function makeSyntheticNoisePng(width, height) {
+  const stride = 1 + width * 3;
+  const raw = Buffer.alloc(stride * height);
+  let seed = 0x50444642;
+
+  for (let y = 0; y < height; y += 1) {
+    const row = y * stride;
+    raw[row] = 0;
+    for (let x = 0; x < width; x += 1) {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      const offset = row + 1 + x * 3;
+      const value = seed >>> 24;
+      raw[offset] = value;
+      raw[offset + 1] = (value + ((seed >>> 16) & 63)) & 0xff;
+      raw[offset + 2] = (value + ((seed >>> 8) & 31)) & 0xff;
+    }
+  }
+
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header[8] = 8;
+  header[9] = 2;
+  header[10] = 0;
+  header[11] = 0;
+  header[12] = 0;
+
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    pngChunk("IHDR", header),
+    pngChunk("IDAT", deflateSync(raw, { level: 6 })),
+    pngChunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+
 await fs.rm(outputDir, { recursive: true, force: true });
 await fs.mkdir(outputDir, { recursive: true });
+
+const ocrScanPng = await fs.readFile(path.join(fixturesDir, "ocr-scan.png"));
+const encryptedPdf = await fs.readFile(path.join(fixturesDir, "password-protected.pdf"));
 
 const manifest = [];
 
@@ -118,6 +185,45 @@ async function addTextPage(doc, text, size = [612, 792]) {
 
 {
   const doc = await PDFDocument.create();
+  const image = await doc.embedPng(ocrScanPng);
+  const page = doc.addPage([650, 360]);
+  page.drawImage(image, { x: 0, y: 0, width: 650, height: 360 });
+  await savePdf("ocr-image-only.pdf", doc, {
+    pages: 1,
+    imageOnly: true,
+    ocrExpected: true,
+  });
+}
+
+{
+  const doc = await PDFDocument.create();
+  await addTextPage(doc, "Mixed document native text must survive", [650, 360]);
+  const image = await doc.embedPng(ocrScanPng);
+  const page = doc.addPage([650, 360]);
+  page.drawImage(image, { x: 0, y: 0, width: 650, height: 360 });
+  await savePdf("mixed-native-and-ocr-scan.pdf", doc, {
+    pages: 2,
+    mixedTextAndImage: true,
+    ocrExpected: true,
+  });
+}
+
+{
+  const doc = await PDFDocument.create();
+  const noisePng = makeSyntheticNoisePng(900, 1200);
+  const image = await doc.embedPng(noisePng);
+  const page = doc.addPage([612, 792]);
+  page.drawImage(image, { x: 0, y: 0, width: 612, height: 792 });
+  await savePdf("scan-heavy-noise.pdf", doc, {
+    pages: 1,
+    imageOnly: true,
+    minBytes: 250_000,
+    compressionExpected: true,
+  });
+}
+
+{
+  const doc = await PDFDocument.create();
   await addTextPage(doc, "Mixed document native-text page");
   const image = await doc.embedPng(tinyPng);
   const page = doc.addPage([612, 792]);
@@ -134,6 +240,13 @@ async function addTextPage(doc, text, size = [612, 792]) {
   field.addToPage(page, { x: 54, y: 620, width: 220, height: 28 });
   await savePdf("form.pdf", doc, { pages: 1, formFields: 1 });
 }
+
+await fs.writeFile(path.join(outputDir, "password-protected.pdf"), encryptedPdf);
+manifest.push({
+  name: "password-protected.pdf",
+  kind: "encrypted",
+  mustReject: true,
+});
 
 await fs.writeFile(
   path.join(outputDir, "malformed.pdf"),
