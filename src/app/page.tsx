@@ -3,7 +3,6 @@ import "./cleanup.css";
 import "./brand-sections.css";
 import "./identity-v2.css";
 import { UploadDropzone } from "@/components/upload-dropzone";
-import { ProCheckoutButtons } from "@/components/pro-checkout-buttons";
 
 type FixIconKind = "straighten" | "rotate" | "ocr" | "blank" | "compress" | "normalize";
 
@@ -336,46 +335,35 @@ export default function Home() {
       <section id="pricing" className="section-shell brand-band brand-band--white" aria-labelledby="pricing-heading">
         <div className="section-inner section-reveal">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="section-kicker section-kicker--spark">Simple pricing</p>
-            <h2 id="pricing-heading" className="section-title">Start free. Upgrade when your workflow gets heavier.</h2>
+            <p className="section-kicker section-kicker--spark">Free Early Access</p>
+            <h2 id="pricing-heading" className="section-title">PDFBright is free while we learn from real documents.</h2>
             <p className="section-copy mx-auto">
-              Core cleanup stays useful for free. Pro gives repeat users more room for larger files, heavier OCR, and demanding workflows.
+              Use the core cleanup workflow without a subscription. We are launching early so real usage can show us what people value before paid plans return.
             </p>
           </div>
 
-          <div className="pricing-grid mx-auto mt-10 grid max-w-4xl gap-4 md:grid-cols-2">
+          <div className="mx-auto mt-10 max-w-3xl">
             <article className="pricing-card pricing-card--featured">
-              <span className="pricing-badge">Free</span>
+              <span className="pricing-badge">Early Access</span>
               <div className="pricing-price-row">
                 <span className="pricing-price">$0</span>
-                <span className="pricing-period">to get started</span>
+                <span className="pricing-period">while Early Access is active</span>
               </div>
-              <h3 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">Clean everyday PDFs</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-600">Single-document cleanup with practical limits while local processing stays generous.</p>
+              <h3 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">Clean everyday PDFs without a subscription</h3>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                Upload a PDF, let PDFBright diagnose what can be improved, apply the recommended cleanup, and download the result.
+              </p>
               <ul className="pricing-list">
-                <li>Core cleanup workflow</li>
+                <li>Core diagnosis and cleanup workflow</li>
                 <li>Up to 10 MB and 10 pages per PDF</li>
                 <li>Up to 3 OCR pages per document</li>
+                <li>Local-first processing for supported operations</li>
+                <li>No account required to clean a PDF</li>
               </ul>
-            </article>
-
-            <article className="pricing-card pricing-card--pro">
-              <span className="pricing-badge pricing-badge--pro">PDFBright Pro</span>
-              <div className="pricing-price-row">
-                <span className="pricing-price">$7.99</span>
-                <span className="pricing-period">/ month</span>
-              </div>
-              <p className="pricing-yearly">or $59.99 billed yearly</p>
-              <span className="pricing-savings">Save about 37% yearly</span>
-              <h3 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">More room for repeat and heavy use</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-600">Higher limits for larger PDFs, heavier OCR, faster repeat workflows, and more demanding cleanup.</p>
-              <ul className="pricing-list">
-                <li>Up to 25 MB and 25 pages per PDF</li>
-                <li>Up to 10 OCR pages per document</li>
-                <li>Higher limits for repeat workflows</li>
-              </ul>
-              <ProCheckoutButtons />
-              <p className="pricing-note">Core PDF cleanup remains free. Pro is for people who need more capacity, not a paywall around the basic workflow.</p>
+              <a className="button button--primary mt-6 inline-flex" href="#upload">Clean a PDF for free</a>
+              <p className="pricing-note">
+                Paid plans are intentionally paused during Early Access. We are keeping the proven Pro billing system preserved for later instead of putting payment in the way of launch.
+              </p>
             </article>
           </div>
         </div>
@@ -392,6 +380,10 @@ export default function Home() {
             <details className="faq-item">
               <summary>Do I need an account?</summary>
               <p>No. PDFBright is designed to show value before asking you to create an account.</p>
+            </details>
+            <details className="faq-item">
+              <summary>Is PDFBright really free right now?</summary>
+              <p>Yes. PDFBright is launching in free Early Access so we can learn from real usage before enabling paid plans.</p>
             </details>
             <details className="faq-item">
               <summary>Does PDFBright upload every file?</summary>
