@@ -101,6 +101,92 @@ Watch:
 
 Do not optimize for time-on-site. A short successful cleanup session is a success.
 
+## Evidence checkpoint — 2026-09-19
+
+### Production/public surface
+
+Verified against `https://pdfbright.app`:
+
+- homepage returns HTTP 200
+- canonical/title/description are present
+- one homepage H1 is present
+- no broken homepage links/resources were reported by the rendered-page audit
+- `/sitemap.xml` returns HTTP 200 as `application/xml`
+- `/robots.txt` returns HTTP 200 as `text/plain`
+
+The scanned-PDF search cluster was also checked in production. All six routes returned HTTP 200 with their own canonical, title and intent-specific H1, with no broken links/resource errors reported:
+
+- `/clean-scanned-pdf`
+- `/make-pdf-searchable`
+- `/straighten-pdf`
+- `/remove-blank-pages`
+- `/compress-scanned-pdf`
+- `/improve-scanned-pdf`
+
+### Accessibility defect found and fixed
+
+The first production Lighthouse pass found two concrete homepage issues:
+
+1. the keyboard-focusable before/after illustration used an `aria-label` on a plain `div` without a valid semantic role
+2. the blue “Bright” wordmark failed WCAG AA contrast on the mobile audit
+
+PR #18 fixed only those defects:
+
+- the illustration now uses `role="img"` with its existing accessible name
+- the wordmark now uses the existing `--accent-strong` brand token
+
+Evidence:
+
+- Vercel preview: Ready
+- GitHub Actions CI run #262: success
+- production dependency audit: success
+- lint: success
+- typecheck: success
+- M11 source/corpus QA: success
+- production build: success
+- five-project Playwright smoke (Chromium, Firefox, WebKit, 320px Chromium, 390px Chromium): success
+- merge commit: `d5e02f85800b3425e5061116ef42f2290ddb2352`
+- production Vercel deployment for that merge: success
+- public-domain Lighthouse re-check after deployment:
+  - desktop accessibility: 100
+  - mobile accessibility: 100
+  - prohibited-ARIA audit: pass
+  - color-contrast audit: pass
+
+This closes the automated homepage accessibility defects found in this checkpoint. It does not replace the remaining manual keyboard/real-device checks.
+
+### Support channel
+
+The connected support mailbox already contains successful test evidence for `support@pdfbright.app`:
+
+- an inbound test message addressed to `support@pdfbright.app` was received
+- a reply was successfully sent from `PDFBright Support <support@pdfbright.app>`
+
+Therefore the “support address receives requests” gate is proven.
+
+### Account deletion
+
+The published `/data-deletion` page was reviewed against the implementation and current providers.
+
+The page:
+
+- tells the user to email the live support address from the account email
+- describes identity/control verification before deletion
+- limits the promise to PDFBright-controlled auth/account/profile/entitlement data
+- does not claim that deleting PDFBright also deletes Google/Facebook identity-provider accounts
+- does not overpromise deletion of legally retained payment-provider records
+- accurately states that the current local-first workflow does not create a PDFBright cloud document library
+
+Still open:
+
+- exercise one known test-account deletion end to end
+- verify the expected Supabase auth/profile/account state is removed
+- retain evidence of the completed deletion without storing unnecessary personal data
+
+### Billing state
+
+Public paid billing remains intentionally disabled for Free Early Access. This checkpoint does not activate Paddle Live checkout or billing controls.
+
 ## Defect policy
 
 - P0/P1: fix immediately; do not knowingly continue a harmful release
