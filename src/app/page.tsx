@@ -362,7 +362,7 @@ export default function Home() {
               </ul>
               <a className="button button--primary mt-6 inline-flex" href="#upload">Clean a PDF for free</a>
               <p className="pricing-note">
-                Paid plans are intentionally paused during Early Access. We are keeping the proven Pro billing system preserved for later instead of putting payment in the way of launch.
+                Paid plans are intentionally paused during Early Access. Real usage will help us decide what deserves a paid tier later.
               </p>
             </article>
           </div>
