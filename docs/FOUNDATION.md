@@ -1,7 +1,7 @@
 # PDFBright — Foundation and Current Milestone State
 
-Status: Milestones 0–10 implemented; M10 is review-ready on the active stacked branch
-Last updated: 2026-09-16
+Status: Free Early Access is live; paid Paddle billing remains gated
+Last updated: 2026-09-19
 
 ## Locked decisions
 
@@ -15,99 +15,114 @@ Last updated: 2026-09-16
 - Frontend hosting: Vercel
 - Vercel project: `pdfbright`
 - Git integration: `Rouane12/pdfbright` → Vercel
-- First Vercel deployment: READY on 2026-09-12
-- `pdfbright.app` connected to Vercel Production with valid DNS configuration on 2026-09-12
 - PDF inspection/rendering: Mozilla PDF.js 6.2.108
-- PDF manipulation candidate: pdf-lib, subject to compatibility testing
-- OCR prototype: Tesseract.js in workers
+- PDF manipulation: pdf-lib 1.17.1
+- OCR: Tesseract.js 7.0.0 for supported local workloads
 - Processing model: local-first; server-assisted only where quality/performance requires it
 - Analytics: PostHog, with document content and filenames prohibited from event payloads
 - Authentication: Supabase Auth; no account required before first product value
-- Billing: Lemon Squeezy
+- Billing provider: Paddle
+- Initial Pro pricing target: $7.99/month or $59.99/year
 
-## Environment rules
+## Current public mode — Free Early Access
 
-- Local secrets belong in `.env.local`; `.env*` files are ignored except `.env.example`.
-- Browser-visible values must use the `NEXT_PUBLIC_` prefix intentionally.
-- Service-role, billing, webhook, and other privileged secrets must never be exposed to client bundles.
-- Production secrets are configured in the deployment platform, not committed to Git.
+PDFBright is publicly deployed from `main` as Free Early Access.
 
-## Engineering conventions
+Paid billing is intentionally disabled while Paddle Live verification remains incomplete:
 
-- TypeScript `strict` mode stays enabled.
-- New application code lives under `src/`.
-- Prefer server components by default; use client components only for browser interaction.
-- PDF/OCR-heavy libraries must not enter the initial marketing bundle unnecessarily.
-- Long-running PDF/OCR work must not block the UI thread.
-- Never log filenames, extracted/OCR text, page images, or document content.
-- No V1 feature is added unless it supports Upload → Diagnose → Fix → Download, commercial viability, or privacy/security.
+- `BILLING_ENABLED=false`
+- `NEXT_PUBLIC_BILLING_ENABLED=false`
 
-## Completed Milestone 0 — Product Foundation
+The Paddle implementation remains in the repository for later activation, but public checkout and billing controls must stay disabled until Live approval is complete and the production lifecycle is re-proven.
 
-- Public product name selected: PDFBright.
-- Naming/domain research completed sufficiently for foundation work.
-- Repository created and foundation scaffold established.
-- Next.js + TypeScript + React + Tailwind stack confirmed.
-- Node.js 24 LTS baseline established.
-- Environment/secrets conventions documented.
-- Analytics, billing, auth, PDF, and OCR candidates documented.
-- GitHub Actions quality checks passed for lint, typecheck, and production build.
-- Foundation PR merged into `main`.
-- `Rouane12/pdfbright` imported into Vercel.
-- Vercel detected Next.js correctly and deployed the foundation successfully.
-- `pdfbright.app` purchased through Cloudflare.
-- Cloudflare DNS configured for Vercel with proxy disabled as required.
-- Vercel reports `pdfbright.app` as `Valid Configuration` on Production.
+Current anonymous safety envelope:
 
-## Completed Milestone 1 — Marketing Shell + Upload UX
+- 10 MB maximum file size
+- 10 page maximum document length
+- 3 OCR pages
+- anonymous basic cleanup remains available without account creation
 
-- Marketing homepage shell implemented.
-- Accessible PDF-only upload/drop zone implemented.
-- File validation, selected-file state, replace/remove controls, and friendly invalid-file handling implemented.
-- Responsive behavior verified at 390 px and 320 px widths.
-- Desktop and mobile visual acceptance completed.
-- PR #2 merged into `main` and deployed to `pdfbright.app`.
+## Completed implementation
 
-## Completed Milestone 2 — PDF Analysis Engine
+Milestones 0–10 are implemented and the Milestone 11 automated launch-candidate foundation is integrated into `main`.
 
-- PDF.js 6.2.108 integrated with a matching self-hosted worker.
-- Local browser analysis implemented without modifying the source PDF.
-- Page count, dimensions, display dimensions, rotation, orientation, and extractable-text detection implemented.
-- Image-backed/textless page classification implemented.
-- Low-resolution analysis rendering and a dedicated pixel-analysis Web Worker implemented.
-- Blank-page heuristic prototype implemented.
-- Skew-detection heuristic prototype implemented and tuned against a controlled fixture.
-- Mixed page-size and mixed-orientation detection implemented.
-- Typed fact-vs-heuristic structured result schema implemented.
-- Real progress, cancellation, and friendly analysis failure states implemented.
-- Gated `?debug=analysis` diagnostics view added for engineering validation only.
-- Clean 10-page text PDF validated with no false problem findings.
-- Controlled 5-page messy fixture validated with expected output: 3 textless pages, 2 probable scans, 1 blank candidate, 1 rotated page, 1 likely skewed page, mixed sizes, and mixed orientation.
-- GitHub CI passed lint, typecheck, and production build on the tested M2 head.
-- PR #3 merged into `main` as merge commit `e7b7162cc24bf396ca4990e90ec9355b8fb5b5ce`.
-- Vercel production deployment for the M2 merge completed successfully.
+Implemented product capabilities include:
 
-## Current stacked implementation state — Milestones 3–10
+- marketing/upload experience
+- local PDF analysis with fact-vs-heuristic findings
+- plain-language diagnosis and optional customization
+- rotation correction
+- reviewed blank-page removal
+- conservative straightening/readability cleanup
+- safe page normalization
+- searchable-PDF OCR for supported local workloads
+- file optimization modes
+- before/after review
+- processing/result/download flow
+- privacy/security hardening
+- Supabase authentication/account foundation
+- SEO/search pages, sitemap, canonicals and Search Console support
+- privacy-conscious PostHog analytics
+- Paddle sandbox billing lifecycle
+- automated launch QA across Chromium, Firefox, WebKit and mobile viewport smoke tests
 
-Active development has progressed beyond the historical M0–M2 sections above through the diagnosis, cleanup, OCR, optimization, result, privacy/security, account/billing, and SEO/analytics milestones on stacked milestone branches.
+## OCR architecture decision
 
-Milestone 10 is implementation-complete on `m10/seo-analytics-foundation` and tracked by PR #13. Its latest validation passed:
+Measured browser OCR showed small workloads are practical, while large local jobs become too slow for normal UX.
 
-- Vercel preview deployment: Ready
-- production dependency audit: passed
-- lint: passed
-- TypeScript typecheck: passed
-- production build: passed
-- no unresolved review threads
+Current policy:
 
-M10 includes metadata, canonicals, sitemap, robots, noindex auth/account surfaces, privacy-conscious PostHog funnel analytics, sanitized error monitoring, purchase/subscription measurement, Search Console verification support, and the first useful indexable workflow page at `/clean-scanned-pdf`.
+- small supported OCR jobs may run locally
+- large OCR jobs are not silently attempted in the browser
+- a future heavy/server-assisted OCR path requires explicit disclosure, privacy controls and deletion handling before activation
 
-See `docs/M10_SEO_ANALYTICS_FOUNDATION.md` for the detailed acceptance checklist and production Search Console activation steps.
+## Paddle status
+
+Sandbox lifecycle proof is complete:
+
+- authenticated checkout
+- subscription creation
+- transaction completion
+- Supabase Pro entitlement sync
+- customer billing portal
+- scheduled cancellation
+- entitlement preservation through the paid period
+- webhook rejection boundaries
+
+Production paid launch remains gated by:
+
+- Paddle Live account/domain approval
+- final production Live configuration
+- one production checkout → webhook → entitlement → portal lifecycle proof
+
+Do not enable public paid checkout before those gates pass.
+
+## Current launch/QA state
+
+The Free Early Access release commit was merged to `main` on 2026-09-19 and Vercel reported a successful deployment.
+
+Remaining Early Access reliability work:
+
+1. finish/document production smoke checks on `pdfbright.app`
+2. prove the published account-deletion/support path with a test account
+3. finish manual keyboard/focus/contrast checks
+4. perform real-device Android Chrome / iOS Safari smoke where practical
+5. finish representative PDF output checks for OCR, blank-page behavior, forms, mixed content and password/encrypted rejection
+6. verify representative performance/memory behavior
+7. keep Paddle Live activation separate until external verification is complete
+
+## Current core flow
+
+**Upload → Analyze → Diagnose → Fix My PDF → Validate → Download**
+
+## Scope guardrail
+
+Do not expand PDFBright into a broad PDF-suite while Early Access reliability is still being proven.
+
+No V1 feature should be added unless it strengthens the cleanup flow, commercial viability, or privacy/security.
 
 ## Next milestone
 
-Milestone 11 — Full QA / Launch Candidate.
+**Milestone 12 — Free Early Access / Soft Launch**
 
-M11 should validate the full corpus, supported browsers/mobile widths, accessibility, performance, payment flow, privacy behavior, output validity and edge cases before soft launch.
-
-Do not expand into broad PDF-suite features or additional SEO page families during M11. Reliability and launch readiness take priority.
+The immediate goal is not feature expansion. It is to observe real usage, collect failures/confusion, fix reliability issues, validate support operations, and build the first post-launch decisions from actual behavior.
