@@ -144,7 +144,7 @@ function ProblemIcon({ kind }: { kind: FixIconKind }) {
 
 function BrighteningDemo() {
   return (
-    <div className="bright-demo" tabIndex={0} aria-label="Illustration of a messy PDF becoming cleaner and more usable">
+    <div className="bright-demo" role="img" tabIndex={0} aria-label="Illustration of a messy PDF becoming cleaner and more usable">
       <div className="bright-demo-header" aria-hidden="true">
         <span className="bright-demo-label">Before</span>
         <span className="bright-demo-label bright-demo-label--after">After PDFBright</span>
