@@ -1,0 +1,614 @@
+/* PDFBright Identity Pass 6: larger presence, scroll choreography, expressive notes, richer ambient light. */
+
+:root {
+  --brand-blue-haze: rgba(11, 124, 255, 0.15);
+  --brand-cyan-haze: rgba(58, 190, 255, 0.125);
+  --brand-gold-haze: rgba(255, 176, 0, 0.115);
+  --brand-line-blue: rgba(11, 124, 255, 0.42);
+  --brand-line-gold: rgba(255, 176, 0, 0.46);
+}
+
+/* Header + wordmark: make the brand anchor the page instead of reading like a utility label. */
+@media (min-width: 640px) {
+  .global-site-header__inner {
+    width: min(78rem, 100%);
+    height: 4.85rem;
+    padding-inline: 1.45rem;
+  }
+
+  .global-site-header .brand-logo {
+    gap: 0.78rem;
+    animation: brand-arrive 720ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .global-site-header .brand-mark {
+    width: 2.95rem;
+    height: 2.95rem;
+    border-radius: 0.95rem;
+    box-shadow: 0 9px 24px rgba(11, 124, 255, 0.14);
+  }
+
+  .global-site-header .brand-mark svg {
+    width: 2.08rem;
+    height: 2.08rem;
+  }
+
+  .global-site-header .brand-wordmark {
+    font-size: 1.48rem;
+    letter-spacing: -0.052em;
+  }
+}
+
+/* Hero atmosphere: bigger, softer color fields so the page feels lit rather than painted. */
+.hero-surface {
+  background:
+    radial-gradient(ellipse 44rem 31rem at 3% 42%, rgba(11, 124, 255, 0.16), transparent 72%),
+    radial-gradient(ellipse 42rem 28rem at 98% 27%, rgba(255, 176, 0, 0.13), transparent 72%),
+    radial-gradient(ellipse 34rem 24rem at 50% 3%, rgba(62, 193, 255, 0.16), transparent 72%),
+    linear-gradient(180deg, #f9fdff 0%, #f3faff 54%, #ffffff 100%);
+}
+
+.hero-surface::after {
+  background:
+    radial-gradient(ellipse 24rem 16rem at 18% 76%, rgba(77, 198, 255, 0.12), transparent 72%),
+    radial-gradient(ellipse 23rem 15rem at 83% 75%, rgba(255, 198, 73, 0.1), transparent 72%);
+  filter: blur(10px);
+}
+
+.hero-orb {
+  opacity: 0.78;
+  filter: blur(18px);
+}
+
+.hero-orb--left {
+  width: 25rem;
+  height: 25rem;
+  left: -14rem;
+  background: rgba(54, 181, 255, 0.24);
+}
+
+.hero-orb--right {
+  width: 24rem;
+  height: 24rem;
+  right: -13rem;
+  background: rgba(255, 176, 0, 0.18);
+}
+
+/* Slightly larger hero and primary surface. */
+.hero-title {
+  font-size: clamp(3rem, 5.1vw, 4.7rem) !important;
+  line-height: 0.99;
+  letter-spacing: -0.058em !important;
+}
+
+.hero-copy {
+  max-width: 46rem !important;
+  font-size: clamp(1.05rem, 1.45vw, 1.22rem) !important;
+  line-height: 1.72 !important;
+}
+
+.hero-upload {
+  max-width: 60rem !important;
+}
+
+.upload-zone {
+  min-height: 23.5rem;
+  border-radius: 2.1rem;
+}
+
+.eyebrow {
+  padding: 0.54rem 0.98rem;
+  font-size: 0.79rem;
+  box-shadow: 0 9px 26px rgba(11, 124, 255, 0.09);
+}
+
+/* The hero handwritten cue drops into place after the structured hero has appeared. */
+@media (min-width: 1181px) {
+  .hero-upload::before {
+    right: -10.4rem;
+    top: 2.2rem;
+    width: 9.2rem;
+    color: #557895;
+    font-size: 1.22rem;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: 0.015em;
+    opacity: 0;
+    transform: translateY(-38px) rotate(5.5deg);
+    animation: scribble-drop 760ms 690ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .hero-upload::after {
+    right: -3.5rem;
+    top: 5.45rem;
+    color: #668aa8;
+    font-size: 1.8rem;
+    opacity: 0;
+    transform: translateY(-30px) rotate(8deg);
+    animation: scribble-arrow-drop 720ms 820ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+/* Make the page feel less miniature on large displays. */
+.section-inner {
+  max-width: 78rem;
+}
+
+.section-shell {
+  position: relative;
+  padding-block: 6rem;
+}
+
+.section-title {
+  max-width: 50rem;
+  font-size: clamp(2.2rem, 4vw, 3.15rem);
+  line-height: 1.03;
+  letter-spacing: -0.052em;
+}
+
+.section-copy {
+  max-width: 47rem;
+  font-size: 1.06rem;
+  line-height: 1.82;
+}
+
+.section-kicker {
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+}
+
+.feature-grid,
+.steps-grid,
+.pricing-grid {
+  margin-top: 2.8rem !important;
+  gap: 1.15rem !important;
+}
+
+.feature-card {
+  min-height: 12.4rem;
+  padding: 1.65rem 1.65rem 1.7rem;
+  border-radius: 1.5rem;
+}
+
+.feature-card h3 {
+  font-size: 1.08rem !important;
+}
+
+.feature-card > p {
+  font-size: 0.94rem !important;
+  line-height: 1.75 !important;
+}
+
+.problem-icon {
+  width: 3.15rem;
+  height: 3.15rem;
+  margin-bottom: 1.15rem;
+  border-radius: 1rem;
+}
+
+.problem-icon svg {
+  width: 1.62rem;
+  height: 1.62rem;
+}
+
+.step-card {
+  min-height: 14.4rem;
+  padding: 1.9rem;
+  border-radius: 1.55rem;
+}
+
+.step-card h3 {
+  font-size: 1.35rem !important;
+}
+
+.step-card p {
+  font-size: 0.94rem !important;
+  line-height: 1.75 !important;
+}
+
+.trust-card,
+.pricing-card {
+  border-radius: 1.55rem;
+  padding: 1.9rem;
+}
+
+.faq-item {
+  border-radius: 1.15rem;
+  padding-inline: 1.3rem;
+}
+
+.faq-item summary {
+  padding-block: 1.12rem;
+  font-size: 1rem;
+}
+
+.faq-item p {
+  font-size: 0.92rem;
+}
+
+/* Aesthetic section separators: a thin blue-to-gold light trace instead of flat gray rules. */
+.section-shell::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 50%;
+  width: min(78rem, calc(100% - 3rem));
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, rgba(11, 124, 255, 0.22) 18%, rgba(58, 190, 255, 0.52) 43%, rgba(255, 176, 0, 0.48) 72%, transparent 100%);
+  opacity: 0.82;
+  transform: translateX(-50%);
+}
+
+/* Add sparse handwritten notes through the page, all within the existing brand language. */
+.identity-demo-copy,
+#how-it-works .section-inner,
+.brand-band--mist .section-inner,
+#pricing .section-inner {
+  position: relative;
+}
+
+.identity-demo-copy::after,
+#how-it-works .section-inner::before,
+.brand-band--mist .section-inner::before,
+#pricing .section-inner::before {
+  position: absolute;
+  z-index: 2;
+  color: #5f7f99;
+  font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  user-select: none;
+}
+
+.identity-demo-copy::after {
+  content: "same document. less chaos ↘";
+  right: -15rem;
+  bottom: 0.3rem;
+  font-size: 0.95rem;
+  transform: rotate(-3deg);
+}
+
+#how-it-works .section-inner::before {
+  content: "three calm steps ↓";
+  right: 2rem;
+  top: 0.7rem;
+  color: #4f7898;
+  font-size: 0.98rem;
+  transform: rotate(3deg);
+}
+
+.brand-band--mist .section-inner::before {
+  content: "local by default ↗";
+  left: 46%;
+  top: 0.8rem;
+  color: #4e7d9f;
+  font-size: 0.96rem;
+  transform: rotate(-4deg);
+}
+
+#pricing .section-inner::before {
+  content: "start light. scale when needed ↘";
+  right: 0.5rem;
+  top: 1rem;
+  color: #7b6b48;
+  font-size: 0.94rem;
+  transform: rotate(3deg);
+}
+
+.feature-grid::before {
+  right: 0.45rem;
+  top: -2.8rem;
+  color: #587a96;
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+/* Richer but still diffuse ambient light on the remaining bands. */
+.brand-band--white::before {
+  background:
+    radial-gradient(ellipse 31rem 22rem at 4% 20%, rgba(11, 124, 255, 0.125), transparent 74%),
+    radial-gradient(ellipse 27rem 20rem at 96% 79%, rgba(255, 176, 0, 0.075), transparent 76%),
+    #ffffff;
+}
+
+.brand-band--mist::before {
+  background:
+    radial-gradient(ellipse 32rem 21rem at 96% 20%, rgba(255, 176, 0, 0.145), transparent 75%),
+    radial-gradient(ellipse 31rem 22rem at 2% 79%, rgba(11, 124, 255, 0.125), transparent 75%),
+    linear-gradient(180deg, #f7fcff 0%, #edf8ff 100%);
+}
+
+.brand-band--soft::before {
+  background:
+    radial-gradient(ellipse 33rem 23rem at 3% 15%, rgba(11, 124, 255, 0.14), transparent 74%),
+    radial-gradient(ellipse 30rem 21rem at 97% 82%, rgba(255, 176, 0, 0.115), transparent 74%),
+    linear-gradient(180deg, #f8fcff 0%, #f4faff 100%);
+}
+
+.identity-demo-section {
+  background:
+    radial-gradient(ellipse 38rem 26rem at 2% 22%, rgba(11, 124, 255, 0.17), transparent 74%),
+    radial-gradient(ellipse 34rem 24rem at 98% 70%, rgba(255, 176, 0, 0.14), transparent 74%),
+    linear-gradient(180deg, #f4fbff 0%, #ffffff 100%);
+}
+
+#pricing.brand-band--white::before {
+  background:
+    radial-gradient(ellipse 32rem 23rem at 5% 22%, rgba(11, 124, 255, 0.12), transparent 74%),
+    radial-gradient(ellipse 34rem 24rem at 91% 48%, rgba(255, 176, 0, 0.145), transparent 75%),
+    #ffffff;
+}
+
+/* Scroll choreography: sections unfold, then individual surfaces settle into place. */
+@keyframes section-unfold {
+  0% {
+    opacity: 0.08;
+    filter: blur(5px);
+    transform: translateY(42px) scale(0.985);
+    clip-path: inset(8% 0 0 0 round 1.5rem);
+  }
+  56% {
+    opacity: 0.92;
+    filter: blur(0.8px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+    clip-path: inset(0 0 0 0 round 0);
+  }
+}
+
+@keyframes card-settle {
+  from {
+    opacity: 0.12;
+    filter: blur(3px);
+    transform: translateY(34px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes line-draw {
+  from { opacity: 0; transform: translateX(-50%) scaleX(0.08); }
+  to { opacity: 0.82; transform: translateX(-50%) scaleX(1); }
+}
+
+@keyframes note-settle {
+  from { opacity: 0; transform: translateY(-22px) rotate(-7deg); }
+  to { opacity: 1; }
+}
+
+@supports (animation-timeline: view()) {
+  .section-reveal {
+    animation: section-unfold linear both;
+    animation-timeline: view();
+    animation-range: entry 2% cover 32%;
+  }
+
+  .feature-card,
+  .step-card,
+  .pricing-card,
+  .trust-card,
+  .faq-item,
+  .bright-demo,
+  .launch-cta {
+    animation: card-settle linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 24%;
+  }
+
+  .feature-card:nth-child(2),
+  .step-card:nth-child(2),
+  .pricing-card:nth-child(2) {
+    animation-range: entry 4% cover 28%;
+  }
+
+  .feature-card:nth-child(3),
+  .step-card:nth-child(3) {
+    animation-range: entry 8% cover 31%;
+  }
+
+  .feature-card:nth-child(4) { animation-range: entry 3% cover 27%; }
+  .feature-card:nth-child(5) { animation-range: entry 6% cover 30%; }
+  .feature-card:nth-child(6) { animation-range: entry 9% cover 33%; }
+
+  .section-shell::after {
+    animation: line-draw linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 20%;
+  }
+
+  .identity-demo-copy::after,
+  #how-it-works .section-inner::before,
+  .brand-band--mist .section-inner::before,
+  #pricing .section-inner::before,
+  .feature-grid::before {
+    animation: note-settle linear both;
+    animation-timeline: view();
+    animation-range: entry 4% cover 22%;
+  }
+}
+
+/* Footer: turn the legal/navigation tail into a designed final beat. */
+main > footer {
+  position: relative;
+  overflow: hidden;
+  border-top: 0 !important;
+  background:
+    radial-gradient(ellipse 22rem 13rem at 12% 100%, rgba(11, 124, 255, 0.08), transparent 72%),
+    radial-gradient(ellipse 18rem 12rem at 88% 100%, rgba(255, 176, 0, 0.07), transparent 72%),
+    #ffffff;
+}
+
+main > footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(78rem, calc(100% - 3rem));
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(11, 124, 255, 0.48), rgba(68, 195, 255, 0.42), rgba(255, 176, 0, 0.46), transparent);
+  transform: translateX(-50%);
+}
+
+main > footer > div {
+  max-width: 78rem !important;
+  padding-block: 2rem !important;
+  font-size: 0.78rem !important;
+}
+
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  border: 1px solid #d8e8f3;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 0.35rem 0.68rem;
+  color: #536b82;
+  box-shadow: 0 4px 12px rgba(7, 26, 51, 0.035);
+}
+
+.footer-link::before {
+  content: "✦";
+  margin-right: 0.34rem;
+  color: var(--gold);
+  font-size: 0.56rem;
+}
+
+.footer-link:hover {
+  border-color: #a8daf7;
+  background: #f5fbff;
+  color: var(--accent-strong);
+}
+
+@keyframes brand-arrive {
+  from { opacity: 0; transform: translateY(-16px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes scribble-drop {
+  0% { opacity: 0; transform: translateY(-38px) rotate(1deg) scale(0.94); }
+  68% { opacity: 1; transform: translateY(4px) rotate(6.5deg) scale(1.015); }
+  100% { opacity: 1; transform: translateY(0) rotate(5.5deg) scale(1); }
+}
+
+@keyframes scribble-arrow-drop {
+  0% { opacity: 0; transform: translateY(-30px) rotate(-2deg); }
+  72% { opacity: 1; transform: translateY(3px) rotate(10deg); }
+  100% { opacity: 1; transform: translateY(0) rotate(8deg); }
+}
+
+@media (min-width: 1280px) {
+  .section-shell {
+    padding-block: 7.25rem;
+  }
+}
+
+@media (max-width: 1180px) {
+  .identity-demo-copy::after,
+  #how-it-works .section-inner::before,
+  .brand-band--mist .section-inner::before,
+  #pricing .section-inner::before {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .global-site-header .brand-mark {
+    width: 2.32rem;
+    height: 2.32rem;
+  }
+
+  .global-site-header .brand-mark svg {
+    width: 1.68rem;
+    height: 1.68rem;
+  }
+
+  .global-site-header .brand-wordmark {
+    font-size: 1.16rem;
+  }
+
+  .hero-surface {
+    background:
+      radial-gradient(ellipse 19rem 24rem at -12% 32%, rgba(11, 124, 255, 0.145), transparent 73%),
+      radial-gradient(ellipse 18rem 22rem at 112% 23%, rgba(255, 176, 0, 0.105), transparent 73%),
+      radial-gradient(circle at 50% -5%, rgba(31, 169, 255, 0.18), transparent 26rem),
+      linear-gradient(180deg, #f8fcff 0%, #f2f9ff 58%, #ffffff 100%);
+  }
+
+  .hero-title {
+    font-size: clamp(2.45rem, 12vw, 3.25rem) !important;
+    line-height: 1.02;
+  }
+
+  .hero-copy {
+    font-size: 1rem !important;
+  }
+
+  .upload-zone {
+    min-height: 20.5rem;
+    border-radius: 1.6rem;
+  }
+
+  .section-shell {
+    padding-block: 5.2rem;
+  }
+
+  .section-title {
+    font-size: clamp(2rem, 9vw, 2.55rem);
+  }
+
+  .section-copy {
+    font-size: 1rem;
+  }
+
+  .feature-card,
+  .step-card,
+  .pricing-card,
+  .trust-card {
+    padding: 1.45rem;
+  }
+
+  .section-shell::after,
+  main > footer::before {
+    width: calc(100% - 2rem);
+  }
+
+  main > footer > div {
+    padding-block: 1.65rem !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .global-site-header .brand-logo,
+  .hero-upload::before,
+  .hero-upload::after,
+  .section-reveal,
+  .feature-card,
+  .step-card,
+  .pricing-card,
+  .trust-card,
+  .faq-item,
+  .bright-demo,
+  .launch-cta,
+  .section-shell::after,
+  .identity-demo-copy::after,
+  #how-it-works .section-inner::before,
+  .brand-band--mist .section-inner::before,
+  #pricing .section-inner::before,
+  .feature-grid::before {
+    animation: none !important;
+    filter: none !important;
+    clip-path: none !important;
+    opacity: 1 !important;
+  }
+}

@@ -1,0 +1,30 @@
+/* PDFBright Identity Pass 7: small layering fix for the upload source menu. */
+
+/* Hero reveal animations create their own stacking contexts. Keep the open source
+   picker above the later "See how it works" link and the privacy line below. */
+.hero-upload {
+  position: relative;
+  z-index: 4;
+}
+
+.hero-scroll {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-upload:has(.upload-source-picker__menu[open]) {
+  z-index: 70;
+}
+
+.upload-source-picker,
+.upload-source-picker__menu {
+  position: relative;
+  z-index: 2;
+}
+
+.upload-source-popover {
+  z-index: 100;
+  background:
+    radial-gradient(circle at 94% 4%, rgba(255, 176, 0, 0.09), transparent 5.5rem),
+    #ffffff;
+}

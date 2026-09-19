@@ -1,0 +1,310 @@
+/* PDFBright Identity Pass 4: stronger brand presence + upload source picker. */
+
+/* Give the wordmark enough presence to anchor the otherwise airy header. */
+@media (min-width: 640px) {
+  .global-site-header__inner {
+    height: 4.55rem;
+  }
+
+  .global-site-header .brand-logo {
+    gap: 0.68rem;
+  }
+
+  .global-site-header .brand-mark {
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 0.82rem;
+  }
+
+  .global-site-header .brand-mark svg {
+    width: 1.85rem;
+    height: 1.85rem;
+  }
+
+  .global-site-header .brand-wordmark {
+    font-size: 1.32rem;
+    letter-spacing: -0.048em;
+  }
+}
+
+/* The handwritten cue should read like a deliberate annotation, not a tiny watermark. */
+@media (min-width: 1181px) {
+  .hero-upload::before {
+    right: -8rem;
+    top: 2.7rem;
+    width: 7.5rem;
+    color: #587791;
+    font-size: 1.04rem;
+    font-weight: 650;
+    line-height: 1.25;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+    transform: rotate(5.5deg);
+  }
+
+  .hero-upload::after {
+    right: -3.1rem;
+    top: 4.8rem;
+    color: #7293ad;
+    font-size: 1.55rem;
+    transform: rotate(9deg);
+  }
+}
+
+/* Split upload control: main action stays instant, arrow reveals other sources. */
+.upload-source-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  filter: drop-shadow(0 10px 20px rgba(11, 124, 255, 0.18));
+}
+
+.upload-source-picker__main,
+.upload-source-picker__menu > summary {
+  min-height: 3.15rem;
+  border: 1px solid #0b7cff;
+  background: linear-gradient(135deg, #1194ff, #0b6ff2);
+  color: white;
+}
+
+.upload-source-picker__main {
+  display: inline-flex;
+  min-width: 10.9rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  gap: 0.62rem;
+  border-radius: 0.9rem 0 0 0.9rem;
+  padding: 0.72rem 1.05rem 0.72rem 1.12rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  transition: transform 160ms ease, background 160ms ease, box-shadow 180ms ease;
+}
+
+.upload-source-picker__main svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.upload-source-picker__main:hover {
+  background: linear-gradient(135deg, #0e88f2, #075fd1);
+}
+
+.upload-source-picker__main:active {
+  transform: translateY(1px);
+}
+
+.upload-source-picker__menu {
+  position: relative;
+}
+
+.upload-source-picker__menu > summary {
+  display: grid;
+  width: 3.05rem;
+  cursor: pointer;
+  list-style: none;
+  place-items: center;
+  border-left-color: rgba(255, 255, 255, 0.28);
+  border-radius: 0 0.9rem 0.9rem 0;
+  transition: background 160ms ease;
+}
+
+.upload-source-picker__menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.upload-source-picker__menu > summary svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  transition: transform 180ms ease;
+}
+
+.upload-source-picker__menu > summary:hover {
+  background: linear-gradient(135deg, #0f86ee, #075dca);
+}
+
+.upload-source-picker__menu[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.upload-source-picker__main:focus-visible,
+.upload-source-picker__menu > summary:focus-visible,
+.upload-source-option:focus-visible {
+  outline: 2px solid #0b7cff;
+  outline-offset: 3px;
+}
+
+.upload-source-popover {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 0.7rem);
+  right: 0;
+  width: 19.5rem;
+  overflow: hidden;
+  border: 1px solid #cae4f5;
+  border-radius: 1.05rem;
+  background:
+    radial-gradient(circle at 94% 4%, rgba(255, 176, 0, 0.09), transparent 5.5rem),
+    rgba(255, 255, 255, 0.985);
+  padding: 0.45rem;
+  text-align: left;
+  box-shadow:
+    0 24px 58px rgba(7, 26, 51, 0.16),
+    0 6px 18px rgba(11, 124, 255, 0.07);
+  backdrop-filter: blur(16px);
+  animation: upload-source-in 170ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.upload-source-option {
+  display: flex;
+  width: 100%;
+  min-height: 3.6rem;
+  cursor: pointer;
+  align-items: center;
+  gap: 0.72rem;
+  border: 1px solid transparent;
+  border-radius: 0.82rem;
+  background: transparent;
+  padding: 0.48rem 0.55rem;
+  color: #294158;
+  font: inherit;
+  text-align: left;
+  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+
+.upload-source-option:not(:disabled):hover {
+  transform: translateX(1px);
+  border-color: #d8ebf7;
+  background: #f6fbff;
+}
+
+.upload-source-option:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.upload-source-option__icon {
+  display: grid;
+  width: 2.15rem;
+  height: 2.15rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #dfebf3;
+  border-radius: 0.72rem;
+  background: white;
+  box-shadow: 0 4px 12px rgba(7, 26, 51, 0.045);
+}
+
+.upload-source-option__icon svg {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+.upload-source-option__icon--device {
+  border-color: #c8e8fb;
+  background: #f1faff;
+  color: #0878e9;
+}
+
+.upload-source-option__copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.12rem;
+}
+
+.upload-source-option__copy strong {
+  color: #15314c;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.upload-source-option__copy small {
+  overflow: hidden;
+  color: #7c8fa2;
+  font-size: 0.69rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-source-option__soon {
+  border: 1px solid #f5df9f;
+  border-radius: 999px;
+  background: #fff9e8;
+  padding: 0.22rem 0.42rem;
+  color: #a26b00;
+  font-size: 0.59rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+}
+
+.upload-source-popover__note {
+  margin: 0.35rem 0.45rem 0.25rem;
+  border-top: 1px solid #e5edf4;
+  padding-top: 0.6rem;
+  color: #70869a;
+  font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.45;
+  transform: rotate(-0.7deg);
+}
+
+@keyframes upload-source-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 639px) {
+  .global-site-header .brand-mark {
+    width: 2.12rem;
+    height: 2.12rem;
+  }
+
+  .global-site-header .brand-wordmark {
+    font-size: 1.08rem;
+  }
+
+  .upload-source-picker {
+    width: min(100%, 15.25rem);
+  }
+
+  .upload-source-picker__main {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .upload-source-popover {
+    right: 0;
+    width: min(19rem, calc(100vw - 3rem));
+  }
+}
+
+@media (max-width: 380px) {
+  .upload-source-picker {
+    width: 100%;
+  }
+
+  .upload-source-popover {
+    right: 50%;
+    width: min(18rem, calc(100vw - 2rem));
+    transform-origin: top center;
+    translate: 50% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upload-source-popover,
+  .upload-source-picker__menu > summary svg {
+    animation: none !important;
+    transition: none !important;
+  }
+}

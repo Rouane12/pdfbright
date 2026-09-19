@@ -1,3 +1,4 @@
+import { resolveProcessingEntitlement } from "@/lib/billing/processing-entitlement-client";
 import type {
   PdfOcrLanguage,
   PdfOcrLine,
@@ -144,9 +145,15 @@ export async function recognizePdfPages(
     return { pages: [], durationMs: 0 };
   }
 
-  if (targets.length > LOCAL_OCR_PAGE_LIMIT) {
+  const entitlement = await resolveProcessingEntitlement();
+  abortIfNeeded(signal);
+  const maxOcrPages = Math.min(LOCAL_OCR_PAGE_LIMIT, entitlement.limits.maxOcrPages);
+
+  if (targets.length > maxOcrPages) {
     throw new Error(
-      `This PDF has ${targets.length} scanned pages that need OCR. Local OCR is currently limited to ${LOCAL_OCR_PAGE_LIMIT} pages because larger jobs can take several minutes in the browser. Heavy OCR will use server-assisted processing in a future update.`,
+      entitlement.plan === "pro"
+        ? `This PDF has ${targets.length} scanned pages that need OCR. Local OCR is currently limited to ${maxOcrPages} pages because larger jobs can take several minutes in the browser. Heavy OCR will use server-assisted processing in a future update.`
+        : `This PDF has ${targets.length} scanned pages that need OCR. The Free plan supports up to ${maxOcrPages} OCR pages per document; PDFBright Pro supports up to ${LOCAL_OCR_PAGE_LIMIT} local OCR pages.`,
     );
   }
 

@@ -1,0 +1,75 @@
+/* PDFBright Identity Pass 8: polish the lower-page annotations and make end-of-page motion complete cleanly. */
+
+/* The supporting sentence read like implementation guidance rather than brand copy. */
+.identity-demo-copy > .mt-5 {
+  display: none;
+}
+
+/* Keep only the handwritten notes that add meaning. These two were redundant with nearby labels. */
+.identity-demo-copy::after,
+.brand-band--mist .section-inner::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Let the before/after preview demonstrate the brightening effect on entry instead of asking people to hover. */
+@supports (animation-timeline: view()) {
+  .bright-demo::before {
+    animation: bright-pass linear both;
+    animation-timeline: view();
+    animation-range: entry 6% cover 26%;
+  }
+}
+
+/* The final CTA sits too close to the document end for a long cover-based blur reveal to fully resolve.
+   Give it a shorter reveal with no blur so it always lands crisp before the footer. */
+@keyframes final-cta-settle {
+  from {
+    opacity: 0.35;
+    transform: translateY(22px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .launch-cta {
+    filter: none !important;
+    animation: final-cta-settle linear both !important;
+    animation-timeline: view() !important;
+    animation-range: entry 0% entry 100% !important;
+  }
+}
+
+/* Keep the preview's useful handwritten labels legible and away from the card edges. */
+.demo-page--before::before {
+  left: 1.1rem;
+  top: 5.35rem;
+  max-width: 6.8rem;
+  font-size: 0.76rem;
+}
+
+.demo-page--after::before {
+  right: 1rem;
+  top: 5.2rem;
+  max-width: 7.4rem;
+  font-size: 0.76rem;
+}
+
+@media (max-width: 720px) {
+  .identity-demo-copy > .mt-5 {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launch-cta,
+  .bright-demo::before {
+    animation: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

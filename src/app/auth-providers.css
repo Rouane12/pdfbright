@@ -1,0 +1,87 @@
+/* PDFBright auth provider: simple, recognizable, and production-ready. */
+
+.auth-provider-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.7rem;
+  margin-top: 2rem;
+}
+
+.auth-provider-button {
+  display: inline-flex;
+  min-height: 3.2rem;
+  width: 100%;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  border: 1px solid #d4e3ee;
+  border-radius: 0.9rem;
+  background: #fff;
+  color: #213950;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 800;
+  box-shadow: 0 8px 22px rgba(7, 26, 51, 0.045);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 180ms ease, background 160ms ease;
+}
+
+.auth-provider-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #a9dcf8;
+  background: #fbfdff;
+  box-shadow: 0 12px 26px rgba(7, 26, 51, 0.075);
+}
+
+.auth-provider-button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.auth-provider-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.auth-provider-button--google {
+  border-color: #d9e3ec;
+  background:
+    radial-gradient(circle at 92% 14%, rgba(255, 176, 0, 0.055), transparent 4.2rem),
+    linear-gradient(145deg, #ffffff, #fbfdff);
+}
+
+.google-mark {
+  display: block;
+  width: 1.3rem;
+  height: 1.3rem;
+  flex: 0 0 auto;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: initial;
+}
+
+.auth-preview-notice[data-kind="error"] {
+  border-color: #fecaca;
+  background: #fff5f5;
+  color: #a11d28;
+}
+
+.auth-preview-notice[data-kind="success"] {
+  border-color: #bdeccf;
+  background: #f3fff7;
+  color: #17753f;
+}
+
+@media (max-width: 520px) {
+  .auth-provider-button {
+    justify-content: center;
+    padding-inline: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-provider-button {
+    transition: none !important;
+  }
+}

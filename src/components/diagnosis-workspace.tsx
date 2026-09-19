@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProcessingExperience } from "@/components/processing-experience";
 import { ResultExperience } from "@/components/result-experience";
+import { captureClientException } from "@/lib/analytics/client";
 import {
   ADVANCED_FIX_OPTIONS,
   buildDiagnosisPlan,
@@ -232,6 +233,21 @@ export function DiagnosisWorkspace({
         setCleanupProgress(null);
         return;
       }
+
+      const reportableCleanupFailure =
+        !(error instanceof PdfCleanupError) ||
+        error.code === "ocr-failed" ||
+        error.code === "output-invalid" ||
+        error.code === "cleanup-failed";
+
+      if (reportableCleanupFailure) {
+        captureClientException(
+          "cleanup",
+          error,
+          error instanceof PdfCleanupError ? error.code : "unexpected",
+        );
+      }
+
       setCleanupResult(null);
       setCleanupError(
         error instanceof PdfCleanupError

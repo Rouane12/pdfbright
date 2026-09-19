@@ -14,18 +14,15 @@ export default function TermsPage() {
       <header className="border-b border-slate-200/80 bg-white">
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-5 sm:px-6">
           <Link href="/" className="text-base font-bold tracking-[-0.03em]">PDFBright</Link>
-          <div className="flex items-center gap-4 text-sm font-semibold text-slate-600">
-            <Link href="/privacy" className="hover:text-slate-950">Privacy</Link>
-            <Link href="/refund-policy" className="hover:text-slate-950">Refunds</Link>
-          </div>
+          <Link href="/privacy" className="text-sm font-semibold text-slate-600 hover:text-slate-950">Privacy</Link>
         </div>
       </header>
 
       <div className="mx-auto max-w-4xl px-5 py-12 sm:px-6 sm:py-16">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">Terms of Use</p>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Terms of Use</p>
         <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] sm:text-5xl">Simple terms for using PDFBright.</h1>
         <p className="mt-5 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg">
-          These terms govern access to PDFBright, including the free browser-based cleanup workflow and any paid plan we make available.
+          These terms govern access to PDFBright, including the free browser-based cleanup workflow, optional PDFBright accounts, and any paid plan we may make available later.
         </p>
         <p className="mt-3 text-sm text-slate-500">Last updated: 16 September 2026</p>
 
@@ -41,8 +38,13 @@ export default function TermsPage() {
           </section>
 
           <section className={sectionClass}>
-            <h2 className="text-xl font-semibold tracking-tight">Paid plans</h2>
-            <p className="mt-3 leading-7 text-slate-600">If you purchase PDFBright Pro, pricing and billing frequency are shown before checkout. Paddle acts as the merchant of record for PDFBright paid-plan checkout and subscription payment processing. Renewal, cancellation, refunds, taxes, receipts, and payment-method handling are subject to the checkout terms shown at purchase, our <Link className="font-semibold text-indigo-700 hover:underline" href="/refund-policy">Refund Policy</Link>, Paddle&apos;s buyer terms, and applicable law.</p>
+            <h2 className="text-xl font-semibold tracking-tight">Accounts</h2>
+            <p className="mt-3 leading-7 text-slate-600">An account is optional for the initial free workflow, but may be required for paid features, usage allowances, billing, or account-level settings. You are responsible for access to the email address or identity provider connected to your account.</p>
+          </section>
+
+          <section className={sectionClass}>
+            <h2 className="text-xl font-semibold tracking-tight">Early Access and future paid plans</h2>
+            <p className="mt-3 leading-7 text-slate-600">PDFBright is currently available as free Early Access. If paid plans are enabled later, pricing, billing frequency, payment provider details, cancellation terms, and any applicable refund information will be shown before purchase.</p>
           </section>
 
           <section className={sectionClass}>
@@ -57,14 +59,14 @@ export default function TermsPage() {
 
           <section className={sectionClass}>
             <h2 className="text-xl font-semibold tracking-tight">Contact</h2>
-            <p className="mt-3 leading-7 text-slate-600">Questions about these terms can be sent to <a className="font-semibold text-indigo-700 hover:underline" href="mailto:support@pdfbright.app">support@pdfbright.app</a>.</p>
+            <p className="mt-3 leading-7 text-slate-600">Questions about these terms can be sent to <a className="font-semibold text-blue-700 hover:underline" href="mailto:support@pdfbright.app">support@pdfbright.app</a>.</p>
           </section>
         </div>
 
         <div className="mt-8 flex flex-wrap gap-4 text-sm font-semibold">
-          <Link className="text-indigo-700 hover:underline" href="/">Back to PDFBright</Link>
-          <Link className="text-indigo-700 hover:underline" href="/privacy">Privacy Policy</Link>
-          <Link className="text-indigo-700 hover:underline" href="/refund-policy">Refund Policy</Link>
+          <Link className="text-blue-700 hover:underline" href="/">Back to PDFBright</Link>
+          <Link className="text-blue-700 hover:underline" href="/privacy">Privacy Policy</Link>
+          <Link className="text-blue-700 hover:underline" href="/data-deletion">Data deletion</Link>
         </div>
       </div>
     </main>
