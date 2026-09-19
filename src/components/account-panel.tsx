@@ -139,10 +139,10 @@ export function AccountPanel() {
       cancelled = true;
       authListener.subscription.unsubscribe();
     };
-  }, [billingEnabled, readAccountState, router]);
+  }, [readAccountState, router]);
 
   useEffect(() => {
-    if (!checkoutSuccess || !account || account.plan === "pro") return;
+    if (!billingEnabled || !checkoutSuccess || !account || account.plan === "pro") return;
 
     let cancelled = false;
     let attempts = 0;
@@ -179,7 +179,7 @@ export function AccountPanel() {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [account, checkoutSuccess, readAccountState, router]);
+  }, [account, billingEnabled, checkoutSuccess, readAccountState, router]);
 
   const initials = useMemo(() => {
     if (!account?.email) return "P";
@@ -241,7 +241,7 @@ export function AccountPanel() {
       setBillingAction(null);
       router.replace("/account");
     }
-  }, [readAccountState, router]);
+  }, [billingEnabled, readAccountState, router]);
 
   useEffect(() => {
     if (!billingEnabled || !account || !upgradePlan || account.plan === "pro" || attemptedUpgrade.current === upgradePlan) {
@@ -323,7 +323,7 @@ export function AccountPanel() {
       : null;
   const visibleBillingMessage =
     billingMessage ??
-    (checkoutSuccess && account.plan === "free"
+    (billingEnabled && checkoutSuccess && account.plan === "free"
       ? "Payment received. Finalizing your PDFBright Pro access…"
       : null);
 
@@ -337,7 +337,7 @@ export function AccountPanel() {
           <div>
             <p className="account-kicker"><span aria-hidden="true">✦</span> Your PDFBright account</p>
             <h1>Good to have you here.</h1>
-            <p>Your account keeps sign-in and usage details tied to one identity while PDFBright is in free Early Access.</p>
+            <p>{billingEnabled ? "Your account keeps access, plan status, and usage allowances tied to one identity." : "Your account keeps sign-in and usage details tied to one identity while PDFBright is in free Early Access."}</p>
           </div>
           <div className="account-avatar" aria-hidden="true">{initials}</div>
         </div>
@@ -353,19 +353,51 @@ export function AccountPanel() {
             <p className="account-card-copy">PDFBright stores only the account data needed for access, billing, and usage—not your document contents.</p>
           </article>
 
-          <article className="account-card account-card--plan">
-            <div className="account-plan-badge"><span aria-hidden="true">✦</span> Free Early Access</div>
-            <h2>The useful part comes first.</h2>
-            <p className="account-card-copy">
-              PDFBright is currently free while we learn from real documents and real workflows. No subscription is required to use the core cleanup experience.
-            </p>
-            <p className="account-card-copy">
-              Paid plans are intentionally paused. The proven Pro billing system stays preserved in the codebase and can be enabled later without blocking this launch.
-            </p>
-            <div className="account-actions">
-              <Link className="account-primary-link" href="/#upload">Clean a PDF</Link>
-            </div>
-          </article>
+          {billingEnabled ? (
+            <article className={`account-card account-card--plan ${account.plan === "pro" ? "is-pro" : ""}`}>
+              <div className="account-plan-badge"><span aria-hidden="true">✦</span> {account.plan === "pro" ? "PDFBright Pro" : "Free plan"}</div>
+              <h2>{account.plan === "pro" ? "More room when you need it." : "Core cleanup stays free."}</h2>
+              <p className="account-card-copy">
+                {account.plan === "pro"
+                  ? "Your Pro entitlement is active on this account."
+                  : "Upgrade when you need larger files, heavier OCR, and more room for repeat workflows."}
+              </p>
+              {account.plan === "pro" && account.subscriptionStatus ? (
+                <p className="account-card-copy">Subscription status: <strong>{account.subscriptionStatus.replaceAll("_", " ")}</strong>.</p>
+              ) : null}
+              {account.plan === "pro" && scheduledCancellationDate ? (
+                <p className="account-card-copy"><strong>Cancels on {scheduledCancellationDate}.</strong> Your Pro access stays active until then.</p>
+              ) : null}
+              {account.plan === "free" ? (
+                <div className="account-actions">
+                  <button className="account-primary-link" type="button" onClick={() => void startCheckout("monthly")} disabled={billingAction !== null}>
+                    {billingAction === "monthly" ? "Opening checkout…" : "Go Pro monthly — $7.99"}
+                  </button>
+                  <button className="account-signout" type="button" onClick={() => void startCheckout("yearly")} disabled={billingAction !== null}>
+                    {billingAction === "yearly" ? "Opening checkout…" : "Yearly — $59.99"}
+                  </button>
+                </div>
+              ) : (
+                <button className="account-primary-link" type="button" onClick={() => void openBillingPortal()} disabled={billingAction !== null}>
+                  {billingAction === "portal" ? "Opening billing…" : "Manage billing"}
+                </button>
+              )}
+            </article>
+          ) : (
+            <article className="account-card account-card--plan">
+              <div className="account-plan-badge"><span aria-hidden="true">✦</span> Free Early Access</div>
+              <h2>The useful part comes first.</h2>
+              <p className="account-card-copy">
+                PDFBright is currently free while we learn from real documents and real workflows. No subscription is required to use the core cleanup experience.
+              </p>
+              <p className="account-card-copy">
+                Paid plans are intentionally paused. The proven Pro billing system stays preserved and can be enabled later without blocking this launch.
+              </p>
+              <div className="account-actions">
+                <Link className="account-primary-link" href="/#upload">Clean a PDF</Link>
+              </div>
+            </article>
+          )}
 
           <article className="account-card account-card--privacy">
             <div className="account-card-icon" aria-hidden="true">✓</div>
