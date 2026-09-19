@@ -331,6 +331,21 @@ test("password-protected PDF is rejected safely", async ({ page }, testInfo) => 
   await expect(page.locator(".diagnosis-workspace")).toHaveCount(0);
 });
 
+test("low-confidence OCR fails safely instead of claiming searchable output", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "OCR quality rejection only needs one deterministic browser pass.");
+  test.setTimeout(180_000);
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Choose a PDF file").setInputFiles(path.resolve(".qa-corpus/ocr-low-confidence.pdf"));
+
+  await expect(page.locator(".diagnosis-workspace")).toBeVisible({ timeout: 45_000 });
+  await expect(page.locator("#diagnosis-searchable-text")).toBeChecked();
+
+  await page.getByRole("button", { name: "Fix My PDF" }).click();
+  await expect(page.getByText(/could not recognize enough reliable text/i)).toBeVisible({ timeout: 120_000 });
+  await expect(page.getByRole("heading", { name: "Your PDF is ready" })).toHaveCount(0);
+});
+
 test("OCR cleanup creates genuinely searchable text", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "chromium-desktop", "OCR output integrity only needs one deterministic browser pass.");
   test.setTimeout(180_000);
