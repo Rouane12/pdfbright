@@ -35,6 +35,7 @@ function MenuIcon({ kind }: { kind: "how" | "pricing" | "account" }) {
 
 export function GlobalSiteHeader() {
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const billingEnabled = process.env.NEXT_PUBLIC_BILLING_ENABLED === "true";
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -62,7 +63,7 @@ export function GlobalSiteHeader() {
 
         <nav className="global-nav global-nav--desktop" aria-label="Primary navigation">
           <Link className="nav-link" href="/#how-it-works">How it works</Link>
-          <Link className="nav-link" href="/#pricing">Pricing</Link>
+          <Link className="nav-link" href="/#pricing">{billingEnabled ? "Pricing" : "Free Early Access"}</Link>
           <Link className="global-nav__signin" href={accountHref}>{accountLabel}</Link>
         </nav>
 
@@ -81,7 +82,7 @@ export function GlobalSiteHeader() {
             </Link>
             <Link className="global-nav-mobile__item" href="/#pricing">
               <span className="global-nav-mobile__icon global-nav-mobile__icon--pricing"><MenuIcon kind="pricing" /></span>
-              <span>Pricing</span>
+              <span>{billingEnabled ? "Pricing" : "Free Early Access"}</span>
             </Link>
             <Link className="global-nav-mobile__item global-nav-mobile__signin" href={accountHref}>
               <span className="global-nav-mobile__icon global-nav-mobile__icon--account"><MenuIcon kind="account" /></span>
