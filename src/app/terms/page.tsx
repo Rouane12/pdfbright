@@ -22,7 +22,7 @@ export default function TermsPage() {
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Terms of Use</p>
         <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] sm:text-5xl">Simple terms for using PDFBright.</h1>
         <p className="mt-5 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg">
-          These terms govern access to PDFBright, including the free browser-based cleanup workflow, PDFBright accounts, and any paid plan we make available.
+          These terms govern access to PDFBright, including the free browser-based cleanup workflow, optional PDFBright accounts, and any paid plan we may make available later.
         </p>
         <p className="mt-3 text-sm text-slate-500">Last updated: 16 September 2026</p>
 
@@ -43,8 +43,8 @@ export default function TermsPage() {
           </section>
 
           <section className={sectionClass}>
-            <h2 className="text-xl font-semibold tracking-tight">Paid plans</h2>
-            <p className="mt-3 leading-7 text-slate-600">If you purchase PDFBright Pro, pricing and billing frequency are shown before checkout. Paddle acts as the merchant of record for PDFBright paid-plan checkout and subscription payment processing. Renewal, cancellation, refunds, taxes, receipts, and payment-method handling are subject to the checkout terms shown at purchase and applicable law.</p>
+            <h2 className="text-xl font-semibold tracking-tight">Early Access and future paid plans</h2>
+            <p className="mt-3 leading-7 text-slate-600">PDFBright is currently available as free Early Access. If paid plans are enabled later, pricing, billing frequency, payment provider details, cancellation terms, and any applicable refund information will be shown before purchase.</p>
           </section>
 
           <section className={sectionClass}>
