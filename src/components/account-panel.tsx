@@ -350,7 +350,7 @@ export function AccountPanel() {
             <div className="account-card-label">Identity</div>
             <h2>Signed in securely</h2>
             <p className="account-email">{account.email}</p>
-            <p className="account-card-copy">PDFBright stores only the account data needed for access, billing, and usage—not your document contents.</p>
+            <p className="account-card-copy">{billingEnabled ? "PDFBright stores only the account data needed for access, billing, and usage—not your document contents." : "PDFBright stores only the account data needed for sign-in and usage—not your document contents."}</p>
           </article>
 
           {billingEnabled ? (
