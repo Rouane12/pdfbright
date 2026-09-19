@@ -41,6 +41,16 @@ function describeCheckoutError(error: unknown) {
 }
 
 export async function POST(request: Request) {
+  if (process.env.BILLING_ENABLED !== "true") {
+    return NextResponse.json(
+      {
+        error: "PDFBright Pro checkout is temporarily unavailable while PDFBright is free during Early Access.",
+        code: "billing_disabled",
+      },
+      { status: 503 },
+    );
+  }
+
   let stage = "request";
   let analyticsUserId: string | null = null;
 
