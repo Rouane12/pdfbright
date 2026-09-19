@@ -10,6 +10,16 @@ import {
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  if (process.env.BILLING_ENABLED !== "true") {
+    return NextResponse.json(
+      {
+        error: "Billing management is temporarily unavailable while PDFBright is free during Early Access.",
+        code: "billing_disabled",
+      },
+      { status: 503 },
+    );
+  }
+
   let analyticsUserId: string | null = null;
   let stage = "request";
 
