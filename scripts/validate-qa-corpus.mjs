@@ -14,10 +14,19 @@ for (const fixture of manifest.fixtures) {
   const filePath = path.join(corpusDir, fixture.name);
   const bytes = await fs.readFile(filePath);
 
-  if (fixture.kind === "malformed") {
+  if (fixture.minBytes && bytes.length < fixture.minBytes) {
+    fail(fixture.name, `expected at least ${fixture.minBytes} bytes, got ${bytes.length}`);
+  }
+
+  if (fixture.kind === "malformed" || fixture.kind === "encrypted") {
     try {
       await PDFDocument.load(bytes, { ignoreEncryption: false });
-      fail(fixture.name, "malformed fixture unexpectedly parsed successfully");
+      fail(
+        fixture.name,
+        fixture.kind === "encrypted"
+          ? "encrypted fixture unexpectedly parsed without a password"
+          : "malformed fixture unexpectedly parsed successfully",
+      );
     } catch {
       // Expected safe rejection.
     }
