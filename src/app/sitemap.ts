@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
 const baseUrl = "https://pdfbright.app";
+const billingEnabled = process.env.NEXT_PUBLIC_BILLING_ENABLED === "true";
 
 const scannedPdfSearchRoutes = [
   "/clean-scanned-pdf",
@@ -12,7 +13,7 @@ const scannedPdfSearchRoutes = [
 ] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date("2026-09-16");
+  const lastModified = new Date("2026-09-19");
 
   return [
     {
@@ -45,6 +46,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.3,
     },
+    ...(billingEnabled
+      ? [
+          {
+            url: `${baseUrl}/refund-policy`,
+            lastModified,
+            changeFrequency: "monthly" as const,
+            priority: 0.3,
+          },
+        ]
+      : []),
     {
       url: `${baseUrl}/data-deletion`,
       lastModified,
