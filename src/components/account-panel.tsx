@@ -391,7 +391,7 @@ export function AccountPanel() {
                 PDFBright is currently free while we learn from real documents and real workflows. No subscription is required to use the core cleanup experience.
               </p>
               <p className="account-card-copy">
-                Paid plans are intentionally paused. The proven Pro billing system stays preserved and can be enabled later without blocking this launch.
+                Paid plans are intentionally paused while we learn which heavier workflows people actually need.
               </p>
               <div className="account-actions">
                 <Link className="account-primary-link" href="/#upload">Clean a PDF</Link>
