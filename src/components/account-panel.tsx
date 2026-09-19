@@ -40,6 +40,7 @@ function formatSubscriptionDate(value: string | null) {
 
 export function AccountPanel() {
   const router = useRouter();
+  const billingEnabled = process.env.NEXT_PUBLIC_BILLING_ENABLED === "true";
   const searchParams = useSearchParams();
   const [account, setAccount] = useState<AccountState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -138,7 +139,7 @@ export function AccountPanel() {
       cancelled = true;
       authListener.subscription.unsubscribe();
     };
-  }, [readAccountState, router]);
+  }, [billingEnabled, readAccountState, router]);
 
   useEffect(() => {
     if (!checkoutSuccess || !account || account.plan === "pro") return;
@@ -186,6 +187,11 @@ export function AccountPanel() {
   }, [account]);
 
   const startCheckout = useCallback(async (plan: UpgradePlan) => {
+    if (!billingEnabled) {
+      setBillingMessage("PDFBright is free during Early Access. Paid checkout is intentionally paused.");
+      return;
+    }
+
     setBillingMessage(null);
     setBillingAction(plan);
 
@@ -238,15 +244,20 @@ export function AccountPanel() {
   }, [readAccountState, router]);
 
   useEffect(() => {
-    if (!account || !upgradePlan || account.plan === "pro" || attemptedUpgrade.current === upgradePlan) {
+    if (!billingEnabled || !account || !upgradePlan || account.plan === "pro" || attemptedUpgrade.current === upgradePlan) {
       return;
     }
 
     attemptedUpgrade.current = upgradePlan;
     void startCheckout(upgradePlan);
-  }, [account, startCheckout, upgradePlan]);
+  }, [account, billingEnabled, startCheckout, upgradePlan]);
 
   const openBillingPortal = useCallback(async () => {
+    if (!billingEnabled) {
+      setBillingMessage("Billing management is paused while PDFBright is free during Early Access.");
+      return;
+    }
+
     setBillingMessage(null);
     setBillingAction("portal");
 
@@ -279,7 +290,7 @@ export function AccountPanel() {
       setBillingMessage(portalError instanceof Error ? portalError.message : "Billing management could not be opened.");
       setBillingAction(null);
     }
-  }, [router]);
+  }, [billingEnabled, router]);
 
   async function signOut() {
     const supabase = getSupabaseBrowserClient();
@@ -326,7 +337,7 @@ export function AccountPanel() {
           <div>
             <p className="account-kicker"><span aria-hidden="true">✦</span> Your PDFBright account</p>
             <h1>Good to have you here.</h1>
-            <p>Your account keeps access, plan status, and usage allowances tied to one identity.</p>
+            <p>Your account keeps sign-in and usage details tied to one identity while PDFBright is in free Early Access.</p>
           </div>
           <div className="account-avatar" aria-hidden="true">{initials}</div>
         </div>
@@ -342,34 +353,18 @@ export function AccountPanel() {
             <p className="account-card-copy">PDFBright stores only the account data needed for access, billing, and usage—not your document contents.</p>
           </article>
 
-          <article className={`account-card account-card--plan ${account.plan === "pro" ? "is-pro" : ""}`}>
-            <div className="account-plan-badge"><span aria-hidden="true">✦</span> {account.plan === "pro" ? "PDFBright Pro" : "Free plan"}</div>
-            <h2>{account.plan === "pro" ? "More room when you need it." : "Core cleanup stays free."}</h2>
+          <article className="account-card account-card--plan">
+            <div className="account-plan-badge"><span aria-hidden="true">✦</span> Free Early Access</div>
+            <h2>The useful part comes first.</h2>
             <p className="account-card-copy">
-              {account.plan === "pro"
-                ? "Your Pro entitlement is active on this account."
-                : "Upgrade when you need larger files, heavier OCR, and more room for repeat workflows."}
+              PDFBright is currently free while we learn from real documents and real workflows. No subscription is required to use the core cleanup experience.
             </p>
-            {account.plan === "pro" && account.subscriptionStatus ? (
-              <p className="account-card-copy">Subscription status: <strong>{account.subscriptionStatus.replaceAll("_", " ")}</strong>.</p>
-            ) : null}
-            {account.plan === "pro" && scheduledCancellationDate ? (
-              <p className="account-card-copy"><strong>Cancels on {scheduledCancellationDate}.</strong> Your Pro access stays active until then.</p>
-            ) : null}
-            {account.plan === "free" ? (
-              <div className="account-actions">
-                <button className="account-primary-link" type="button" onClick={() => void startCheckout("monthly")} disabled={billingAction !== null}>
-                  {billingAction === "monthly" ? "Opening checkout…" : "Go Pro monthly — $7.99"}
-                </button>
-                <button className="account-signout" type="button" onClick={() => void startCheckout("yearly")} disabled={billingAction !== null}>
-                  {billingAction === "yearly" ? "Opening checkout…" : "Yearly — $59.99"}
-                </button>
-              </div>
-            ) : (
-              <button className="account-primary-link" type="button" onClick={() => void openBillingPortal()} disabled={billingAction !== null}>
-                {billingAction === "portal" ? "Opening billing…" : "Manage billing"}
-              </button>
-            )}
+            <p className="account-card-copy">
+              Paid plans are intentionally paused. The proven Pro billing system stays preserved in the codebase and can be enabled later without blocking this launch.
+            </p>
+            <div className="account-actions">
+              <Link className="account-primary-link" href="/#upload">Clean a PDF</Link>
+            </div>
           </article>
 
           <article className="account-card account-card--privacy">
@@ -382,7 +377,7 @@ export function AccountPanel() {
           <article className="account-card account-card--actions">
             <div className="account-card-label">Account controls</div>
             <h2>Keep it simple.</h2>
-            <p className="account-card-copy">Process another file, review pricing, or sign out when you are finished.</p>
+            <p className="account-card-copy">Process another file, review privacy details, or sign out when you are finished.</p>
             <div className="account-actions">
               <Link className="account-primary-link" href="/#upload">Clean a PDF</Link>
               <button className="account-signout" type="button" onClick={signOut}>Sign out</button>
