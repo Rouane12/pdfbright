@@ -56,7 +56,7 @@ test("mobile navigation opens and exposes core navigation", async ({ page }, tes
   const mobileNav = page.getByRole("navigation", { name: "Mobile navigation" });
   await expect(mobileNav).toBeVisible();
   await expect(mobileNav.getByRole("link", { name: "How it works" })).toBeVisible();
-  await expect(mobileNav.getByRole("link", { name: "Pricing" })).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: "Free Early Access" })).toBeVisible();
   await expect(mobileNav.getByRole("link", { name: /Sign in|Account/ })).toBeVisible();
 
   await testInfo.attach("mobile-nav-state", {
@@ -98,11 +98,21 @@ test("anonymous entitlement stays inside the Free envelope", async ({ request })
   expect(payload.limits?.maxOcrPages).toBe(3);
 });
 
-test("checkout rejects an unauthenticated upgrade attempt", async ({ request }) => {
+test("free Early Access disables paid checkout at the server boundary", async ({ request }) => {
   const response = await request.post("/api/billing/checkout", {
     data: { plan: "monthly" },
   });
-  expect(response.status()).toBe(401);
+  expect(response.status()).toBe(503);
+  const payload = (await response.json()) as { code?: unknown };
+  expect(payload.code).toBe("billing_disabled");
+});
+
+test("homepage presents the free Early Access launch without paid CTAs", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "PDFBright is free while we learn from real documents." })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Clean a PDF for free" })).toBeVisible();
+  await expect(page.getByText("$7.99", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Choose monthly|Choose yearly/ })).toHaveCount(0);
 });
 
 test("Paddle webhook rejects an unsigned payload", async ({ request }) => {
