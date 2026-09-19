@@ -141,6 +141,8 @@ test("homepage presents the free Early Access launch without paid CTAs", async (
   await expect(page.getByRole("link", { name: "Clean a PDF for free" })).toBeVisible();
   await expect(page.getByText("$7.99", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Choose monthly|Choose yearly/ })).toHaveCount(0);
+  await expect(page.getByText("PDF only · Free Early Access: up to 10 MB / 10 pages", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Pro: up to 25 MB|PDFBright Pro supports/i)).toHaveCount(0);
 });
 
 test("Paddle webhook rejects an unsigned payload", async ({ request }) => {
@@ -181,7 +183,7 @@ test("Free page limit rejects a 25-page PDF before analysis", async ({ page }, t
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.getByLabel("Choose a PDF file").setInputFiles(path.resolve(".qa-corpus/long-25-pages.pdf"));
 
-  await expect(page.getByText(/25 pages.*Free limit is 10 pages/i)).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/25 pages.*Free Early Access limit is 10 pages/i)).toBeVisible({ timeout: 20_000 });
   await expect(page.locator(".diagnosis-workspace")).toHaveCount(0);
 });
 
@@ -190,7 +192,7 @@ test("Free file-size limit rejects a PDF above 10 MB before parsing", async ({ p
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.getByLabel("Choose a PDF file").setInputFiles(path.resolve(".qa-corpus/free-file-size-limit.pdf"));
 
-  await expect(page.getByText(/larger than the Free 10 MB limit/i)).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/larger than the current Free Early Access 10 MB limit/i)).toBeVisible({ timeout: 20_000 });
   await expect(page.locator(".diagnosis-workspace")).toHaveCount(0);
 });
 
