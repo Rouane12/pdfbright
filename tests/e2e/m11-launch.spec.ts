@@ -17,6 +17,34 @@ const publicRoutes = [
   "/data-deletion",
 ];
 
+async function extractPdfTextByPage(bytes: Uint8Array) {
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const loadingTask = pdfjs.getDocument({ data: Uint8Array.from(bytes) });
+  const documentProxy = await loadingTask.promise;
+  const pages: string[] = [];
+
+  try {
+    for (let pageNumber = 1; pageNumber <= documentProxy.numPages; pageNumber += 1) {
+      const pdfPage = await documentProxy.getPage(pageNumber);
+      try {
+        const content = await pdfPage.getTextContent();
+        const text = content.items
+          .map((item) => ("str" in item && typeof item.str === "string" ? item.str : ""))
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim();
+        pages.push(text);
+      } finally {
+        pdfPage.cleanup();
+      }
+    }
+  } finally {
+    await loadingTask.destroy();
+  }
+
+  return pages;
+}
+
 for (const route of publicRoutes) {
   test(`${route} renders without horizontal overflow`, async ({ page }) => {
     const response = await page.goto(route, { waitUntil: "domcontentloaded" });
@@ -291,4 +319,122 @@ test("form fields survive a benign cleanup pass", async ({ page }, testInfo) => 
   const reopened = await PDFDocument.load(bytes);
   expect(reopened.getPageCount()).toBe(1);
   expect(reopened.getForm().getTextField("qa.name").getText()).toBe("Synthetic QA");
+});
+
+
+test("password-protected PDF is rejected safely", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Encrypted-file rejection only needs one deterministic browser pass.");
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Choose a PDF file").setInputFiles(path.resolve(".qa-corpus/password-protected.pdf"));
+
+  await expect(page.getByText("Password-protected PDFs cannot currently be processed.")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".diagnosis-workspace")).toHaveCount(0);
+});
+
+test("OCR cleanup creates genuinely searchable text", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "OCR output integrity only needs one deterministic browser pass.");
+  test.setTimeout(180_000);
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Choose a PDF file").setInputFiles(path.resolve(".qa-corpus/ocr-image-only.pdf"));
+
+  await expect(page.locator(".diagnosis-workspace")).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByRole("heading", { name: "Text isn't searchable on 1 page" })).toBeVisible();
+  await expect(page.locator("#diagnosis-searchable-text")).toBeChecked();
+
+  await page.getByRole("button", { name: "Fix My PDF" }).click();
+  await expect(page.getByRole("heading", { name: "Your PDF is ready" })).toBeVisible({ timeout: 120_000 });
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Download Clean PDF" }).click();
+  const download = await downloadPromise;
+  const savedPath = testInfo.outputPath("ocr-image-only-clean.pdf");
+  await download.saveAs(savedPath);
+
+  const bytes = await fs.readFile(savedPath);
+  const reopened = await PDFDocument.load(bytes);
+  expect(reopened.getPageCount()).toBe(1);
+
+  const textByPage = await extractPdfTextByPage(Uint8Array.from(bytes));
+  expect(textByPage).toHaveLength(1);
+  expect(textByPage[0].toUpperCase()).toContain("PDFBRIGHT");
+  expect(textByPage[0].toUpperCase()).toContain("OCR");
+});
+
+test("mixed native text and scanned page both remain searchable after OCR", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Mixed-content OCR integrity only needs one deterministic browser pass.");
+  test.setTimeout(180_000);
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Choose a PDF file").setInputFiles(path.resolve(".qa-corpus/mixed-native-and-ocr-scan.pdf"));
+
+  await expect(page.locator(".diagnosis-workspace")).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByRole("heading", { name: "Text isn't searchable on 1 page" })).toBeVisible();
+  await expect(page.locator("#diagnosis-searchable-text")).toBeChecked();
+
+  await page.getByRole("button", { name: "Fix My PDF" }).click();
+  await expect(page.getByRole("heading", { name: "Your PDF is ready" })).toBeVisible({ timeout: 120_000 });
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Download Clean PDF" }).click();
+  const download = await downloadPromise;
+  const savedPath = testInfo.outputPath("mixed-native-and-ocr-scan-clean.pdf");
+  await download.saveAs(savedPath);
+
+  const bytes = await fs.readFile(savedPath);
+  const reopened = await PDFDocument.load(bytes);
+  expect(reopened.getPageCount()).toBe(2);
+
+  const textByPage = await extractPdfTextByPage(Uint8Array.from(bytes));
+  expect(textByPage).toHaveLength(2);
+  expect(textByPage[0]).toContain("Mixed document native text must survive");
+  expect(textByPage[1].toUpperCase()).toContain("PDFBRIGHT");
+});
+
+test("scan-heavy optimization produces a meaningfully smaller valid PDF", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Compression output integrity only needs one deterministic browser pass.");
+  test.setTimeout(180_000);
+
+  const sourcePath = path.resolve(".qa-corpus/scan-heavy-noise.pdf");
+  const sourceStat = await fs.stat(sourcePath);
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Choose a PDF file").setInputFiles(sourcePath);
+
+  await expect(page.locator(".diagnosis-workspace")).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByRole("heading", { name: "This PDF can likely be made smaller" })).toBeVisible();
+  await expect(page.locator("#diagnosis-compress")).toBeChecked();
+
+  for (const id of [
+    "straighten",
+    "rotate",
+    "searchable-text",
+    "remove-blank-pages",
+    "improve-readability",
+    "normalize-pages",
+  ]) {
+    const control = page.locator(`#diagnosis-${id}`);
+    if ((await control.count()) > 0 && (await control.isChecked())) {
+      await control.uncheck();
+    }
+  }
+
+  await page.getByText("Customize fixes", { exact: true }).click();
+  await page.locator("#compression-mode").selectOption("smaller-file");
+
+  const fixButton = page.getByRole("button", { name: "Fix My PDF" });
+  await expect(fixButton).toBeEnabled();
+  await fixButton.click();
+  await expect(page.getByRole("heading", { name: "Your PDF is ready" })).toBeVisible({ timeout: 120_000 });
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Download Clean PDF" }).click();
+  const download = await downloadPromise;
+  const savedPath = testInfo.outputPath("scan-heavy-noise-clean.pdf");
+  await download.saveAs(savedPath);
+
+  const bytes = await fs.readFile(savedPath);
+  const reopened = await PDFDocument.load(bytes);
+  expect(reopened.getPageCount()).toBe(1);
+  expect(bytes.length).toBeLessThan(sourceStat.size * 0.98);
 });
