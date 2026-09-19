@@ -76,6 +76,7 @@ await fs.rm(outputDir, { recursive: true, force: true });
 await fs.mkdir(outputDir, { recursive: true });
 
 const ocrScanPng = await fs.readFile(path.join(fixturesDir, "ocr-scan.png"));
+const ocrLowConfidencePng = await fs.readFile(path.join(fixturesDir, "ocr-low-confidence.png"));
 const encryptedPdf = await fs.readFile(path.join(fixturesDir, "password-protected.pdf"));
 
 const manifest = [];
@@ -192,6 +193,19 @@ async function addTextPage(doc, text, size = [612, 792]) {
     pages: 1,
     imageOnly: true,
     ocrExpected: true,
+  });
+}
+
+{
+  const doc = await PDFDocument.create();
+  const image = await doc.embedPng(ocrLowConfidencePng);
+  const page = doc.addPage([650, 360]);
+  page.drawImage(image, { x: 0, y: 0, width: 650, height: 360 });
+  await savePdf("ocr-low-confidence.pdf", doc, {
+    pages: 1,
+    imageOnly: true,
+    lowConfidenceOcr: true,
+    mustRejectOcr: true,
   });
 }
 
