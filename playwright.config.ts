@@ -33,6 +33,10 @@ export default defineConfig({
       use: { ...devices["Desktop Safari"] },
     },
     {
+      name: "webkit-iphone-13",
+      use: { ...devices["iPhone 13"] },
+    },
+    {
       name: "chromium-320",
       use: {
         browserName: "chromium",
