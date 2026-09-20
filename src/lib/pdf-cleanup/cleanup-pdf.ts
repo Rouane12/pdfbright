@@ -18,6 +18,9 @@ const VISUAL_RENDER_MAX_DIMENSION = 2200;
 const VISUAL_RENDER_MAX_SCALE = 2.25;
 const MIN_STRAIGHTEN_CONFIDENCE = 0.4;
 const MIN_OCR_CHARACTERS = 3;
+// Individual OCR words below 25 confidence are already discarded upstream.
+// Require a stronger page-level average before claiming searchable output.
+const MIN_OCR_MEAN_CONFIDENCE = 60;
 const MIN_MEANINGFUL_COMPRESSION_RATIO = 0.02;
 const MIN_MEANINGFUL_COMPRESSION_BYTES = 1024;
 
@@ -721,10 +724,14 @@ export async function cleanupPdfFile(
         );
 
         for (const page of ocr.pages) {
-          if (page.words.length === 0 || page.recognizedCharacters < MIN_OCR_CHARACTERS) {
+          if (
+            page.words.length === 0 ||
+            page.recognizedCharacters < MIN_OCR_CHARACTERS ||
+            page.meanConfidence < MIN_OCR_MEAN_CONFIDENCE
+          ) {
             throw new PdfCleanupError(
               "ocr-failed",
-              `PDFBright could not recognize enough text on page ${page.originalPageNumber} to add a reliable searchable layer.`,
+              `PDFBright could not recognize enough reliable text on page ${page.originalPageNumber} to add a trustworthy searchable layer.`,
             );
           }
         }

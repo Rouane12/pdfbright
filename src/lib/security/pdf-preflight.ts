@@ -135,6 +135,7 @@ export async function preflightPdfFile(file: File, signal?: AbortSignal): Promis
   }
 
   const entitlement = await resolveProcessingEntitlement();
+  const billingEnabled = process.env.NEXT_PUBLIC_BILLING_ENABLED === "true";
   abortIfNeeded(signal);
 
   const maxFileSizeBytes = Math.min(MAX_FILE_SIZE_BYTES, entitlement.limits.maxFileSizeBytes);
@@ -145,7 +146,9 @@ export async function preflightPdfFile(file: File, signal?: AbortSignal): Promis
     const message =
       entitlement.plan === "pro"
         ? `This PDF is larger than the current Pro ${maxFileSizeMB} MB limit.`
-        : `This PDF is larger than the Free ${maxFileSizeMB} MB limit. PDFBright Pro supports files up to ${MAX_FILE_SIZE_MB} MB.`;
+        : billingEnabled
+          ? `This PDF is larger than the Free ${maxFileSizeMB} MB limit. PDFBright Pro supports files up to ${MAX_FILE_SIZE_MB} MB.`
+          : `This PDF is larger than the current Free Early Access ${maxFileSizeMB} MB limit.`;
     throw new PdfPreflightError("file-too-large", message);
   }
 
@@ -172,7 +175,9 @@ export async function preflightPdfFile(file: File, signal?: AbortSignal): Promis
         const message =
           entitlement.plan === "pro"
             ? `This PDF has ${documentProxy.numPages} pages. The current Pro limit is ${maxPageCount} pages.`
-            : `This PDF has ${documentProxy.numPages} pages. The Free limit is ${maxPageCount} pages; PDFBright Pro supports up to ${MAX_PAGE_COUNT} pages.`;
+            : billingEnabled
+              ? `This PDF has ${documentProxy.numPages} pages. The Free limit is ${maxPageCount} pages; PDFBright Pro supports up to ${MAX_PAGE_COUNT} pages.`
+              : `This PDF has ${documentProxy.numPages} pages. The current Free Early Access limit is ${maxPageCount} pages.`;
         throw new PdfPreflightError("page-limit", message);
       }
 

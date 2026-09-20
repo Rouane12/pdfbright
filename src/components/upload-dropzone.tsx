@@ -352,7 +352,7 @@ export function UploadDropzone() {
                 </div>
 
                 <p className="mt-4 text-xs leading-5 text-slate-500">
-                  PDF only · Free: up to 10 MB / 10 pages · Pro: up to 25 MB / 25 pages
+                  PDF only · Free Early Access: up to 10 MB / 10 pages
                 </p>
               </div>
             )}
