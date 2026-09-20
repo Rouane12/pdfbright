@@ -37,6 +37,92 @@ function pngChunk(type, data) {
   return chunk;
 }
 
+function encodeRgbPng(width, height, pixelAt) {
+  const stride = 1 + width * 3;
+  const raw = Buffer.alloc(stride * height);
+
+  for (let y = 0; y < height; y += 1) {
+    const row = y * stride;
+    raw[row] = 0;
+    for (let x = 0; x < width; x += 1) {
+      const [red, green, blue] = pixelAt(x, y);
+      const offset = row + 1 + x * 3;
+      raw[offset] = red;
+      raw[offset + 1] = green;
+      raw[offset + 2] = blue;
+    }
+  }
+
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header[8] = 8;
+  header[9] = 2;
+
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    pngChunk("IHDR", header),
+    pngChunk("IDAT", deflateSync(raw, { level: 6 })),
+    pngChunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+
+const OCR_BITMAP_FONT = {
+  A: ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
+  B: ["11110", "10001", "10001", "11110", "10001", "10001", "11110"],
+  C: ["01111", "10000", "10000", "10000", "10000", "10000", "01111"],
+  E: ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
+  H: ["10001", "10001", "10001", "11111", "10001", "10001", "10001"],
+  L: ["10000", "10000", "10000", "10000", "10000", "10000", "11111"],
+  R: ["11110", "10001", "10001", "11110", "10100", "10010", "10001"],
+  S: ["01111", "10000", "10000", "01110", "00001", "00001", "11110"],
+  T: ["11111", "00100", "00100", "00100", "00100", "00100", "00100"],
+  X: ["10001", "10001", "01010", "00100", "01010", "10001", "10001"],
+  " ": ["00000", "00000", "00000", "00000", "00000", "00000", "00000"],
+};
+
+function makeSyntheticOcrPng() {
+  const width = 1200;
+  const height = 650;
+  const scale = 8;
+  const characterWidth = 5 * scale;
+  const characterHeight = 7 * scale;
+  const gap = 2 * scale;
+  const lineGap = 70;
+  const lines = ["SEARCHABLE TEXT", "SEARCHABLE TEST"];
+  const ink = new Uint8Array(width * height);
+  let y = 210;
+
+  for (const line of lines) {
+    const lineWidth = line.length * characterWidth + (line.length - 1) * gap;
+    let x = Math.floor((width - lineWidth) / 2);
+
+    for (const character of line) {
+      const glyph = OCR_BITMAP_FONT[character];
+      if (!glyph) throw new Error(`Missing synthetic OCR glyph for ${character}`);
+
+      for (let row = 0; row < glyph.length; row += 1) {
+        for (let column = 0; column < glyph[row].length; column += 1) {
+          if (glyph[row][column] !== "1") continue;
+          for (let dy = 0; dy < scale; dy += 1) {
+            for (let dx = 0; dx < scale; dx += 1) {
+              const pixelX = x + column * scale + dx;
+              const pixelY = y + row * scale + dy;
+              ink[pixelY * width + pixelX] = 1;
+            }
+          }
+        }
+      }
+      x += characterWidth + gap;
+    }
+    y += characterHeight + lineGap;
+  }
+
+  return encodeRgbPng(width, height, (x, y) =>
+    ink[y * width + x] ? [0, 0, 0] : [255, 255, 255],
+  );
+}
+
 function makeSyntheticNoisePng(width, height) {
   const stride = 1 + width * 3;
   const raw = Buffer.alloc(stride * height);
@@ -75,7 +161,7 @@ function makeSyntheticNoisePng(width, height) {
 await fs.rm(outputDir, { recursive: true, force: true });
 await fs.mkdir(outputDir, { recursive: true });
 
-const ocrScanPng = await fs.readFile(path.join(fixturesDir, "ocr-scan.png"));
+const ocrScanPng = makeSyntheticOcrPng();
 const ocrLowConfidencePng = await fs.readFile(path.join(fixturesDir, "ocr-low-confidence.png"));
 const encryptedPdf = await fs.readFile(path.join(fixturesDir, "password-protected.pdf"));
 
