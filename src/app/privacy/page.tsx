@@ -8,7 +8,7 @@ import {
 } from "@/lib/security/processing-policy";
 
 export const metadata: Metadata = {
-  title: "Privacy | PDFBright",
+  title: "Privacy",
   description: "How PDFBright handles documents, accounts, and privacy.",
 };
 
