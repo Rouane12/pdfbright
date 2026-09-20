@@ -324,6 +324,38 @@ async function addTextPage(doc, text, size = [612, 792]) {
 
 {
   const doc = await PDFDocument.create();
+  for (let pageIndex = 0; pageIndex < 10; pageIndex += 1) {
+    const noisePng = makeSyntheticNoisePng(450, 600);
+    const image = await doc.embedPng(noisePng);
+    const page = doc.addPage([612, 792]);
+    page.drawImage(image, { x: 0, y: 0, width: 612, height: 792 });
+  }
+  await savePdf("near-limit-scan-10-pages.pdf", doc, {
+    pages: 10,
+    imageOnly: true,
+    minBytes: 7_000_000,
+    maxBytes: 10 * 1024 * 1024,
+    stressFixture: true,
+  });
+}
+
+{
+  const doc = await PDFDocument.create();
+  const image = await doc.embedPng(ocrScanPng);
+  for (let pageIndex = 0; pageIndex < 3; pageIndex += 1) {
+    const page = doc.addPage([650, 360]);
+    page.drawImage(image, { x: 0, y: 0, width: 650, height: 360 });
+  }
+  await savePdf("ocr-three-pages.pdf", doc, {
+    pages: 3,
+    imageOnly: true,
+    ocrExpected: true,
+    stressFixture: true,
+  });
+}
+
+{
+  const doc = await PDFDocument.create();
   await addTextPage(doc, "Mixed document native-text page");
   const image = await doc.embedPng(tinyPng);
   const page = doc.addPage([612, 792]);
