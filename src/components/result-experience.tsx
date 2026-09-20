@@ -99,13 +99,19 @@ export function ResultExperience({
   onCleanAnother,
   debugCleanup = false,
 }: ResultExperienceProps) {
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
   const originalCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const cleanedCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewSectionRef = useRef<HTMLDivElement | null>(null);
+  const previewHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const [previewStatus, setPreviewStatus] = useState<"loading" | "ready" | "error">("loading");
   const [feedback, setFeedback] = useState<FeedbackChoice | null>(null);
   const pages = useMemo(() => representativePages(result.report), [result.report]);
   const items = useMemo(() => summaryItems(result.report), [result.report]);
+
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -181,7 +187,7 @@ export function ResultExperience({
     (report.searchableTextPages.length > 0 || report.optimizedPages.length > 0);
 
   return (
-    <div className="result-card" aria-labelledby="result-heading">
+    <section className="result-card" aria-labelledby="result-heading">
       <div className="result-success-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none">
           <path d="m6.5 12.5 3.3 3.2 7.7-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -189,7 +195,7 @@ export function ResultExperience({
       </div>
 
       <p className="section-kicker">Cleanup complete</p>
-      <h2 id="result-heading" className="result-title">Your PDF is ready</h2>
+      <h2 ref={headingRef} id="result-heading" tabIndex={-1} className="result-title">Your PDF is ready</h2>
       <p className="result-copy">
         PDFBright finished the selected fixes and checked the output before enabling your download. Your original file was not changed.
       </p>
@@ -202,7 +208,7 @@ export function ResultExperience({
         ) : null}
       </div>
 
-      <div className="result-summary-grid" aria-label="Cleanup summary">
+      <div className="result-summary-grid" role="group" aria-label="Cleanup summary">
         {items.map((item) => (
           <div key={item.label}>
             <span>{item.label}</span>
@@ -221,7 +227,10 @@ export function ResultExperience({
         <button
           type="button"
           className="button button--secondary"
-          onClick={() => previewSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          onClick={() => {
+            previewHeadingRef.current?.focus({ preventScroll: true });
+            previewSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
         >
           View changes
         </button>
@@ -234,7 +243,7 @@ export function ResultExperience({
         <div className="result-preview-heading">
           <div>
             <p className="section-kicker">Before & after</p>
-            <h3>See a representative page</h3>
+            <h3 ref={previewHeadingRef} tabIndex={-1}>See a representative page</h3>
           </div>
           <span>Original page {pages.originalPage}</span>
         </div>
@@ -249,7 +258,7 @@ export function ResultExperience({
           <div className="result-preview-loading" role="status">Preparing the page comparison…</div>
         ) : null}
         {previewStatus === "error" ? (
-          <div className="result-preview-loading">The visual preview could not be rendered, but the validated PDF is still ready to download.</div>
+          <div className="result-preview-loading" role="status">The visual preview could not be rendered, but the validated PDF is still ready to download.</div>
         ) : null}
 
         <div className={`result-preview-grid ${previewStatus === "ready" ? "result-preview-grid--ready" : ""}`}>
@@ -290,6 +299,6 @@ export function ResultExperience({
       {debugCleanup ? (
         <CleanupDebugPanel fileName={file.name} result={result} downloadUrl={downloadUrl} />
       ) : null}
-    </div>
+    </section>
   );
 }
