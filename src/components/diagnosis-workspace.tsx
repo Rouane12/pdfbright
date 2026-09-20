@@ -148,6 +148,7 @@ export function DiagnosisWorkspace({
   debugCleanup = false,
 }: DiagnosisWorkspaceProps) {
   const plan = useMemo(() => buildDiagnosisPlan(result), [result]);
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
   const cleanupAbortRef = useRef<AbortController | null>(null);
   const downloadUrlRef = useRef<string | null>(null);
   const [selected, setSelected] = useState<PdfCleanupSelection>(() => initialSelection(plan));
@@ -163,6 +164,10 @@ export function DiagnosisWorkspace({
   const selectedCount = Object.entries(selected).filter(
     ([id, enabled]) => enabled && isCleanupAvailable(id as DiagnosisFixId),
   ).length;
+
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -263,7 +268,7 @@ export function DiagnosisWorkspace({
   }
 
   return (
-    <section className="diagnosis-workspace">
+    <section className="diagnosis-workspace" aria-labelledby="diagnosis-heading">
       <div className="diagnosis-file-summary">
         <div className="document-icon document-icon--ready shrink-0" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none">
@@ -304,7 +309,7 @@ export function DiagnosisWorkspace({
         <div className="diagnosis-main-card">
           <div className="max-w-2xl">
             <p className="section-kicker">Your diagnosis</p>
-            <h2 id="diagnosis-heading" className="diagnosis-title">
+            <h2 ref={headingRef} id="diagnosis-heading" tabIndex={-1} className="diagnosis-title">
               {plan.isClean ? "This PDF already looks tidy" : "We found a few things we can improve"}
             </h2>
             <p className="diagnosis-intro">
