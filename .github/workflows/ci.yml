@@ -36,6 +36,13 @@ jobs:
         run: npx playwright install --with-deps chromium firefox webkit
       - name: M11 cross-browser launch smoke
         run: npm run qa:e2e
+      - name: Upload representative output PDFs
+        uses: actions/upload-artifact@v4
+        with:
+          name: representative-output-pdfs
+          path: test-results/**/*.pdf
+          if-no-files-found: error
+          retention-days: 7
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4
