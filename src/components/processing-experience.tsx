@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { PdfCleanupProgress } from "@/lib/pdf-cleanup/types";
 
 interface ProcessingExperienceProps {
@@ -60,8 +61,14 @@ function phaseHint(progress: PdfCleanupProgress | null) {
 }
 
 export function ProcessingExperience({ fileName, progress, onCancel }: ProcessingExperienceProps) {
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
+
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
+
   return (
-    <div className="processing-card" aria-labelledby="processing-heading">
+    <section className="processing-card" aria-labelledby="processing-heading">
       <div className="processing-visual" aria-hidden="true">
         <div className="processing-orbit processing-orbit--outer" />
         <div className="processing-orbit processing-orbit--inner" />
@@ -75,7 +82,7 @@ export function ProcessingExperience({ fileName, progress, onCancel }: Processin
       </div>
 
       <p className="section-kicker">Cleaning your PDF</p>
-      <h2 id="processing-heading" className="processing-title">Making it brighter.</h2>
+      <h2 ref={headingRef} id="processing-heading" tabIndex={-1} className="processing-title">Making it brighter.</h2>
       <p className="processing-file-name" title={fileName}>{fileName}</p>
 
       <div className="processing-status" role="status" aria-live="polite" aria-atomic="true">
@@ -84,7 +91,7 @@ export function ProcessingExperience({ fileName, progress, onCancel }: Processin
       </div>
       <p className="processing-hint">{phaseHint(progress)}</p>
 
-      <div className="processing-trust-row" aria-label="Processing safeguards">
+      <div className="processing-trust-row" role="group" aria-label="Processing safeguards">
         <span>Original protected</span>
         <span>Real progress</span>
         <span>Validated before download</span>
@@ -93,6 +100,6 @@ export function ProcessingExperience({ fileName, progress, onCancel }: Processin
       <button type="button" className="processing-cancel" onClick={onCancel}>
         Cancel cleanup
       </button>
-    </div>
+    </section>
   );
 }
