@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { PDFDocument } from "pdf-lib";
 
 const publicRoutes = [
@@ -43,6 +43,18 @@ async function extractPdfTextByPage(bytes: Uint8Array) {
   }
 
   return pages;
+}
+
+async function tabTo(page: Page, target: Locator, maxTabs = 60) {
+  for (let index = 0; index < maxTabs; index += 1) {
+    await page.keyboard.press("Tab");
+    if (await target.evaluate((element) => element === document.activeElement)) {
+      await expect(target).toBeFocused();
+      return;
+    }
+  }
+
+  throw new Error(`Keyboard focus did not reach target after ${maxTabs} Tab presses.`);
 }
 
 for (const route of publicRoutes) {
@@ -91,6 +103,57 @@ test("mobile navigation opens and exposes core navigation", async ({ page }, tes
     body: Buffer.from(`viewport=${viewport.width}x${viewport.height}`),
     contentType: "text/plain",
   });
+});
+
+test("core cleanup flow is operable with keyboard only", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Keyboard-only launch gate uses one deterministic desktop browser.");
+  test.setTimeout(120_000);
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  const hiddenFileInput = page.getByLabel("Choose a PDF file");
+  await expect(hiddenFileInput).toHaveAttribute("tabindex", "-1");
+
+  const chooseButton = page.getByRole("button", { name: "Choose a PDF", exact: true });
+  await tabTo(page, chooseButton);
+  expect(await chooseButton.evaluate((element) => element.matches(":focus-visible"))).toBe(true);
+
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await page.keyboard.press("Enter");
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles(path.resolve(".qa-corpus/rotated-and-landscape.pdf"));
+
+  await expect(page.locator(".diagnosis-workspace")).toBeVisible({ timeout: 45_000 });
+
+  const rotateToggle = page.locator("#diagnosis-rotate");
+  await expect(rotateToggle).toBeChecked();
+  await tabTo(page, rotateToggle);
+  await page.keyboard.press("Space");
+  await expect(rotateToggle).not.toBeChecked();
+  await page.keyboard.press("Space");
+  await expect(rotateToggle).toBeChecked();
+
+  const fixButton = page.getByRole("button", { name: "Fix My PDF" });
+  await expect(fixButton).toBeEnabled();
+  await tabTo(page, fixButton);
+  expect(await fixButton.evaluate((element) => element.matches(":focus-visible"))).toBe(true);
+  await page.keyboard.press("Enter");
+
+  await expect(page.getByRole("heading", { name: "Your PDF is ready" })).toBeVisible({ timeout: 45_000 });
+
+  const downloadLink = page.getByRole("link", { name: "Download Clean PDF" });
+  await tabTo(page, downloadLink);
+  expect(await downloadLink.evaluate((element) => element.matches(":focus-visible"))).toBe(true);
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.keyboard.press("Enter");
+  const download = await downloadPromise;
+  const savedPath = testInfo.outputPath("keyboard-only-clean.pdf");
+  await download.saveAs(savedPath);
+
+  const bytes = await fs.readFile(savedPath);
+  const reopened = await PDFDocument.load(bytes);
+  expect(reopened.getPageCount()).toBe(2);
 });
 
 test("sitemap is fetchable and contains the scanned-PDF search cluster", async ({ request }) => {
