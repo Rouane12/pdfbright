@@ -57,8 +57,26 @@ export function AccountPanel() {
       data: { session },
     } = await supabase.auth.getSession();
 
-    const user = session?.user;
-    if (!user) {
+    if (!session) {
+      return null;
+    }
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError) {
+      if (userError.status === 401 || userError.status === 403) {
+        await supabase.auth.signOut({ scope: "local" });
+        return null;
+      }
+
+      throw userError;
+    }
+
+    if (!user?.id) {
+      await supabase.auth.signOut({ scope: "local" });
       return null;
     }
 
