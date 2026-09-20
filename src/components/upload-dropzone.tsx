@@ -208,7 +208,7 @@ export function UploadDropzone() {
   }
 
   return (
-    <div className="w-full" id="upload">
+    <div className="w-full">
       <input
         ref={inputRef}
         className="sr-only"
