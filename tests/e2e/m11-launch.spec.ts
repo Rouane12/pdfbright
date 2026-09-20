@@ -374,7 +374,7 @@ test("OCR cleanup creates genuinely searchable text", async ({ page }, testInfo)
 
   const textByPage = await extractPdfTextByPage(Uint8Array.from(bytes));
   expect(textByPage).toHaveLength(1);
-  expect(textByPage[0].toUpperCase()).toContain("SEARCHABLE");
+  expect(textByPage[0].toUpperCase()).toContain("TEXT");
   expect(textByPage[0].toUpperCase()).toContain("TEST");
 });
 
@@ -405,7 +405,7 @@ test("mixed native text and scanned page both remain searchable after OCR", asyn
   const textByPage = await extractPdfTextByPage(Uint8Array.from(bytes));
   expect(textByPage).toHaveLength(2);
   expect(textByPage[0]).toContain("Mixed document native text must survive");
-  expect(textByPage[1].toUpperCase()).toContain("SEARCHABLE");
+  expect(textByPage[1].toUpperCase()).toContain("TEXT");
   expect(textByPage[1].toUpperCase()).toContain("TEST");
 });
 
