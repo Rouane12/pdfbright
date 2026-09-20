@@ -405,7 +405,8 @@ test("mixed native text and scanned page both remain searchable after OCR", asyn
   const textByPage = await extractPdfTextByPage(Uint8Array.from(bytes));
   expect(textByPage).toHaveLength(2);
   expect(textByPage[0]).toContain("Mixed document native text must survive");
-  expect(textByPage[1].toUpperCase()).toContain("SEARCHABLE");\n  expect(textByPage[1].toUpperCase()).toContain("TEST");
+  expect(textByPage[1].toUpperCase()).toContain("SEARCHABLE");
+  expect(textByPage[1].toUpperCase()).toContain("TEST");
 });
 
 test("scan-heavy optimization produces a meaningfully smaller valid PDF", async ({ page }, testInfo) => {
