@@ -18,10 +18,9 @@ const VISUAL_RENDER_MAX_DIMENSION = 2200;
 const VISUAL_RENDER_MAX_SCALE = 2.25;
 const MIN_STRAIGHTEN_CONFIDENCE = 0.4;
 const MIN_OCR_CHARACTERS = 3;
-// Tesseract words below 25 confidence are already discarded in recognize-pages.
-// Keep this aggregate gate conservative so clearly unreadable OCR fails closed
-// without rejecting otherwise usable scans that contain a few uncertain words.
-const MIN_OCR_MEAN_CONFIDENCE = 40;
+// Individual OCR words below 25 confidence are already discarded upstream.
+// Require a stronger page-level average before claiming searchable output.
+const MIN_OCR_MEAN_CONFIDENCE = 60;
 const MIN_MEANINGFUL_COMPRESSION_RATIO = 0.02;
 const MIN_MEANINGFUL_COMPRESSION_BYTES = 1024;
 
