@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type CDPSession, type Locator, type Page } from "@playwright/test";
 import { PDFDocument } from "pdf-lib";
 
 const publicRoutes = [
@@ -55,6 +55,18 @@ async function tabTo(page: Page, target: Locator, maxTabs = 60) {
   }
 
   throw new Error(`Keyboard focus did not reach target after ${maxTabs} Tab presses.`);
+}
+
+async function chromiumJsHeapUsedBytes(session: CDPSession) {
+  await session.send("Performance.enable");
+  const result = await session.send("Performance.getMetrics");
+  const heap = result.metrics.find((metric) => metric.name === "JSHeapUsedSize")?.value;
+  return typeof heap === "number" && Number.isFinite(heap) ? heap : null;
+}
+
+async function collectChromiumGarbage(session: CDPSession) {
+  await session.send("HeapProfiler.collectGarbage");
+  await new Promise((resolve) => setTimeout(resolve, 250));
 }
 
 for (const route of publicRoutes) {
@@ -193,6 +205,113 @@ test("dynamic cleanup states expose predictable focus and screen-reader landmark
 
   await page.getByRole("button", { name: "View changes" }).click();
   await expect(page.getByRole("heading", { name: "See a representative page" })).toBeFocused();
+});
+
+test("near-limit 10-page scan analyzes without browser-memory failure", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Performance and memory stress gate uses one deterministic Chromium pass.");
+  test.setTimeout(150_000);
+
+  const sourcePath = path.resolve(".qa-corpus/near-limit-scan-10-pages.pdf");
+  const sourceStat = await fs.stat(sourcePath);
+  expect(sourceStat.size).toBeGreaterThanOrEqual(7_000_000);
+  expect(sourceStat.size).toBeLessThanOrEqual(10 * 1024 * 1024);
+
+  let crashed = false;
+  page.on("crash", () => {
+    crashed = true;
+  });
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const session = await page.context().newCDPSession(page);
+  const heapBefore = await chromiumJsHeapUsedBytes(session);
+  const startedAt = Date.now();
+
+  await page.getByLabel("Choose a PDF file").setInputFiles(sourcePath);
+  await expect(page.locator(".diagnosis-workspace")).toBeVisible({ timeout: 90_000 });
+
+  const elapsedMs = Date.now() - startedAt;
+  expect(elapsedMs).toBeLessThan(90_000);
+  expect(crashed).toBe(false);
+  await expect(page.getByText(/browser does not have enough memory|could not analyze this PDF/i)).toHaveCount(0);
+  await expect(page.getByText(/MB · 10 pages/)).toBeVisible();
+
+  await collectChromiumGarbage(session);
+  const heapAfterGc = await chromiumJsHeapUsedBytes(session);
+  if (heapAfterGc !== null) {
+    expect(heapAfterGc).toBeLessThan(384 * 1024 * 1024);
+  }
+
+  await testInfo.attach("near-limit-scan-performance", {
+    body: Buffer.from(JSON.stringify({
+      sourceBytes: sourceStat.size,
+      elapsedMs,
+      heapBeforeBytes: heapBefore,
+      heapAfterGcBytes: heapAfterGc,
+      crashed,
+    }, null, 2)),
+    contentType: "application/json",
+  });
+
+  await session.detach();
+});
+
+test("three-page OCR ceiling completes without browser crash or retained heap spike", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Performance and memory stress gate uses one deterministic Chromium pass.");
+  test.setTimeout(300_000);
+
+  const sourcePath = path.resolve(".qa-corpus/ocr-three-pages.pdf");
+  let crashed = false;
+  page.on("crash", () => {
+    crashed = true;
+  });
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const session = await page.context().newCDPSession(page);
+  const heapBefore = await chromiumJsHeapUsedBytes(session);
+
+  await page.getByLabel("Choose a PDF file").setInputFiles(sourcePath);
+  await expect(page.locator(".diagnosis-workspace")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole("heading", { name: "Text isn't searchable on 3 pages" })).toBeVisible();
+  await expect(page.locator("#diagnosis-searchable-text")).toBeChecked();
+
+  const cleanupStartedAt = Date.now();
+  await page.getByRole("button", { name: "Fix My PDF" }).click();
+  await expect(page.getByRole("heading", { name: "Your PDF is ready" })).toBeVisible({ timeout: 210_000 });
+  const cleanupElapsedMs = Date.now() - cleanupStartedAt;
+
+  expect(cleanupElapsedMs).toBeLessThan(210_000);
+  expect(crashed).toBe(false);
+  await expect(page.getByText(/browser does not have enough memory|could not safely finish this cleanup/i)).toHaveCount(0);
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Download Clean PDF" }).click();
+  const download = await downloadPromise;
+  const savedPath = testInfo.outputPath("ocr-three-pages-clean.pdf");
+  await download.saveAs(savedPath);
+
+  const bytes = await fs.readFile(savedPath);
+  const reopened = await PDFDocument.load(bytes);
+  expect(reopened.getPageCount()).toBe(3);
+
+  await collectChromiumGarbage(session);
+  const heapAfterGc = await chromiumJsHeapUsedBytes(session);
+  if (heapAfterGc !== null) {
+    expect(heapAfterGc).toBeLessThan(384 * 1024 * 1024);
+  }
+
+  await testInfo.attach("ocr-three-pages-performance", {
+    body: Buffer.from(JSON.stringify({
+      cleanupElapsedMs,
+      outputBytes: bytes.length,
+      heapBeforeBytes: heapBefore,
+      heapAfterGcBytes: heapAfterGc,
+      crashed,
+      remainingWorkers: page.workers().length,
+    }, null, 2)),
+    contentType: "application/json",
+  });
+
+  await session.detach();
 });
 
 test("sitemap is fetchable and contains the scanned-PDF search cluster", async ({ request }) => {
