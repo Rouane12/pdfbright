@@ -18,6 +18,10 @@ for (const fixture of manifest.fixtures) {
     fail(fixture.name, `expected at least ${fixture.minBytes} bytes, got ${bytes.length}`);
   }
 
+  if (fixture.maxBytes && bytes.length > fixture.maxBytes) {
+    fail(fixture.name, `expected at most ${fixture.maxBytes} bytes, got ${bytes.length}`);
+  }
+
   if (fixture.kind === "malformed" || fixture.kind === "encrypted") {
     try {
       await PDFDocument.load(bytes, { ignoreEncryption: false });
