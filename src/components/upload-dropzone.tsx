@@ -213,6 +213,7 @@ export function UploadDropzone() {
         ref={inputRef}
         className="sr-only"
         type="file"
+        tabIndex={-1}
         accept="application/pdf,.pdf"
         onChange={handleInputChange}
         aria-label="Choose a PDF file"
