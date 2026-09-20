@@ -156,6 +156,45 @@ test("core cleanup flow is operable with keyboard only", async ({ page }, testIn
   expect(reopened.getPageCount()).toBe(2);
 });
 
+test("dynamic cleanup states expose predictable focus and screen-reader landmarks", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Focus and screen-reader launch gate uses one deterministic desktop browser.");
+  test.setTimeout(120_000);
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  const skipLink = page.getByRole("link", { name: "Skip to main content" });
+  await page.keyboard.press("Tab");
+  await expect(skipLink).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#main-content")).toBeFocused();
+  await expect(page.locator("#upload")).toHaveCount(1);
+
+  await page.getByLabel("Choose a PDF file").setInputFiles(path.resolve(".qa-corpus/rotated-and-landscape.pdf"));
+
+  const diagnosisHeading = page.getByRole("heading", { name: "We found a few things we can improve" });
+  await expect(diagnosisHeading).toBeVisible({ timeout: 45_000 });
+  await expect(diagnosisHeading).toBeFocused();
+  await expect(page.getByRole("region", { name: "We found a few things we can improve" })).toBeVisible();
+
+  const fixButton = page.getByRole("button", { name: "Fix My PDF" });
+  await expect(fixButton).toBeEnabled();
+  await fixButton.click();
+
+  const processingHeading = page.getByRole("heading", { name: "Making it brighter." });
+  await expect(processingHeading).toBeFocused({ timeout: 10_000 });
+  await expect(page.getByRole("region", { name: "Making it brighter." })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Processing safeguards" })).toBeVisible();
+
+  const resultHeading = page.getByRole("heading", { name: "Your PDF is ready" });
+  await expect(resultHeading).toBeVisible({ timeout: 45_000 });
+  await expect(resultHeading).toBeFocused();
+  await expect(page.getByRole("region", { name: "Your PDF is ready" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Cleanup summary" })).toBeVisible();
+
+  await page.getByRole("button", { name: "View changes" }).click();
+  await expect(page.getByRole("heading", { name: "See a representative page" })).toBeFocused();
+});
+
 test("sitemap is fetchable and contains the scanned-PDF search cluster", async ({ request }) => {
   const response = await request.get("/sitemap.xml");
   expect(response.status()).toBe(200);
