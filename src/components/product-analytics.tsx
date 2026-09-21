@@ -1,10 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import {
   captureAnalyticsEvent,
-  fileSizeBucket,
   identifyAnalyticsUser,
   resetAnalyticsUser,
 } from "@/lib/analytics/client";
@@ -20,36 +19,14 @@ const acquisitionLandingPaths = new Set([
   "/improve-scanned-pdf",
 ]);
 
-function selectedPdfFromEvent(event: Event) {
-  if (event.type === "change") {
-    const input = event.target;
-    if (input instanceof HTMLInputElement && input.type === "file") {
-      return input.files?.[0] ?? null;
-    }
-  }
-
-  if (event instanceof DragEvent && event.type === "drop") {
-    return event.dataTransfer?.files?.[0] ?? null;
-  }
-
-  return null;
-}
-
 export function ProductAnalytics() {
   const pathname = usePathname();
-  const diagnosisSeenRef = useRef(false);
-  const resultSeenRef = useRef(false);
 
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return;
 
     const supabase = getSupabaseBrowserClient();
     const entryPath = acquisitionLandingPaths.has(pathname) ? pathname : null;
-    const workflowProperties = {
-      local_vs_server: "local",
-      entry_path: entryPath,
-    };
-
     void supabase.auth.getSession().then(({ data }) => {
       const userId = data.session?.user?.id;
       if (userId) identifyAnalyticsUser(userId);
@@ -117,67 +94,11 @@ export function ProductAnalytics() {
     window.addEventListener("hashchange", captureHashSection);
     const hashFrame = window.requestAnimationFrame(captureHashSection);
 
-    function markUploadStart(event: Event) {
-      const file = selectedPdfFromEvent(event);
-      if (!file || file.type !== "application/pdf") return;
-
-      diagnosisSeenRef.current = false;
-      resultSeenRef.current = false;
-      const properties = {
-        ...workflowProperties,
-        file_size_bucket: fileSizeBucket(file.size),
-      };
-      captureAnalyticsEvent("upload_started", properties);
-      captureAnalyticsEvent("analysis_started", properties);
-    }
-
-    function handleClick(event: MouseEvent) {
-      const target = event.target;
-      if (!(target instanceof Element)) return;
-      const control = target.closest("button, a");
-      if (!control) return;
-
-      if (control.classList.contains("result-download")) {
-        captureAnalyticsEvent("download_clicked", workflowProperties);
-        return;
-      }
-
-      if (control.textContent?.trim() === "Fix My PDF") {
-        captureAnalyticsEvent("cleanup_started", workflowProperties);
-      }
-    }
-
-    function inspectWorkflowState() {
-      if (!diagnosisSeenRef.current && document.querySelector(".diagnosis-workspace")) {
-        diagnosisSeenRef.current = true;
-        captureAnalyticsEvent("upload_completed", workflowProperties);
-        captureAnalyticsEvent("analysis_completed", workflowProperties);
-        captureAnalyticsEvent("diagnosis_viewed", workflowProperties);
-      }
-
-      if (!resultSeenRef.current && document.querySelector(".result-card")) {
-        resultSeenRef.current = true;
-        captureAnalyticsEvent("cleanup_completed", workflowProperties);
-      }
-    }
-
-    document.addEventListener("change", markUploadStart, true);
-    document.addEventListener("drop", markUploadStart, true);
-    document.addEventListener("click", handleClick, true);
-
-    const workflowObserver = new MutationObserver(inspectWorkflowState);
-    workflowObserver.observe(document.body, { childList: true, subtree: true });
-    inspectWorkflowState();
-
     return () => {
       authListener.subscription.unsubscribe();
       sectionObserver.disconnect();
-      workflowObserver.disconnect();
       window.cancelAnimationFrame(hashFrame);
       window.removeEventListener("hashchange", captureHashSection);
-      document.removeEventListener("change", markUploadStart, true);
-      document.removeEventListener("drop", markUploadStart, true);
-      document.removeEventListener("click", handleClick, true);
     };
   }, [pathname]);
 

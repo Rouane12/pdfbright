@@ -3,7 +3,7 @@
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { AnalysisDebugPanel } from "@/components/analysis-debug-panel";
 import { DiagnosisWorkspace } from "@/components/diagnosis-workspace";
-import { captureClientException } from "@/lib/analytics/client";
+import { captureAnalyticsEvent, captureClientException, fileSizeBucket } from "@/lib/analytics/client";
 import { analyzePdfFile } from "@/lib/pdf-analysis/analyze-pdf";
 import {
   PdfAnalysisError,
@@ -109,6 +109,15 @@ export function UploadDropzone() {
   async function handleFile(file: File | undefined) {
     if (!file) return;
 
+    const isPdfCandidate =
+      file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (isPdfCandidate) {
+      captureAnalyticsEvent("upload_started", {
+        local_vs_server: "local",
+        file_size_bucket: fileSizeBucket(file.size),
+      });
+    }
+
     const runId = analysisRunRef.current + 1;
     analysisRunRef.current = runId;
     abortRef.current?.abort();
@@ -128,6 +137,10 @@ export function UploadDropzone() {
       if (analysisRunRef.current !== runId) return;
 
       setAnalysisProgress({ phase: "loading" });
+      captureAnalyticsEvent("analysis_started", {
+        local_vs_server: "local",
+        file_size_bucket: fileSizeBucket(file.size),
+      });
       const result = await analyzePdfFile(file, {
         signal: controller.signal,
         onProgress: (progress) => {
@@ -138,6 +151,17 @@ export function UploadDropzone() {
       });
 
       if (analysisRunRef.current !== runId) return;
+      captureAnalyticsEvent("upload_completed", {
+        local_vs_server: "local",
+        file_size_bucket: fileSizeBucket(file.size),
+        page_count: result.pageCount,
+      });
+      captureAnalyticsEvent("analysis_completed", {
+        local_vs_server: "local",
+        file_size_bucket: fileSizeBucket(file.size),
+        page_count: result.pageCount,
+        duration_ms: result.durationMs,
+      });
       setAnalysisResult(result);
       setAnalysisError(null);
     } catch (analysisFailure) {

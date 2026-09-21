@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProcessingExperience } from "@/components/processing-experience";
 import { ResultExperience } from "@/components/result-experience";
-import { captureClientException } from "@/lib/analytics/client";
+import { captureAnalyticsEvent, captureClientException } from "@/lib/analytics/client";
 import {
   ADVANCED_FIX_OPTIONS,
   buildDiagnosisPlan,
@@ -167,7 +167,13 @@ export function DiagnosisWorkspace({
 
   useEffect(() => {
     headingRef.current?.focus();
-  }, []);
+    captureAnalyticsEvent("diagnosis_viewed", {
+      local_vs_server: "local",
+      page_count: result.pageCount,
+      finding_count: plan.findingCount,
+      is_clean: plan.isClean,
+    });
+  }, [plan.findingCount, plan.isClean, result.pageCount]);
 
   useEffect(() => {
     return () => {
