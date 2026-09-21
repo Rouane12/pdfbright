@@ -1,10 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import {
   captureAnalyticsEvent,
-  fileSizeBucket,
   identifyAnalyticsUser,
   resetAnalyticsUser,
 } from "@/lib/analytics/client";
@@ -37,8 +36,6 @@ function selectedPdfFromEvent(event: Event) {
 
 export function ProductAnalytics() {
   const pathname = usePathname();
-  const diagnosisSeenRef = useRef(false);
-  const resultSeenRef = useRef(false);
 
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return;
@@ -117,67 +114,11 @@ export function ProductAnalytics() {
     window.addEventListener("hashchange", captureHashSection);
     const hashFrame = window.requestAnimationFrame(captureHashSection);
 
-    function markUploadStart(event: Event) {
-      const file = selectedPdfFromEvent(event);
-      if (!file || file.type !== "application/pdf") return;
-
-      diagnosisSeenRef.current = false;
-      resultSeenRef.current = false;
-      const properties = {
-        ...workflowProperties,
-        file_size_bucket: fileSizeBucket(file.size),
-      };
-      captureAnalyticsEvent("upload_started", properties);
-      captureAnalyticsEvent("analysis_started", properties);
-    }
-
-    function handleClick(event: MouseEvent) {
-      const target = event.target;
-      if (!(target instanceof Element)) return;
-      const control = target.closest("button, a");
-      if (!control) return;
-
-      if (control.classList.contains("result-download")) {
-        captureAnalyticsEvent("download_clicked", workflowProperties);
-        return;
-      }
-
-      if (control.textContent?.trim() === "Fix My PDF") {
-        captureAnalyticsEvent("cleanup_started", workflowProperties);
-      }
-    }
-
-    function inspectWorkflowState() {
-      if (!diagnosisSeenRef.current && document.querySelector(".diagnosis-workspace")) {
-        diagnosisSeenRef.current = true;
-        captureAnalyticsEvent("upload_completed", workflowProperties);
-        captureAnalyticsEvent("analysis_completed", workflowProperties);
-        captureAnalyticsEvent("diagnosis_viewed", workflowProperties);
-      }
-
-      if (!resultSeenRef.current && document.querySelector(".result-card")) {
-        resultSeenRef.current = true;
-        captureAnalyticsEvent("cleanup_completed", workflowProperties);
-      }
-    }
-
-    document.addEventListener("change", markUploadStart, true);
-    document.addEventListener("drop", markUploadStart, true);
-    document.addEventListener("click", handleClick, true);
-
-    const workflowObserver = new MutationObserver(inspectWorkflowState);
-    workflowObserver.observe(document.body, { childList: true, subtree: true });
-    inspectWorkflowState();
-
     return () => {
       authListener.subscription.unsubscribe();
       sectionObserver.disconnect();
-      workflowObserver.disconnect();
       window.cancelAnimationFrame(hashFrame);
       window.removeEventListener("hashchange", captureHashSection);
-      document.removeEventListener("change", markUploadStart, true);
-      document.removeEventListener("drop", markUploadStart, true);
-      document.removeEventListener("click", handleClick, true);
     };
   }, [pathname]);
 
