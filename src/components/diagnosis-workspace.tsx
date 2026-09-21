@@ -222,6 +222,11 @@ export function DiagnosisWorkspace({
     clearCleanupOutput();
     const controller = new AbortController();
     cleanupAbortRef.current = controller;
+    captureAnalyticsEvent("cleanup_started", {
+      local_vs_server: "local",
+      page_count: result.pageCount,
+      selected_fix_count: selectedCount,
+    });
     setIsCleaning(true);
     setCleanupProgress({ phase: "preparing" });
 
@@ -236,6 +241,12 @@ export function DiagnosisWorkspace({
       const blobBytes = Uint8Array.from(output.bytes);
       const url = URL.createObjectURL(new Blob([blobBytes.buffer], { type: "application/pdf" }));
       downloadUrlRef.current = url;
+      captureAnalyticsEvent("cleanup_completed", {
+        local_vs_server: "local",
+        page_count: output.report.outputPageCount,
+        selected_fix_count: selectedCount,
+        duration_ms: output.report.durationMs,
+      });
       setDownloadUrl(url);
       setCleanupResult(output);
       setCleanupError(null);
