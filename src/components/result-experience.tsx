@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { captureAnalyticsEvent } from "@/lib/analytics/client";
 import { CleanupDebugPanel } from "@/components/cleanup-debug-panel";
 import type { PdfCleanupReport, PdfCleanupResult } from "@/lib/pdf-cleanup/types";
 
@@ -218,7 +219,17 @@ export function ResultExperience({
       </div>
 
       <div className="result-actions">
-        <a className="button button--primary result-download" href={downloadUrl} download={outputFileName(file.name)}>
+        <a
+          className="button button--primary result-download"
+          href={downloadUrl}
+          download={outputFileName(file.name)}
+          onClick={() =>
+            captureAnalyticsEvent("download_clicked", {
+              local_vs_server: "local",
+              page_count: result.report.outputPageCount,
+            })
+          }
+        >
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M12 4v10m0 0 4-4m-4 4-4-4M5 19h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
