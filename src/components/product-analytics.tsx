@@ -19,21 +19,6 @@ const acquisitionLandingPaths = new Set([
   "/improve-scanned-pdf",
 ]);
 
-function selectedPdfFromEvent(event: Event) {
-  if (event.type === "change") {
-    const input = event.target;
-    if (input instanceof HTMLInputElement && input.type === "file") {
-      return input.files?.[0] ?? null;
-    }
-  }
-
-  if (event instanceof DragEvent && event.type === "drop") {
-    return event.dataTransfer?.files?.[0] ?? null;
-  }
-
-  return null;
-}
-
 export function ProductAnalytics() {
   const pathname = usePathname();
 
@@ -42,11 +27,6 @@ export function ProductAnalytics() {
 
     const supabase = getSupabaseBrowserClient();
     const entryPath = acquisitionLandingPaths.has(pathname) ? pathname : null;
-    const workflowProperties = {
-      local_vs_server: "local",
-      entry_path: entryPath,
-    };
-
     void supabase.auth.getSession().then(({ data }) => {
       const userId = data.session?.user?.id;
       if (userId) identifyAnalyticsUser(userId);
