@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 import { GlobalSiteHeader } from "@/components/global-site-header";
 import { PaddleCheckoutRuntime } from "@/components/paddle-checkout-runtime";
 import { ProductAnalytics } from "@/components/product-analytics";
@@ -21,6 +22,9 @@ import "./m11-launch-fixes.css";
 
 const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
 const billingEnabled = process.env.NEXT_PUBLIC_BILLING_ENABLED === "true";
+const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
+const validGaMeasurementId =
+  gaMeasurementId && /^G-[A-Z0-9]+$/i.test(gaMeasurementId) ? gaMeasurementId : null;
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://pdfbright.app"),
@@ -63,6 +67,22 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        {validGaMeasurementId ? (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${validGaMeasurementId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${validGaMeasurementId}');
+              `}
+            </Script>
+          </>
+        ) : null}
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-slate-950 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
