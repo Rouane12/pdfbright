@@ -5,12 +5,23 @@ import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
-function MenuIcon({ kind }: { kind: "how" | "pricing" | "account" }) {
+function MenuIcon({ kind }: { kind: "how" | "tools" | "pricing" | "account" }) {
   if (kind === "how") {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M5 7.5h14M5 12h9M5 16.5h6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
         <path d="m16 14 3 2.5-3 2.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (kind === "tools") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="4.5" y="4.5" width="6" height="6" rx="1.4" fill="none" stroke="currentColor" strokeWidth="1.7" />
+        <rect x="13.5" y="4.5" width="6" height="6" rx="1.4" fill="none" stroke="currentColor" strokeWidth="1.7" />
+        <rect x="4.5" y="13.5" width="6" height="6" rx="1.4" fill="none" stroke="currentColor" strokeWidth="1.7" />
+        <path d="M16.5 13.3v6.4M13.3 16.5h6.4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
       </svg>
     );
   }
@@ -63,6 +74,7 @@ export function GlobalSiteHeader() {
 
         <nav className="global-nav global-nav--desktop" aria-label="Primary navigation">
           <Link className="nav-link" href="/#how-it-works">How it works</Link>
+          <Link className="nav-link" href="/tools">Free Tools</Link>
           <Link className="nav-link" href="/#pricing">{billingEnabled ? "Pricing" : "Free Early Access"}</Link>
           <Link className="global-nav__signin" href={accountHref}>{accountLabel}</Link>
         </nav>
@@ -79,6 +91,10 @@ export function GlobalSiteHeader() {
             <Link className="global-nav-mobile__item" href="/#how-it-works">
               <span className="global-nav-mobile__icon global-nav-mobile__icon--how"><MenuIcon kind="how" /></span>
               <span>How it works</span>
+            </Link>
+            <Link className="global-nav-mobile__item" href="/tools">
+              <span className="global-nav-mobile__icon"><MenuIcon kind="tools" /></span>
+              <span>Free Tools</span>
             </Link>
             <Link className="global-nav-mobile__item" href="/#pricing">
               <span className="global-nav-mobile__icon global-nav-mobile__icon--pricing"><MenuIcon kind="pricing" /></span>
