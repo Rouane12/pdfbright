@@ -44,6 +44,8 @@ const searchRoutes = [
   "/remove-blank-pages",
   "/compress-scanned-pdf",
   "/improve-scanned-pdf",
+  "/tools",
+  "/tools/upload-readiness",
 ];
 for (const route of searchRoutes) {
   if (!sitemap.includes(route)) fail(`sitemap is missing ${route}`);
