@@ -96,7 +96,7 @@ export function evaluateUploadReadiness(
 
   checks.push({
     id: "file-size",
-    label: `File size ≤ ${maxFileSizeMb:g} MB`.replace(":g", ""),
+    label: `File size ≤ ${maxFileSizeMb} MB`,
     status:
       analysis.fileSizeBytes > fileSizeLimitBytes
         ? "fail"
