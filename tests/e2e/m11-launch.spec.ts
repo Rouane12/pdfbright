@@ -15,6 +15,7 @@ const publicRoutes = [
   "/tools/upload-readiness",
   "/tools/scan-quality",
   "/tools/before-you-send",
+  "/tools/searchability",
   "/privacy",
   "/security",
   "/terms",
