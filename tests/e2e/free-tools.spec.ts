@@ -89,3 +89,47 @@ test("scan quality map keeps clean native-text PDFs clean", async ({ page }, tes
   await expect(page.getByText("Nothing obvious needs attention", { exact: true })).toBeVisible();
   await expect(page.getByRole("region", { name: "Page quality heatmap" })).toBeVisible();
 });
+
+
+test("before-you-send checker keeps a simple PDF clear", async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "chromium-desktop",
+    "Before-send clean-baseline coverage uses one deterministic desktop browser.",
+  );
+  test.setTimeout(60_000);
+
+  await page.goto("/tools/before-you-send", { waitUntil: "domcontentloaded" });
+
+  await page.getByLabel("Choose a PDF for before-send inspection").setInputFiles(
+    path.resolve(".qa-corpus/native-text.pdf"),
+  );
+
+  await expect(
+    page.getByRole("heading", { name: "No obvious send-risk signals detected" }),
+  ).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByText("No obvious hidden baggage", { exact: true })).toBeVisible();
+});
+
+test("before-you-send checker finds synthetic metadata, forms, attachments, and scripts", async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "chromium-desktop",
+    "Before-send baggage coverage uses one deterministic desktop browser.",
+  );
+  test.setTimeout(60_000);
+
+  await page.goto("/tools/before-you-send", { waitUntil: "domcontentloaded" });
+
+  await page.getByLabel("Choose a PDF for before-send inspection").setInputFiles(
+    path.resolve(".qa-corpus/before-send-baggage.pdf"),
+  );
+
+  await expect(
+    page.getByRole("heading", { name: "This PDF contains items worth checking carefully" }),
+  ).toBeVisible({ timeout: 45_000 });
+
+  await expect(page.getByText("Personal metadata is present", { exact: true })).toBeVisible();
+  await expect(page.getByText("Interactive form fields are present", { exact: true })).toBeVisible();
+  await expect(page.getByText("Embedded files are present", { exact: true })).toBeVisible();
+  await expect(page.getByText("Automatic actions or JavaScript are present", { exact: true })).toBeVisible();
+  await expect(page.getByText("Synthetic QA Author", { exact: true })).toBeVisible();
+});
