@@ -49,6 +49,7 @@ const searchRoutes = [
   "/tools/scan-quality",
   "/tools/before-you-send",
   "/tools/searchability",
+  "/tools/page-consistency",
 ];
 for (const route of searchRoutes) {
   if (!sitemap.includes(route)) fail(`sitemap is missing ${route}`);
