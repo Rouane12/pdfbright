@@ -178,3 +178,49 @@ test("searchability test isolates the scanned page in a mixed PDF", async ({ pag
   await expect(pageOne.getByText("Searchable", { exact: true })).toBeVisible();
   await expect(pageTwo.getByText("Needs OCR", { exact: true })).toBeVisible();
 });
+
+
+test("page consistency map keeps a uniform PDF consistent", async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "chromium-desktop",
+    "Page-consistency clean-baseline coverage uses one deterministic desktop browser.",
+  );
+  test.setTimeout(60_000);
+
+  await page.goto("/tools/page-consistency", { waitUntil: "domcontentloaded" });
+
+  await page.getByLabel("Choose a PDF for page consistency mapping").setInputFiles(
+    path.resolve(".qa-corpus/native-text.pdf"),
+  );
+
+  await expect(
+    page.getByRole("heading", { name: "This document follows one consistent page pattern" }),
+  ).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByText("No structural outliers detected.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Page consistency matrix" })).toBeVisible();
+});
+
+test("page consistency map isolates page-size and orientation outliers", async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "chromium-desktop",
+    "Page-consistency outlier coverage uses one deterministic desktop browser.",
+  );
+  test.setTimeout(60_000);
+
+  await page.goto("/tools/page-consistency", { waitUntil: "domcontentloaded" });
+
+  await page.getByLabel("Choose a PDF for page consistency mapping").setInputFiles(
+    path.resolve(".qa-corpus/mixed-page-sizes.pdf"),
+  );
+
+  await expect(
+    page.getByRole("heading", { name: "A few pages break the document pattern" }),
+  ).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByText("A4", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("US Letter", { exact: true }).first()).toBeVisible();
+
+  const pageTwo = page.locator(".consistency-review-card").filter({ hasText: "Page 2" });
+  const pageThree = page.locator(".consistency-review-card").filter({ hasText: "Page 3" });
+  await expect(pageTwo.getByText("Page size differs from the dominant document size", { exact: true })).toBeVisible();
+  await expect(pageThree.getByText("Orientation differs from the dominant orientation", { exact: true })).toBeVisible();
+});
