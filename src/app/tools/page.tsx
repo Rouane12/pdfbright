@@ -5,7 +5,7 @@ import "./tools.css";
 export const metadata: Metadata = {
   title: "Free PDF Tools",
   description:
-    "Free PDF diagnostics from PDFBright: check upload readiness, scan quality, searchability, page consistency, and document changes without a signup.",
+    "Free PDF diagnostics from PDFBright: check upload readiness, scan quality, hidden document baggage, searchability, page consistency, and document changes without a signup.",
   alternates: {
     canonical: "/tools",
   },
@@ -30,7 +30,8 @@ const tools = [
     title: "Before You Send Checker",
     description:
       "Inspect document baggage and privacy-sensitive details before a PDF leaves your hands.",
-    live: false,
+    href: "/tools/before-you-send",
+    live: true,
   },
   {
     title: "PDF Searchability Test",
