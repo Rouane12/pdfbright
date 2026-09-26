@@ -68,3 +68,24 @@ test("scan quality map flags reliable page-level issues", async ({ page }, testI
   await expect(page.getByText("Rotated 90°", { exact: true })).toBeVisible();
   await expect(page.getByText("Page 1", { exact: true })).toBeVisible();
 });
+
+
+test("scan quality map keeps clean native-text PDFs clean", async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "chromium-desktop",
+    "Scan-quality clean-baseline coverage uses one deterministic desktop browser.",
+  );
+  test.setTimeout(60_000);
+
+  await page.goto("/tools/scan-quality", { waitUntil: "domcontentloaded" });
+
+  await page.getByLabel("Choose a PDF for scan quality analysis").setInputFiles(
+    path.resolve(".qa-corpus/native-text.pdf"),
+  );
+
+  await expect(page.getByRole("heading", { name: "Excellent", exact: true })).toBeVisible({
+    timeout: 45_000,
+  });
+  await expect(page.getByText("Nothing obvious needs attention", { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Page quality heatmap" })).toBeVisible();
+});
