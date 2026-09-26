@@ -11,6 +11,12 @@ const publicRoutes = [
   "/remove-blank-pages",
   "/compress-scanned-pdf",
   "/improve-scanned-pdf",
+  "/tools",
+  "/tools/upload-readiness",
+  "/tools/scan-quality",
+  "/tools/before-you-send",
+  "/tools/searchability",
+  "/tools/page-consistency",
   "/privacy",
   "/security",
   "/terms",
@@ -108,6 +114,7 @@ test("mobile navigation opens and exposes core navigation", async ({ page }, tes
   const mobileNav = page.getByRole("navigation", { name: "Mobile navigation" });
   await expect(mobileNav).toBeVisible();
   await expect(mobileNav.getByRole("link", { name: "How it works" })).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: "Free Tools" })).toBeVisible();
   await expect(mobileNav.getByRole("link", { name: "Free Early Access" })).toBeVisible();
   await expect(mobileNav.getByRole("link", { name: /Sign in|Account/ })).toBeVisible();
 
