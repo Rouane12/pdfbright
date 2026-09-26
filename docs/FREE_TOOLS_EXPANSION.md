@@ -40,12 +40,15 @@ Local processing should be used where practical. Free diagnostics should not sil
 
 ## Current implementation
 
-The first two live tools are:
+The first three live tools are:
 
 1. **PDF Upload Readiness Checker**
 2. **PDF Scan Quality Map**
+3. **Before You Send Checker**
 
 The Scan Quality Map reuses PDFBright's page analysis and adds conservative visual signals for contrast, sharpness, darkness, alignment, blankness, rotation, scan classification, and searchability. These are presented as heuristics rather than print-quality certification.
+
+The Before You Send Checker inspects document metadata, review annotations, form fields, external links, embedded files, automatic actions/JavaScript, signatures, permission restrictions, portfolios/collections, and XFA signals. It reports presence/counts without exposing script contents or extracted document text.
 
 The Upload Readiness Checker lets users define:
 
@@ -66,7 +69,7 @@ The tool returns Pass / Review / Fail results and identifies the exact reason a 
 5. PDF Page Consistency Map
 6. PDF Change Receipt
 
-The first two tools are enabled. The remaining entries may be surfaced as clearly labeled upcoming tools until built and verified.
+The first three tools are enabled. The remaining entries may be surfaced as clearly labeled upcoming tools until built and verified.
 
 ## Guardrails
 
