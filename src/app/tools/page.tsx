@@ -37,7 +37,8 @@ const tools = [
     title: "PDF Searchability Test",
     description:
       "Find the exact pages where searchable text is missing instead of relying on a document-wide yes or no.",
-    live: false,
+    href: "/tools/searchability",
+    live: true,
   },
   {
     title: "PDF Page Consistency Map",
