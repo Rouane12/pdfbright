@@ -133,3 +133,48 @@ test("before-you-send checker finds synthetic metadata, forms, attachments, and 
   await expect(page.getByText("Automatic actions or JavaScript are present", { exact: true })).toBeVisible();
   await expect(page.getByText("Synthetic QA Author", { exact: true })).toBeVisible();
 });
+
+
+test("searchability test reports fully searchable native-text PDFs", async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "chromium-desktop",
+    "Searchability clean-baseline coverage uses one deterministic desktop browser.",
+  );
+  test.setTimeout(60_000);
+
+  await page.goto("/tools/searchability", { waitUntil: "domcontentloaded" });
+
+  await page.getByLabel("Choose a PDF for searchability testing").setInputFiles(
+    path.resolve(".qa-corpus/native-text.pdf"),
+  );
+
+  await expect(
+    page.getByRole("heading", { name: "Every content page is searchable" }),
+  ).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByText("100%", { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Page searchability map" })).toBeVisible();
+});
+
+test("searchability test isolates the scanned page in a mixed PDF", async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "chromium-desktop",
+    "Searchability mixed-document coverage uses one deterministic desktop browser.",
+  );
+  test.setTimeout(60_000);
+
+  await page.goto("/tools/searchability", { waitUntil: "domcontentloaded" });
+
+  await page.getByLabel("Choose a PDF for searchability testing").setInputFiles(
+    path.resolve(".qa-corpus/mixed-native-and-ocr-scan.pdf"),
+  );
+
+  await expect(
+    page.getByRole("heading", { name: "Only part of this PDF is searchable" }),
+  ).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByText("50%", { exact: true })).toBeVisible();
+
+  const pageOne = page.locator(".searchability-detail").filter({ hasText: "Page 1" });
+  const pageTwo = page.locator(".searchability-detail").filter({ hasText: "Page 2" });
+  await expect(pageOne.getByText("Searchable", { exact: true })).toBeVisible();
+  await expect(pageTwo.getByText("Needs OCR", { exact: true })).toBeVisible();
+});
