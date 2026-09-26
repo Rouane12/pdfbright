@@ -23,7 +23,8 @@ const tools = [
     title: "PDF Scan Quality Map",
     description:
       "See which pages look crooked, blank, image-only, low quality, or difficult to search in one page-by-page map.",
-    live: false,
+    href: "/tools/scan-quality",
+    live: true,
   },
   {
     title: "Before You Send Checker",
