@@ -15,6 +15,7 @@ const scannedPdfSearchRoutes = [
 const freeToolRoutes = [
   "/tools",
   "/tools/upload-readiness",
+  "/tools/scan-quality",
 ] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
