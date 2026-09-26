@@ -44,7 +44,8 @@ const tools = [
     title: "PDF Page Consistency Map",
     description:
       "Visualize page sizes, orientation, text presence, and structural outliers across the whole document.",
-    live: false,
+    href: "/tools/page-consistency",
+    live: true,
   },
   {
     title: "PDF Change Receipt",
