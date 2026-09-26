@@ -16,6 +16,7 @@ const publicRoutes = [
   "/tools/scan-quality",
   "/tools/before-you-send",
   "/tools/searchability",
+  "/tools/page-consistency",
   "/privacy",
   "/security",
   "/terms",
