@@ -99,7 +99,7 @@ function countFormFields(value: unknown): number {
 
   const object = record(value);
   if (!object) return 0;
-  return Object.values(object).reduce(
+  return Object.values(object).reduce<number>(
     (total, fields) => total + (Array.isArray(fields) ? fields.length : 1),
     0,
   );
