@@ -17,6 +17,7 @@ const freeToolRoutes = [
   "/tools/upload-readiness",
   "/tools/scan-quality",
   "/tools/before-you-send",
+  "/tools/searchability",
 ] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
