@@ -13,6 +13,7 @@ const publicRoutes = [
   "/improve-scanned-pdf",
   "/tools",
   "/tools/upload-readiness",
+  "/tools/scan-quality",
   "/privacy",
   "/security",
   "/terms",
