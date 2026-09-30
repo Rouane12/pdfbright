@@ -80,6 +80,29 @@ The tool returns Pass / Review / Fail results and identifies the exact reason a 
 
 All six tools in the initial curated batch are enabled after passing the existing QA gates.
 
+## Post-launch measurement
+
+After the six-tool batch shipped, the next phase moved from feature expansion to evidence gathering.
+
+The Free Tools funnel now measures:
+
+**tools hub / direct landing → tool view → valid PDF selection → analysis start → result/failure → core cleanup CTA**
+
+The goal is to learn which tools attract real usage, which document problems recur, where users fail or abandon, and which utilities naturally lead into PDFBright's core cleanup workflow.
+
+Analytics remains content-minimal:
+
+- file sizes are bucketed rather than sent exactly
+- result values are controlled categories
+- processing time uses coarse buckets
+- filenames and document contents remain excluded
+- Before You Send metadata values are not sent
+- Change Receipt is measured as one paired comparison run
+
+See `docs/POST_LAUNCH_ANALYTICS.md` for the event taxonomy and QA rules.
+
+Do not add another large tool batch until usage, Search Console queries, support feedback, and conversion behavior justify the next adjacent feature.
+
 ## Guardrails
 
 - Keep the main homepage focused on the one-click cleanup workflow.
