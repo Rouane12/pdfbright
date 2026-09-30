@@ -224,3 +224,63 @@ test("page consistency map isolates page-size and orientation outliers", async (
   await expect(pageTwo.getByText("Page size differs from the dominant document size", { exact: true })).toBeVisible();
   await expect(pageThree.getByText("Orientation differs from the dominant orientation", { exact: true })).toBeVisible();
 });
+
+
+test("change receipt reports no structural differences for the same PDF", async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "chromium-desktop",
+    "Change-receipt same-file coverage uses one deterministic desktop browser.",
+  );
+  test.setTimeout(90_000);
+
+  await page.goto("/tools/change-receipt", { waitUntil: "domcontentloaded" });
+
+  const fixture = path.resolve(".qa-corpus/native-text.pdf");
+  await page.getByLabel("Choose original PDF for change receipt").setInputFiles(fixture);
+  await page.getByLabel("Choose modified PDF for change receipt").setInputFiles(fixture);
+
+  await expect(
+    page.getByRole("heading", { name: "No structural changes detected by these checks" }),
+  ).toBeVisible({ timeout: 60_000 });
+  await expect(
+    page.getByText("No structural changes were detected by the checks in this receipt.", { exact: true }),
+  ).toBeVisible();
+});
+
+test("change receipt captures deterministic structural changes", async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "chromium-desktop",
+    "Change-receipt changed-pair coverage uses one deterministic desktop browser.",
+  );
+  test.setTimeout(90_000);
+
+  await page.goto("/tools/change-receipt", { waitUntil: "domcontentloaded" });
+
+  await page.getByLabel("Choose original PDF for change receipt").setInputFiles(
+    path.resolve(".qa-corpus/change-receipt-original.pdf"),
+  );
+  await page.getByLabel("Choose modified PDF for change receipt").setInputFiles(
+    path.resolve(".qa-corpus/change-receipt-modified.pdf"),
+  );
+
+  await expect(
+    page.getByRole("heading", { name: "Structural changes detected" }),
+  ).toBeVisible({ timeout: 60_000 });
+
+  await expect(page.getByText("Page count changed", { exact: true })).toBeVisible();
+  await expect(page.getByText("Page dimensions changed", { exact: true })).toBeVisible();
+  await expect(page.getByText("Page rotation changed", { exact: true })).toBeVisible();
+  await expect(page.getByText("Searchability changed", { exact: true })).toBeVisible();
+  await expect(page.getByText("Page content profile changed", { exact: true })).toBeVisible();
+  await expect(page.getByText("Document metadata changed", { exact: true })).toBeVisible();
+
+  const pageOne = page.locator(".change-page-card").filter({ hasText: "Page 1" });
+  const pageTwo = page.locator(".change-page-card").filter({ hasText: "Page 2" });
+  const pageThree = page.locator(".change-page-card").filter({ hasText: "Page 3" });
+  await expect(pageOne.getByText("Rotation changed from 0° to 90°", { exact: true })).toBeVisible();
+  await expect(pageTwo.getByText(/Page size changed from/)).toBeVisible();
+  await expect(pageTwo.getByText("The reliable searchable text layer is no longer detected", { exact: true })).toBeVisible();
+  await expect(pageThree.getByText("Page exists only in the modified PDF", { exact: true })).toBeVisible();
+  await expect(page.getByText("Synthetic Original Author", { exact: true })).toBeVisible();
+  await expect(page.getByText("Synthetic Modified Author", { exact: true })).toBeVisible();
+});
