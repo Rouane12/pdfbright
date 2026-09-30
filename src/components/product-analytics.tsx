@@ -51,9 +51,8 @@ const completionSelectors: Record<FreeToolId, string> = {
 };
 
 function isValidToolPdf(file: File) {
-  const looksLikePdf =
-    file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-  return looksLikePdf && file.size > 0 && file.size <= 50 * 1024 * 1024;
+  const mimeLooksLikePdf = file.type === "application/pdf" || file.type === "";
+  return mimeLooksLikePdf && file.size > 0 && file.size <= 50 * 1024 * 1024;
 }
 
 function changeReceiptRole(input: HTMLInputElement): ChangeReceiptFileRole | null {
