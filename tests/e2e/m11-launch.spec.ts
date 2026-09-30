@@ -17,6 +17,7 @@ const publicRoutes = [
   "/tools/before-you-send",
   "/tools/searchability",
   "/tools/page-consistency",
+  "/tools/change-receipt",
   "/privacy",
   "/security",
   "/terms",
