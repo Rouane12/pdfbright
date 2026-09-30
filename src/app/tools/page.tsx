@@ -51,7 +51,8 @@ const tools = [
     title: "PDF Change Receipt",
     description:
       "Compare an original and modified PDF and get a plain-language receipt of the structural changes.",
-    live: false,
+    href: "/tools/change-receipt",
+    live: true,
   },
 ];
 
