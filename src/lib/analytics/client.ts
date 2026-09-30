@@ -14,7 +14,15 @@ export type AnalyticsEventName =
   | "download_clicked"
   | "pricing_cta_clicked"
   | "checkout_started"
-  | "checkout_failed";
+  | "checkout_failed"
+  | "free_tools_hub_viewed"
+  | "free_tool_opened"
+  | "free_tool_viewed"
+  | "free_tool_file_selected"
+  | "free_tool_analysis_started"
+  | "free_tool_analysis_completed"
+  | "free_tool_analysis_failed"
+  | "free_tool_core_cta_clicked";
 
 export type ClientExceptionStage = "analysis" | "cleanup" | "app_runtime";
 
