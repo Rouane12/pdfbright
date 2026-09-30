@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import "./tools.css";
+import "./tools-hub-polish.css";
 
 export const metadata: Metadata = {
   title: "Free PDF Tools",
