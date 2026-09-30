@@ -40,13 +40,14 @@ Local processing should be used where practical. Free diagnostics should not sil
 
 ## Current implementation
 
-The first five live tools are:
+The initial six-tool batch is live:
 
 1. **PDF Upload Readiness Checker**
 2. **PDF Scan Quality Map**
 3. **Before You Send Checker**
 4. **PDF Searchability Test**
 5. **PDF Page Consistency Map**
+6. **PDF Change Receipt**
 
 The Scan Quality Map reuses PDFBright's page analysis and adds conservative visual signals for contrast, sharpness, darkness, alignment, blankness, rotation, scan classification, and searchability. These are presented as heuristics rather than print-quality certification.
 
@@ -55,6 +56,8 @@ The Before You Send Checker inspects document metadata, review annotations, form
 The PDF Searchability Test reports search coverage across non-blank pages, identifies exact pages with reliable extractable text, distinguishes likely OCR candidates from uncertain textless pages, and excludes likely blank pages from the coverage percentage.
 
 The PDF Page Consistency Map derives a dominant document pattern and compares every page against it across physical page size, orientation, content family, searchability, rotation metadata, and blankness. Physical page-size grouping is orientation-independent so landscape and portrait versions of the same paper format are not mislabeled as different sizes.
+
+The PDF Change Receipt compares an original and modified PDF by aligned page position. It reports file-size, page-count, physical page-dimension, rotation, searchability, content-profile, blankness, and common metadata changes. It explicitly does not claim semantic text equality, visual pixel equality, or inferred page reordering.
 
 The Upload Readiness Checker lets users define:
 
@@ -75,7 +78,7 @@ The tool returns Pass / Review / Fail results and identifies the exact reason a 
 5. PDF Page Consistency Map
 6. PDF Change Receipt
 
-The first five tools are enabled. The remaining entry may be surfaced as a clearly labeled upcoming tool until built and verified.
+All six tools in the initial curated batch are enabled after passing the existing QA gates.
 
 ## Guardrails
 
