@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import Link from "next/link";
 import { analyzePdfFile } from "@/lib/pdf-analysis/analyze-pdf";
 import {
@@ -57,7 +57,7 @@ function FileSlot({
 }: {
   label: string;
   file: File | null;
-  inputRef: React.RefObject<HTMLInputElement | null>;
+  inputRef: RefObject<HTMLInputElement | null>;
   ariaLabel: string;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
 }) {
