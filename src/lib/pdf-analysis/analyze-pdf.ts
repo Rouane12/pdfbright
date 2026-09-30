@@ -389,6 +389,29 @@ export async function analyzePdfFile(
         estimatedSkewDegrees !== null &&
         Math.abs(estimatedSkewDegrees) >= 0.75 &&
         skewConfidence >= 0.35;
+      const visualQualityEligible =
+        classification.kind === "probable-scan" || classification.kind === "image-only";
+      const meanLuminance = visualQualityEligible
+        ? (pixelResult?.meanLuminance ?? null)
+        : null;
+      const contrastScore = visualQualityEligible
+        ? (pixelResult?.contrastScore ?? null)
+        : null;
+      const sharpnessScore = visualQualityEligible
+        ? (pixelResult?.sharpnessScore ?? null)
+        : null;
+      const lowContrast =
+        !blankLikely &&
+        contrastScore !== null &&
+        contrastScore < 0.18;
+      const lowSharpness =
+        !blankLikely &&
+        sharpnessScore !== null &&
+        sharpnessScore < 0.22;
+      const unusuallyDark =
+        !blankLikely &&
+        meanLuminance !== null &&
+        meanLuminance < 155;
 
       pages.push({
         pageNumber,
@@ -414,6 +437,15 @@ export async function analyzePdfFile(
           estimatedDegrees: estimatedSkewDegrees,
           confidence: skewConfidence,
           likelySkewed,
+        },
+        visualQuality: {
+          evidence: "heuristic",
+          meanLuminance,
+          contrastScore,
+          sharpnessScore,
+          lowContrast,
+          lowSharpness,
+          unusuallyDark,
         },
         lowResolutionRender: {
           attempted: true,

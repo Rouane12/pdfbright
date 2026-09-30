@@ -373,6 +373,79 @@ async function addTextPage(doc, text, size = [612, 792]) {
   await savePdf("form.pdf", doc, { pages: 1, formFields: 1 });
 }
 
+
+{
+  const doc = await PDFDocument.create();
+  const page = await addTextPage(doc, "Before-send checker synthetic baggage fixture");
+  doc.setAuthor("Synthetic QA Author");
+  doc.setSubject("Internal QA subject");
+  doc.setKeywords(["internal", "qa", "synthetic"]);
+  doc.addJavaScript("qa-script", 'console.println("Synthetic PDFBright QA");');
+
+  const form = doc.getForm();
+  const field = form.createTextField("qa.private-note");
+  field.setText("Synthetic private value");
+  field.addToPage(page, { x: 54, y: 560, width: 260, height: 28 });
+
+  await doc.attach(
+    new TextEncoder().encode("Synthetic attachment content"),
+    "internal-note.txt",
+    {
+      mimeType: "text/plain",
+      description: "Synthetic QA attachment",
+    },
+  );
+
+  await savePdf("before-send-baggage.pdf", doc, {
+    pages: 1,
+    formFields: 1,
+    beforeSendBaggage: true,
+  });
+}
+
+
+{
+  const original = await PDFDocument.create();
+  original.setTitle("Change Receipt Original");
+  original.setAuthor("Synthetic Original Author");
+  await addTextPage(original, "Change receipt original — page 1", [595.28, 841.89]);
+  await addTextPage(original, "Change receipt original — page 2", [595.28, 841.89]);
+  await savePdf("change-receipt-original.pdf", original, {
+    pages: 2,
+    changeReceiptRole: "original",
+  });
+
+  const modified = await PDFDocument.create();
+  modified.setTitle("Change Receipt Modified");
+  modified.setAuthor("Synthetic Modified Author");
+
+  const first = await addTextPage(
+    modified,
+    "Change receipt modified — page 1",
+    [595.28, 841.89],
+  );
+  first.setRotation(degrees(90));
+
+  const scanImage = await modified.embedPng(ocrScanPng);
+  const second = modified.addPage([612, 792]);
+  second.drawImage(scanImage, { x: 0, y: 0, width: 612, height: 792 });
+
+  await addTextPage(
+    modified,
+    "Change receipt modified — added page 3",
+    [595.28, 841.89],
+  );
+
+  await savePdf("change-receipt-modified.pdf", modified, {
+    pages: 3,
+    changeReceiptRole: "modified",
+    rotatedPage: 1,
+    pageSizeChange: 2,
+    searchabilityLoss: 2,
+    addedPage: 3,
+  });
+}
+
 await fs.writeFile(path.join(outputDir, "password-protected.pdf"), encryptedPdf);
 manifest.push({
   name: "password-protected.pdf",

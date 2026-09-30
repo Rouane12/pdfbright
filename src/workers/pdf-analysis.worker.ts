@@ -12,6 +12,9 @@ type PixelResult = {
   nearWhiteRatio: number;
   darkPixelRatio: number;
   edgeDensity: number;
+  meanLuminance: number;
+  contrastScore: number;
+  sharpnessScore: number;
   blankScore: number;
   likelyBlank: boolean;
   estimatedSkewDegrees: number | null;
@@ -129,6 +132,10 @@ function analyzePixels(rgba: Uint8ClampedArray, width: number, height: number): 
   let dark = 0;
   let edgeComparisons = 0;
   let strongEdges = 0;
+  let luminanceSum = 0;
+  let luminanceSquaredSum = 0;
+  let detailGradientSum = 0;
+  let detailComparisons = 0;
 
   for (let y = 0; y < height; y += step) {
     for (let x = 0; x < width; x += step) {
@@ -138,6 +145,8 @@ function analyzePixels(rgba: Uint8ClampedArray, width: number, height: number): 
 
       const lum = luminance(rgba[offset], rgba[offset + 1], rgba[offset + 2]);
       samples += 1;
+      luminanceSum += lum;
+      luminanceSquaredSum += lum * lum;
       if (lum >= 245) nearWhite += 1;
       if (lum <= 190) dark += 1;
 
@@ -148,8 +157,13 @@ function analyzePixels(rgba: Uint8ClampedArray, width: number, height: number): 
           rgba[rightOffset + 1],
           rgba[rightOffset + 2],
         );
+        const difference = Math.abs(lum - rightLum);
         edgeComparisons += 1;
-        if (Math.abs(lum - rightLum) > 30) strongEdges += 1;
+        if (difference > 30) strongEdges += 1;
+        if (difference > 4) {
+          detailComparisons += 1;
+          detailGradientSum += difference;
+        }
       }
 
       if (y + step < height) {
@@ -159,8 +173,13 @@ function analyzePixels(rgba: Uint8ClampedArray, width: number, height: number): 
           rgba[downOffset + 1],
           rgba[downOffset + 2],
         );
+        const difference = Math.abs(lum - downLum);
         edgeComparisons += 1;
-        if (Math.abs(lum - downLum) > 30) strongEdges += 1;
+        if (difference > 30) strongEdges += 1;
+        if (difference > 4) {
+          detailComparisons += 1;
+          detailGradientSum += difference;
+        }
       }
     }
   }
@@ -170,6 +189,9 @@ function analyzePixels(rgba: Uint8ClampedArray, width: number, height: number): 
       nearWhiteRatio: 1,
       darkPixelRatio: 0,
       edgeDensity: 0,
+      meanLuminance: 255,
+      contrastScore: 0,
+      sharpnessScore: 0,
       blankScore: 1,
       likelyBlank: true,
       estimatedSkewDegrees: null,
@@ -180,6 +202,15 @@ function analyzePixels(rgba: Uint8ClampedArray, width: number, height: number): 
   const nearWhiteRatio = nearWhite / samples;
   const darkPixelRatio = dark / samples;
   const edgeDensity = edgeComparisons > 0 ? strongEdges / edgeComparisons : 0;
+  const meanLuminance = luminanceSum / samples;
+  const luminanceVariance = Math.max(
+    0,
+    luminanceSquaredSum / samples - meanLuminance * meanLuminance,
+  );
+  const contrastScore = clamp(Math.sqrt(luminanceVariance) / 72);
+  const meanDetailGradient =
+    detailComparisons > 0 ? detailGradientSum / detailComparisons : 0;
+  const sharpnessScore = clamp((meanDetailGradient - 6) / 70);
   const blankScore = clamp(
     nearWhiteRatio * 0.78 +
       (1 - clamp(darkPixelRatio / 0.02)) * 0.12 +
@@ -194,6 +225,9 @@ function analyzePixels(rgba: Uint8ClampedArray, width: number, height: number): 
     nearWhiteRatio,
     darkPixelRatio,
     edgeDensity,
+    meanLuminance,
+    contrastScore,
+    sharpnessScore,
     blankScore,
     likelyBlank,
     ...skew,

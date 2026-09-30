@@ -22,6 +22,9 @@ export interface PixelHeuristicResult {
   nearWhiteRatio: number;
   darkPixelRatio: number;
   edgeDensity: number;
+  meanLuminance: number;
+  contrastScore: number;
+  sharpnessScore: number;
   blankScore: number;
   likelyBlank: boolean;
   estimatedSkewDegrees: number | null;
@@ -52,6 +55,15 @@ export interface PdfPageAnalysis {
     estimatedDegrees: number | null;
     confidence: number;
     likelySkewed: boolean;
+  };
+  visualQuality: {
+    evidence: "heuristic";
+    meanLuminance: number | null;
+    contrastScore: number | null;
+    sharpnessScore: number | null;
+    lowContrast: boolean;
+    lowSharpness: boolean;
+    unusuallyDark: boolean;
   };
   lowResolutionRender: {
     attempted: boolean;
