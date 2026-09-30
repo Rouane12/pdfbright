@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
-    "qa:source": "node scripts/qa-source-audit.mjs",
+    "qa:source": "node scripts/qa-source-audit.mjs && node scripts/qa-free-tools-analytics.mjs",
     "qa:corpus": "node scripts/generate-qa-corpus.mjs && node scripts/validate-qa-corpus.mjs",
     "qa:e2e": "playwright test",
     "qa": "npm run qa:source && npm run qa:corpus",
