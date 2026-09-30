@@ -200,8 +200,8 @@ export function buildChangeReceipt(
       label: "Page count changed",
       detail:
         modifiedAnalysis.pageCount > originalAnalysis.pageCount
-          ? `${addedPages.length} page${addedPages.length === 1 ? "" : "s"} added at the end of the compared page sequence.`
-          : `${removedPages.length} page${removedPages.length === 1 ? "" : "s"} removed from the end of the compared page sequence.`,
+          ? `The modified PDF has ${addedPages.length} additional page position${addedPages.length === 1 ? "" : "s"} beyond the original page count.`
+          : `The modified PDF has ${removedPages.length} fewer page position${removedPages.length === 1 ? "" : "s"} than the original.`,
       pageNumbers: modifiedAnalysis.pageCount > originalAnalysis.pageCount
         ? addedPages
         : removedPages,
