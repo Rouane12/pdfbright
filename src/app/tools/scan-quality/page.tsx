@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { FreeToolHero } from "@/components/free-tool-hero";
 import { ScanQualityMap } from "@/components/scan-quality-map";
 import "../tools.css";
+import "../tool-page-polish.css";
 
 export const metadata: Metadata = {
   title: "PDF Scan Quality Map",
@@ -15,24 +16,17 @@ export const metadata: Metadata = {
 export default function ScanQualityPage() {
   return (
     <main className="tools-page">
-      <section className="tool-page-hero">
-        <div className="tool-page-inner">
-          <Link className="tool-page-hero__back" href="/tools">
-            ← All free tools
-          </Link>
-          <p className="tools-eyebrow">Free PDF diagnostic</p>
-          <h1>See the weak pages before they become a problem.</h1>
-          <p>
-            PDFBright turns a PDF into a page-by-page quality map so crooked, blank,
-            unsearchable, soft, low-contrast, or unusually dark scan pages stand out immediately.
-          </p>
-          <div className="tool-privacy-line" aria-label="Tool privacy details">
-            <span>No signup</span>
-            <span>No document-content analytics</span>
-            <span>Current inspection runs in your browser</span>
-          </div>
-        </div>
-      </section>
+      <FreeToolHero
+        icon="scan"
+        eyebrow="Free PDF diagnostic"
+        title="See the weak pages before they become a problem."
+        description="PDFBright turns a PDF into a page-by-page quality map so crooked, blank, unsearchable, soft, low-contrast, or unusually dark scan pages stand out immediately."
+        privacy={[
+          "No signup",
+          "No document-content analytics",
+          "Current inspection runs in your browser",
+        ]}
+      />
 
       <ScanQualityMap />
     </main>
