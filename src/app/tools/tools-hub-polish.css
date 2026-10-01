@@ -53,9 +53,38 @@
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
 
+.tool-card__icon--scan {
+  color: #6d5ce8;
+  border-color: #ddd7ff;
+  background: linear-gradient(145deg, #fbfaff, #f1efff);
+}
+
+.tool-card__icon--send {
+  color: #0c8f7a;
+  border-color: #cceee6;
+  background: linear-gradient(145deg, #f9fffd, #ebfaf6);
+}
+
+.tool-card__icon--search {
+  color: #3e67d8;
+  border-color: #d3defd;
+  background: linear-gradient(145deg, #fbfcff, #edf2ff);
+}
+
+.tool-card__icon--consistency {
+  color: #bd7600;
+  border-color: #f3dfb8;
+  background: linear-gradient(145deg, #fffdf9, #fff6e6);
+}
+
+.tool-card__icon--changes {
+  color: #c84d75;
+  border-color: #f2d4df;
+  background: linear-gradient(145deg, #fffafb, #fff0f5);
+}
+
 .tool-card--live:hover .tool-card__icon {
   transform: translateY(-2px) scale(1.03);
-  border-color: #9bdcff;
   box-shadow: 0 14px 28px rgba(11, 124, 255, 0.14);
 }
 
