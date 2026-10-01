@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { FreeToolHero } from "@/components/free-tool-hero";
 import { PageConsistencyMap } from "@/components/page-consistency-map";
 import "../tools.css";
+import "../tool-page-polish.css";
 
 export const metadata: Metadata = {
   title: "PDF Page Consistency Map",
@@ -15,24 +16,17 @@ export const metadata: Metadata = {
 export default function PageConsistencyPage() {
   return (
     <main className="tools-page">
-      <section className="tool-page-hero">
-        <div className="tool-page-inner">
-          <Link className="tool-page-hero__back" href="/tools">
-            ← All free tools
-          </Link>
-          <p className="tools-eyebrow">Free PDF structure map</p>
-          <h1>Find the one weird page hiding in an otherwise consistent PDF.</h1>
-          <p>
-            Compare page size, orientation, content pattern, searchability, rotation,
-            and blankness across the entire document in one visual matrix.
-          </p>
-          <div className="tool-privacy-line" aria-label="Tool privacy details">
-            <span>No signup</span>
-            <span>No extracted text is displayed or logged</span>
-            <span>Analysis runs in your browser</span>
-          </div>
-        </div>
-      </section>
+      <FreeToolHero
+        icon="consistency"
+        eyebrow="Free PDF structure map"
+        title="Find the one weird page hiding in an otherwise consistent PDF."
+        description="Compare page size, orientation, content pattern, searchability, rotation, and blankness across the entire document in one visual matrix."
+        privacy={[
+          "No signup",
+          "No extracted text is displayed or logged",
+          "Analysis runs in your browser",
+        ]}
+      />
 
       <PageConsistencyMap />
     </main>
