@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { FreeToolHero } from "@/components/free-tool-hero";
 import { SearchabilityChecker } from "@/components/searchability-checker";
 import "../tools.css";
+import "../tool-page-polish.css";
 
 export const metadata: Metadata = {
   title: "PDF Searchability Test",
@@ -15,24 +16,17 @@ export const metadata: Metadata = {
 export default function SearchabilityPage() {
   return (
     <main className="tools-page">
-      <section className="tool-page-hero">
-        <div className="tool-page-inner">
-          <Link className="tool-page-hero__back" href="/tools">
-            ← All free tools
-          </Link>
-          <p className="tools-eyebrow">Free PDF searchability test</p>
-          <h1>Don&apos;t ask whether the PDF is searchable. Find the exact pages that aren&apos;t.</h1>
-          <p>
-            Test every page for reliable extractable text, see your true search coverage,
-            and identify which pages are likely scans that need OCR.
-          </p>
-          <div className="tool-privacy-line" aria-label="Tool privacy details">
-            <span>No signup</span>
-            <span>No extracted text is displayed or logged</span>
-            <span>Analysis runs in your browser</span>
-          </div>
-        </div>
-      </section>
+      <FreeToolHero
+        icon="search"
+        eyebrow="Free PDF searchability test"
+        title="Don't ask whether the PDF is searchable. Find the exact pages that aren't."
+        description="Test every page for reliable extractable text, see your true search coverage, and identify which pages are likely scans that need OCR."
+        privacy={[
+          "No signup",
+          "No extracted text is displayed or logged",
+          "Analysis runs in your browser",
+        ]}
+      />
 
       <SearchabilityChecker />
     </main>
