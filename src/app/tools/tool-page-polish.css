@@ -1,16 +1,16 @@
 .tool-page-hero {
-  padding: 4.5rem 1.25rem 3.2rem;
+  padding: 4.75rem 1.25rem 3.45rem;
 }
 
 .tool-page-hero__back {
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.8rem;
 }
 
 .tool-page-hero__identity {
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  margin-bottom: 1.15rem;
+  margin-bottom: 1.4rem;
 }
 
 .tool-page-hero__identity .tools-eyebrow {
@@ -70,24 +70,24 @@
   margin: 0;
   max-width: 860px;
   font-size: clamp(2.45rem, 5vw, 4.25rem);
-  line-height: 1.04;
-  letter-spacing: -0.05em;
+  line-height: 1.09;
+  letter-spacing: -0.048em;
   text-wrap: balance;
 }
 
 .tool-page-hero .tool-page-hero__description {
-  margin: 1.35rem 0 0;
+  margin: 1.7rem 0 0;
   max-width: 760px;
   color: #63758a;
   font-size: 1.02rem;
-  line-height: 1.68;
+  line-height: 1.72;
   text-align: left;
   text-wrap: pretty;
 }
 
 .tool-page-hero .tool-privacy-line {
   gap: 0.6rem;
-  margin-top: 1.45rem;
+  margin-top: 1.7rem;
 }
 
 .tool-page-hero .tool-privacy-line span {
@@ -97,16 +97,16 @@
 
 @media (max-width: 700px) {
   .tool-page-hero {
-    padding: 3.4rem 1rem 2.4rem;
+    padding: 3.5rem 1rem 2.65rem;
   }
 
   .tool-page-hero__back {
-    margin-bottom: 1.35rem;
+    margin-bottom: 1.4rem;
   }
 
   .tool-page-hero__identity {
     gap: 0.65rem;
-    margin-bottom: 0.95rem;
+    margin-bottom: 1.1rem;
   }
 
   .tool-page-hero__icon {
@@ -122,17 +122,17 @@
 
   .tool-page-hero h1 {
     font-size: clamp(2.15rem, 10vw, 3rem);
-    line-height: 1.06;
-    letter-spacing: -0.045em;
+    line-height: 1.1;
+    letter-spacing: -0.043em;
   }
 
   .tool-page-hero .tool-page-hero__description {
-    margin-top: 1.05rem;
+    margin-top: 1.35rem;
     font-size: 0.96rem;
-    line-height: 1.6;
+    line-height: 1.65;
   }
 
   .tool-page-hero .tool-privacy-line {
-    margin-top: 1.2rem;
+    margin-top: 1.45rem;
   }
 }
