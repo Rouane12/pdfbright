@@ -142,7 +142,7 @@ export default function SearchabilityPage() {
             Found pages without a text layer?
           </h2>
           <p className="mt-4 max-w-3xl text-[0.96rem] leading-7 text-slate-600">
-            Use PDFBright's OCR workflow when the problem is missing searchable text, or check scan quality first when skew, softness, contrast, or dark pages may reduce OCR quality.
+            Use PDFBright&apos;s OCR workflow when the problem is missing searchable text, or check scan quality first when skew, softness, contrast, or dark pages may reduce OCR quality.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link className="rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800" href="/make-pdf-searchable">
