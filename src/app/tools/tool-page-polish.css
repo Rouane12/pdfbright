@@ -1,0 +1,138 @@
+.tool-page-hero {
+  padding: 4.5rem 1.25rem 3.2rem;
+}
+
+.tool-page-hero__back {
+  margin-bottom: 1.75rem;
+}
+
+.tool-page-hero__identity {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 1.15rem;
+}
+
+.tool-page-hero__identity .tools-eyebrow {
+  margin: 0;
+  color: #0872e8;
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.tool-page-hero__icon {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #cce9fb;
+  border-radius: 0.95rem;
+  background: linear-gradient(145deg, #f8fdff, #eaf7ff);
+  color: #0872e8;
+  box-shadow: 0 10px 24px rgba(11, 124, 255, 0.08);
+}
+
+.tool-page-hero__icon--scan {
+  color: #6d5ce8;
+  border-color: #ddd7ff;
+  background: linear-gradient(145deg, #fbfaff, #f1efff);
+}
+
+.tool-page-hero__icon--send {
+  color: #0c8f7a;
+  border-color: #cceee6;
+  background: linear-gradient(145deg, #f9fffd, #ebfaf6);
+}
+
+.tool-page-hero__icon--search {
+  color: #3e67d8;
+  border-color: #d3defd;
+  background: linear-gradient(145deg, #fbfcff, #edf2ff);
+}
+
+.tool-page-hero__icon--consistency {
+  color: #bd7600;
+  border-color: #f3dfb8;
+  background: linear-gradient(145deg, #fffdf9, #fff6e6);
+}
+
+.tool-page-hero__icon--changes {
+  color: #c84d75;
+  border-color: #f2d4df;
+  background: linear-gradient(145deg, #fffafb, #fff0f5);
+}
+
+.tool-page-hero h1 {
+  margin: 0;
+  max-width: 860px;
+  font-size: clamp(2.45rem, 5vw, 4.25rem);
+  line-height: 1.04;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
+}
+
+.tool-page-hero .tool-page-hero__description {
+  margin: 1.35rem 0 0;
+  max-width: 760px;
+  color: #63758a;
+  font-size: 1.02rem;
+  line-height: 1.68;
+  text-align: left;
+  text-wrap: pretty;
+}
+
+.tool-page-hero .tool-privacy-line {
+  gap: 0.6rem;
+  margin-top: 1.45rem;
+}
+
+.tool-page-hero .tool-privacy-line span {
+  padding: 0.45rem 0.75rem;
+  line-height: 1.2;
+}
+
+@media (max-width: 700px) {
+  .tool-page-hero {
+    padding: 3.4rem 1rem 2.4rem;
+  }
+
+  .tool-page-hero__back {
+    margin-bottom: 1.35rem;
+  }
+
+  .tool-page-hero__identity {
+    gap: 0.65rem;
+    margin-bottom: 0.95rem;
+  }
+
+  .tool-page-hero__icon {
+    width: 2.65rem;
+    height: 2.65rem;
+    border-radius: 0.82rem;
+  }
+
+  .tool-page-hero__icon svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  .tool-page-hero h1 {
+    font-size: clamp(2.15rem, 10vw, 3rem);
+    line-height: 1.06;
+    letter-spacing: -0.045em;
+  }
+
+  .tool-page-hero .tool-page-hero__description {
+    margin-top: 1.05rem;
+    font-size: 0.96rem;
+    line-height: 1.6;
+  }
+
+  .tool-page-hero .tool-privacy-line {
+    margin-top: 1.2rem;
+  }
+}
