@@ -74,7 +74,7 @@
 }
 
 .tool-card__copy + .tool-card__link {
-  margin-top: 1.15rem;
+  margin-top: auto;
 }
 
 .tool-card__link:hover {
@@ -132,11 +132,8 @@
     line-height: 1.5;
   }
 
-  .tool-card__copy + .tool-card__link {
-    margin-top: 1rem;
-  }
-
   .tool-card__link {
+    margin-top: 1rem;
     padding-top: 0.9rem;
   }
 }
