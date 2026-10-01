@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import {
+  FreeToolIcon,
+  type FreeToolIconName,
+} from "@/components/free-tool-icon";
 import "./tools.css";
+import "./tools-hub-polish.css";
 
 export const metadata: Metadata = {
   title: "Free PDF Tools",
@@ -11,13 +16,20 @@ export const metadata: Metadata = {
   },
 };
 
-const tools = [
+const tools: Array<{
+  title: string;
+  description: string;
+  href: string;
+  live: boolean;
+  icon: FreeToolIconName;
+}> = [
   {
     title: "PDF Upload Readiness Checker",
     description:
       "Check a PDF against file-size, page-count, page-format, searchability, and consistency requirements before you submit it.",
     href: "/tools/upload-readiness",
     live: true,
+    icon: "readiness",
   },
   {
     title: "PDF Scan Quality Map",
@@ -25,6 +37,7 @@ const tools = [
       "See which pages look crooked, blank, image-only, low quality, or difficult to search in one page-by-page map.",
     href: "/tools/scan-quality",
     live: true,
+    icon: "scan",
   },
   {
     title: "Before You Send Checker",
@@ -32,6 +45,7 @@ const tools = [
       "Inspect document baggage and privacy-sensitive details before a PDF leaves your hands.",
     href: "/tools/before-you-send",
     live: true,
+    icon: "send",
   },
   {
     title: "PDF Searchability Test",
@@ -39,6 +53,7 @@ const tools = [
       "Find the exact pages where searchable text is missing instead of relying on a document-wide yes or no.",
     href: "/tools/searchability",
     live: true,
+    icon: "search",
   },
   {
     title: "PDF Page Consistency Map",
@@ -46,6 +61,7 @@ const tools = [
       "Visualize page sizes, orientation, text presence, and structural outliers across the whole document.",
     href: "/tools/page-consistency",
     live: true,
+    icon: "consistency",
   },
   {
     title: "PDF Change Receipt",
@@ -53,6 +69,7 @@ const tools = [
       "Compare an original and modified PDF and get a plain-language receipt of the structural changes.",
     href: "/tools/change-receipt",
     live: true,
+    icon: "changes",
   },
 ];
 
@@ -74,18 +91,32 @@ export default function ToolsPage() {
         {tools.map((tool) =>
           tool.live && tool.href ? (
             <article className="tool-card tool-card--live" key={tool.title}>
-              <span className="tool-card__badge">Available now</span>
-              <h2>{tool.title}</h2>
-              <p>{tool.description}</p>
+              <div className="tool-card__top">
+                <span className={`tool-card__icon tool-card__icon--${tool.icon}`}>
+                  <FreeToolIcon name={tool.icon} />
+                </span>
+                <span className="tool-card__badge">Available now</span>
+              </div>
+              <div className="tool-card__copy">
+                <h2>{tool.title}</h2>
+                <p>{tool.description}</p>
+              </div>
               <Link className="tool-card__link" href={tool.href}>
                 Open free tool <span aria-hidden="true">→</span>
               </Link>
             </article>
           ) : (
             <article className="tool-card" key={tool.title}>
-              <span className="tool-card__badge tool-card__badge--next">Coming next</span>
-              <h2>{tool.title}</h2>
-              <p>{tool.description}</p>
+              <div className="tool-card__top">
+                <span className={`tool-card__icon tool-card__icon--${tool.icon}`}>
+                  <FreeToolIcon name={tool.icon} />
+                </span>
+                <span className="tool-card__badge tool-card__badge--next">Coming next</span>
+              </div>
+              <div className="tool-card__copy">
+                <h2>{tool.title}</h2>
+                <p>{tool.description}</p>
+              </div>
             </article>
           ),
         )}

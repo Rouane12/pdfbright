@@ -86,7 +86,11 @@ export async function readChangeReceiptMetadata(
 ): Promise<ChangeReceiptMetadata> {
   try {
     const bytes = await file.arrayBuffer();
-    const document = await PDFDocument.load(bytes);
+    // pdf-lib updates document metadata by default while loading. That can synthesize
+    // a fresh modification timestamp for PDFs that did not store one, which would
+    // make two reads of the exact same file appear different. Change Receipt must
+    // inspect only metadata that was already present in the source PDF.
+    const document = await PDFDocument.load(bytes, { updateMetadata: false });
 
     return {
       title: stringValue(document.getTitle()),
