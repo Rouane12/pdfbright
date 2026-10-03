@@ -4,6 +4,11 @@ import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { AnalysisDebugPanel } from "@/components/analysis-debug-panel";
 import { DiagnosisWorkspace } from "@/components/diagnosis-workspace";
 import { captureAnalyticsEvent, captureClientException, fileSizeBucket } from "@/lib/analytics/client";
+import {
+  GoogleDriveImportError,
+  pickGoogleDrivePdf,
+  type GoogleDriveImportStage,
+} from "@/lib/cloud-import/google-drive";
 import { analyzePdfFile } from "@/lib/pdf-analysis/analyze-pdf";
 import {
   PdfAnalysisError,
@@ -11,6 +16,8 @@ import {
   type PdfAnalysisResult,
 } from "@/lib/pdf-analysis/types";
 import { PdfPreflightError, preflightPdfFile } from "@/lib/security/pdf-preflight";
+
+type UploadSource = "device" | "google_drive";
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024 * 1024) {
@@ -35,6 +42,17 @@ function describeProgress(progress: PdfAnalysisProgress | null) {
       return "Analyzing pages…";
     case "finalizing":
       return "Preparing analysis summary…";
+  }
+}
+
+function describeCloudImport(stage: GoogleDriveImportStage) {
+  switch (stage) {
+    case "authorizing":
+      return "Connecting to Google Drive…";
+    case "picking":
+      return "Choose a PDF from Google Drive…";
+    case "downloading":
+      return "Importing your Google Drive PDF into this browser…";
   }
 }
 
@@ -78,6 +96,7 @@ export function UploadDropzone() {
   const inputRef = useRef<HTMLInputElement>(null);
   const sourceMenuRef = useRef<HTMLDetailsElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const cloudAbortRef = useRef<AbortController | null>(null);
   const analysisRunRef = useRef(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +105,7 @@ export function UploadDropzone() {
   const [analysisProgress, setAnalysisProgress] = useState<PdfAnalysisProgress | null>(null);
   const [analysisResult, setAnalysisResult] = useState<PdfAnalysisResult | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [cloudImportStage, setCloudImportStage] = useState<GoogleDriveImportStage | null>(null);
   const debugMode =
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("debug")
@@ -96,6 +116,7 @@ export function UploadDropzone() {
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
+      cloudAbortRef.current?.abort();
     };
   }, []);
 
@@ -106,7 +127,7 @@ export function UploadDropzone() {
     inputRef.current?.click();
   }
 
-  async function handleFile(file: File | undefined) {
+  async function handleFile(file: File | undefined, uploadSource: UploadSource = "device") {
     if (!file) return;
 
     const isPdfCandidate =
@@ -114,6 +135,7 @@ export function UploadDropzone() {
     if (isPdfCandidate) {
       captureAnalyticsEvent("upload_started", {
         local_vs_server: "local",
+        upload_source: uploadSource,
         file_size_bucket: fileSizeBucket(file.size),
       });
     }
@@ -139,6 +161,7 @@ export function UploadDropzone() {
       setAnalysisProgress({ phase: "loading" });
       captureAnalyticsEvent("analysis_started", {
         local_vs_server: "local",
+        upload_source: uploadSource,
         file_size_bucket: fileSizeBucket(file.size),
       });
       const result = await analyzePdfFile(file, {
@@ -153,11 +176,13 @@ export function UploadDropzone() {
       if (analysisRunRef.current !== runId) return;
       captureAnalyticsEvent("upload_completed", {
         local_vs_server: "local",
+        upload_source: uploadSource,
         file_size_bucket: fileSizeBucket(file.size),
         page_count: result.pageCount,
       });
       captureAnalyticsEvent("analysis_completed", {
         local_vs_server: "local",
+        upload_source: uploadSource,
         file_size_bucket: fileSizeBucket(file.size),
         page_count: result.pageCount,
         duration_ms: result.durationMs,
@@ -208,6 +233,43 @@ export function UploadDropzone() {
     }
   }
 
+  async function openGoogleDrivePicker() {
+    if (sourceMenuRef.current) {
+      sourceMenuRef.current.open = false;
+    }
+
+    cloudAbortRef.current?.abort();
+    const controller = new AbortController();
+    cloudAbortRef.current = controller;
+    setError(null);
+    setAnalysisError(null);
+    setCloudImportStage("authorizing");
+
+    try {
+      const file = await pickGoogleDrivePdf({
+        signal: controller.signal,
+        onStage: setCloudImportStage,
+      });
+
+      if (controller.signal.aborted || !file) return;
+      setCloudImportStage(null);
+      await handleFile(file, "google_drive");
+    } catch (importFailure) {
+      if (controller.signal.aborted) return;
+
+      setError(
+        importFailure instanceof GoogleDriveImportError
+          ? importFailure.message
+          : "PDFBright could not import that Google Drive PDF. Please try again.",
+      );
+    } finally {
+      if (cloudAbortRef.current === controller) {
+        cloudAbortRef.current = null;
+        setCloudImportStage(null);
+      }
+    }
+  }
+
   function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
     void handleFile(event.target.files?.[0]);
     event.target.value = "";
@@ -222,12 +284,15 @@ export function UploadDropzone() {
   function removeFile() {
     analysisRunRef.current += 1;
     abortRef.current?.abort();
+    cloudAbortRef.current?.abort();
     abortRef.current = null;
+    cloudAbortRef.current = null;
     setSelectedFile(null);
     setError(null);
     setAnalysisResult(null);
     setAnalysisProgress(null);
     setAnalysisError(null);
+    setCloudImportStage(null);
     setIsAnalyzing(false);
   }
 
@@ -324,6 +389,7 @@ export function UploadDropzone() {
                     type="button"
                     className="upload-source-picker__main"
                     onClick={openDevicePicker}
+                    disabled={cloudImportStage !== null}
                   >
                     <UploadSourceIcon kind="device" />
                     <span>Choose a PDF</span>
@@ -344,13 +410,18 @@ export function UploadDropzone() {
                         </span>
                       </button>
 
-                      <button type="button" className="upload-source-option" disabled title="Google Drive import is coming soon">
+                      <button
+                        type="button"
+                        className="upload-source-option"
+                        onClick={() => void openGoogleDrivePicker()}
+                        disabled={cloudImportStage !== null}
+                        title="Import a PDF from Google Drive"
+                      >
                         <span className="upload-source-option__icon"><UploadSourceIcon kind="drive" /></span>
                         <span className="upload-source-option__copy">
                           <strong>Google Drive</strong>
-                          <small>Cloud import</small>
+                          <small>Select a PDF</small>
                         </span>
-                        <span className="upload-source-option__soon">Soon</span>
                       </button>
 
                       <button type="button" className="upload-source-option" disabled title="Dropbox import is coming soon">
@@ -371,7 +442,7 @@ export function UploadDropzone() {
                         <span className="upload-source-option__soon">Soon</span>
                       </button>
 
-                      <p className="upload-source-popover__note">✦ Device upload stays the fastest, most private path.</p>
+                      <p className="upload-source-popover__note">✦ Cloud PDFs import into this browser; PDF processing stays local.</p>
                     </div>
                   </details>
                 </div>
@@ -386,6 +457,8 @@ export function UploadDropzone() {
           <div className="mt-4 min-h-6 text-center" aria-live="polite" aria-atomic="true">
             {error ? (
               <p className="text-sm font-medium text-rose-700">{error}</p>
+            ) : cloudImportStage ? (
+              <p className="text-sm font-medium text-slate-700">{describeCloudImport(cloudImportStage)}</p>
             ) : selectedFile && analysisError ? (
               <p className="text-sm font-medium text-rose-700">{analysisError}</p>
             ) : selectedFile && isAnalyzing ? (
