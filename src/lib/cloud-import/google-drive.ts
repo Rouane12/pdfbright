@@ -49,6 +49,7 @@ type GoogleDocsView = {
 
 type GooglePicker = {
   setVisible: (visible: boolean) => void;
+  dispose: () => void;
 };
 
 type GooglePickerBuilder = {
@@ -65,6 +66,7 @@ type GooglePickerNamespace = {
   Action: {
     PICKED: string;
     CANCEL: string;
+    ERROR: string;
   };
   DocsViewMode: {
     LIST: string;
@@ -322,19 +324,46 @@ function pickPdf(accessToken: string, config: GoogleDriveConfig) {
   }
 
   return new Promise<GooglePickerDocument | null>((resolve, reject) => {
+    let picker: GooglePicker | null = null;
+
+    const closePicker = () => {
+      if (!picker) return;
+      try {
+        picker.setVisible(false);
+      } catch {
+        // Best-effort cleanup if Google's picker is already torn down.
+      }
+      try {
+        picker.dispose();
+      } catch {
+        // Best-effort cleanup if Google's picker is already torn down.
+      }
+    };
+
     try {
       const view = new pickerNamespace.DocsView();
       view.setMimeTypes(PDF_MIME_TYPE);
       view.setMode(pickerNamespace.DocsViewMode.LIST);
 
-      const picker = new pickerNamespace.PickerBuilder()
+      picker = new pickerNamespace.PickerBuilder()
         .setDeveloperKey(config.apiKey)
         .setAppId(config.appId)
         .setOAuthToken(accessToken)
-        .setOrigin(window.location.origin)
         .addView(view)
         .setCallback((response) => {
+          if (response.action === pickerNamespace.Action.ERROR) {
+            closePicker();
+            reject(
+              new GoogleDriveImportError(
+                "picker-failed",
+                "Google Drive could not open the file picker. Check the Drive integration settings and try again.",
+              ),
+            );
+            return;
+          }
+
           if (response.action === pickerNamespace.Action.CANCEL) {
+            closePicker();
             resolve(null);
             return;
           }
@@ -343,6 +372,7 @@ function pickPdf(accessToken: string, config: GoogleDriveConfig) {
 
           const selected = response.docs?.[0];
           if (!selected?.id) {
+            closePicker();
             reject(
               new GoogleDriveImportError(
                 "invalid-selection",
@@ -353,6 +383,7 @@ function pickPdf(accessToken: string, config: GoogleDriveConfig) {
           }
 
           if (selected.mimeType && selected.mimeType !== PDF_MIME_TYPE) {
+            closePicker();
             reject(
               new GoogleDriveImportError(
                 "invalid-selection",
@@ -362,12 +393,14 @@ function pickPdf(accessToken: string, config: GoogleDriveConfig) {
             return;
           }
 
+          closePicker();
           resolve(selected);
         })
         .build();
 
       picker.setVisible(true);
     } catch {
+      closePicker();
       reject(
         new GoogleDriveImportError(
           "picker-failed",
