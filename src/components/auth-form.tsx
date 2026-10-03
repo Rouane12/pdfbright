@@ -10,6 +10,8 @@ type UpgradePlan = "monthly" | "yearly";
 type Status = { kind: "success" | "error"; message: string } | null;
 type PendingAction = "google" | "email" | null;
 
+const OAUTH_START_TIMEOUT_MS = 12_000;
+
 function readUpgradePlan(value: string | null): UpgradePlan | null {
   return value === "monthly" || value === "yearly" ? value : null;
 }
@@ -22,6 +24,22 @@ function getAccountRedirect(upgradePlan: UpgradePlan | null) {
   }
 
   return url.toString();
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
+  let timeoutId: number | null = null;
+
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId !== null) {
+      window.clearTimeout(timeoutId);
+    }
+  }
 }
 
 function makeUnmanagedSignupPassword() {
@@ -63,27 +81,46 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     });
   }, [accountPath, router]);
 
+  useEffect(() => {
+    // Browser back/forward cache can restore the page with the old pending state.
+    // Reset it whenever the auth page becomes active again so the button never
+    // remains stuck on "Opening Google…" after an abandoned provider flow.
+    const handlePageShow = () => {
+      setPendingAction(null);
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
   async function handleGoogleOAuth() {
     setStatus(null);
     setPendingAction("google");
 
     try {
       const supabase = getSupabaseBrowserClient();
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: getAccountRedirect(upgradePlan),
-        },
-      });
+      const { data, error } = await withTimeout(
+        supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: getAccountRedirect(upgradePlan),
+            // Supabase normally performs the browser redirect itself. Keep redirect
+            // ownership here instead so PDFBright can detect startup failures and
+            // never leave the account UI indefinitely disabled.
+            skipBrowserRedirect: true,
+          },
+        }),
+        OAUTH_START_TIMEOUT_MS,
+        "Google sign-in took too long to start. Please try again.",
+      );
 
       if (error) throw error;
 
-      if (data.url) {
-        window.location.assign(data.url);
-        return;
+      if (!data.url) {
+        throw new Error("Google sign-in did not return a secure redirect.");
       }
 
-      throw new Error("Google sign-in did not return a secure redirect.");
+      window.location.assign(data.url);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Google sign-in could not start.";
       setStatus({ kind: "error", message });
