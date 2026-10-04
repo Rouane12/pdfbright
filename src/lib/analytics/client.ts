@@ -22,7 +22,12 @@ export type AnalyticsEventName =
   | "free_tool_analysis_started"
   | "free_tool_analysis_completed"
   | "free_tool_analysis_failed"
-  | "free_tool_core_cta_clicked";
+  | "free_tool_core_cta_clicked"
+  | "fit_to_size_viewed"
+  | "fit_to_size_started"
+  | "fit_to_size_completed"
+  | "fit_to_size_failed"
+  | "fit_to_size_downloaded";
 
 export type ClientExceptionStage = "analysis" | "cleanup" | "app_runtime";
 
