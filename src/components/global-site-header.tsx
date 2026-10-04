@@ -5,12 +5,21 @@ import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
-function MenuIcon({ kind }: { kind: "how" | "tools" | "pricing" | "account" }) {
+function MenuIcon({ kind }: { kind: "how" | "fit" | "tools" | "pricing" | "account" }) {
   if (kind === "how") {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M5 7.5h14M5 12h9M5 16.5h6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
         <path d="m16 14 3 2.5-3 2.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (kind === "fit") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M8 4.5h8v15H8z" fill="none" stroke="currentColor" strokeWidth="1.7" />
+        <path d="m4.5 9 2.5 3-2.5 3M19.5 9 17 12l2.5 3" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   }
@@ -74,6 +83,7 @@ export function GlobalSiteHeader() {
 
         <nav className="global-nav global-nav--desktop" aria-label="Primary navigation">
           <Link className="nav-link" href="/#how-it-works">How it works</Link>
+          <Link className="nav-link" href="/fit-pdf-size">Fit to Size</Link>
           <Link className="nav-link" href="/tools">Free Tools</Link>
           <Link className="nav-link" href="/#pricing">{billingEnabled ? "Pricing" : "Free Early Access"}</Link>
           <Link className="global-nav__signin" href={accountHref}>{accountLabel}</Link>
@@ -91,6 +101,10 @@ export function GlobalSiteHeader() {
             <Link className="global-nav-mobile__item" href="/#how-it-works">
               <span className="global-nav-mobile__icon global-nav-mobile__icon--how"><MenuIcon kind="how" /></span>
               <span>How it works</span>
+            </Link>
+            <Link className="global-nav-mobile__item" href="/fit-pdf-size">
+              <span className="global-nav-mobile__icon"><MenuIcon kind="fit" /></span>
+              <span>Fit to Size</span>
             </Link>
             <Link className="global-nav-mobile__item" href="/tools">
               <span className="global-nav-mobile__icon"><MenuIcon kind="tools" /></span>
