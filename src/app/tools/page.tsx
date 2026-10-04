@@ -87,6 +87,29 @@ export default function ToolsPage() {
         </div>
       </section>
 
+      <section className="tools-action-feature" aria-labelledby="fit-my-pdf-heading">
+        <div className="tools-action-feature__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M8 3.8h8v16.4H8z" stroke="currentColor" strokeWidth="1.7" />
+            <path d="m3.8 8.7 2.8 3.3-2.8 3.3M20.2 8.7 17.4 12l2.8 3.3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <div className="tools-action-feature__copy">
+          <div className="tools-action-feature__meta">
+            <span className="tools-action-feature__badge">New action tool</span>
+            <span>Measured target-size compression</span>
+          </div>
+          <h2 id="fit-my-pdf-heading">Need this PDF under 2 MB?</h2>
+          <p>
+            Set the maximum size. Fit My PDF tests real outputs from the least aggressive quality profile downward,
+            keeps native text and vector pages intact, and returns the first validated result that actually fits.
+          </p>
+        </div>
+        <Link className="tools-action-feature__link" href="/fit-pdf-size">
+          Fit My PDF <span aria-hidden="true">→</span>
+        </Link>
+      </section>
+
       <section className="tools-grid" aria-label="PDFBright free tools">
         {tools.map((tool) =>
           tool.live && tool.href ? (
