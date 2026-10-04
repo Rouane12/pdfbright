@@ -12,6 +12,10 @@ const scannedPdfSearchRoutes = [
   "/improve-scanned-pdf",
 ] as const;
 
+const productRoutes = [
+  "/fit-pdf-size",
+] as const;
+
 const freeToolRoutes = [
   "/tools",
   "/tools/upload-readiness",
@@ -23,7 +27,7 @@ const freeToolRoutes = [
 ] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date("2026-09-19");
+  const lastModified = new Date("2026-10-04");
 
   return [
     {
@@ -32,6 +36,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 1,
     },
+    ...productRoutes.map((path) => ({
+      url: `${baseUrl}${path}`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.9,
+    })),
     ...scannedPdfSearchRoutes.map((path, index) => ({
       url: `${baseUrl}${path}`,
       lastModified,
